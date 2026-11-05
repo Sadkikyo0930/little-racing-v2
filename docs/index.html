@@ -13,6 +13,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="小小赛车" />
+    <!-- PWA：manifest 用相对路径，GitHub Pages 子路径（/little-racing-v2/）下也能装；
+         start_url / scope 都是 "./"，换目录不用改。
+         iOS 用 apple-touch-icon 作为主屏幕图标（不支持 manifest 里的 icons）。 -->
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon-180.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ffd23f'/%3E%3Cpath d='M5 21h22l-3 5H8z' fill='%23e23b2e'/%3E%3Ccircle cx='11' cy='25' r='3' fill='%23222'/%3E%3Ccircle cx='21' cy='25' r='3' fill='%23222'/%3E%3Cpath d='M10 15h12l3 5H7z' fill='%23e23b2e'/%3E%3Cpath d='M13 11h6l2 4H11z' fill='%23fff'/%3E%3C/svg%3E"
@@ -29,13 +35,13 @@
       media="print"
       onload="this.media='all'"
     />
-    <script type="module" crossorigin src="./assets/index-rUAxBkOP.js"></script>
+    <script type="module" crossorigin src="./assets/index-CVLQKwF5.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/BufferGeometryUtils-tPKDsqyq.js">
     <link rel="modulepreload" crossorigin href="./assets/textures-4fnogs6i.js">
-    <link rel="modulepreload" crossorigin href="./assets/model-BQsc3RdZ.js">
+    <link rel="modulepreload" crossorigin href="./assets/model-BDVQmPBO.js">
     <link rel="modulepreload" crossorigin href="./assets/characters-BWm2yn3j.js">
     <link rel="modulepreload" crossorigin href="./assets/preload-helper-HclGiUj8.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-CR2a9pPe.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-DwFFXIQz.css">
   </head>
   <body>
     <div id="app">
