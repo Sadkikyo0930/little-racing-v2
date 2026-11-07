@@ -1777,7 +1777,7 @@ if (TEST_HOOKS) window.__sim = {
       stat[i].minY = +stat[i].minY.toFixed(2);
       stat[i].maxDrop = +stat[i].maxDrop.toFixed(3);
       stat[i].maxStallSec = +stat[i].maxStallSec.toFixed(1);
-      stat[i].maxBridgeStall = +stat[i].maxBridgeStall.toFixed(1);
+      // Keep raw duration for threshold assertions; round only in report text.
       stat[i].bridgeSec = +stat[i].bridgeSec.toFixed(1);
       stat[i].offroadFrames = stat[i].offroadFrames;
       stat[i].lapTimes = k.lapTimes.map((v) => +v.toFixed(2));
