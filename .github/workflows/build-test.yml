@@ -1,0 +1,329 @@
+# build-test.yml
+# 自动构建 + 测试门禁 + develop 预览部署（同一工作流内两个 job）。
+# 触发：develop 推送、对 develop/main 的 PR、以及手动 workflow_dispatch。
+#
+# ==================================================================
+# 自动部署架构（2026-11-07 改版 · 单工作流 / 两 job）
+#
+#   test            构建 + 赛道审计 + 4 项 Puppeteer 回归 + 预览产物两道校验
+#                   + 上传 preview-dist artifact（仅在 develop push）
+#   deploy-preview  needs: test，仅在「test 全部成功 + develop 分支 + push 事件」
+#                   时运行，把同一 run 的产物部署到独立测试仓库
+#
+#   相比旧版（独立 deploy-preview.yml + workflow_run）：
+#     · 不再依赖 workflow_run，因此**不需要把任何工作流文件放进默认分支 main**；
+#       main 与 docs/ 保持原样，也不合并与本地源码无共同祖先的历史。
+#     · artifact 在**同一次 workflow run** 内由 test 上传、deploy 下载，
+#       不需要 run-id / 跨运行查找，天然锁定「被测过的那一份」。
+#     · TEST_REPO_TOKEN 只在 deploy-preview job 内引用；test job 与其余任何
+#       位置都拿不到部署凭据（建议同时在 GitHub 上把它设为 preview 环境 Secret）。
+#     · 正式版仍由独立的 deploy-production.yml 负责：仅 main + 手动触发 +
+#       production 环境人工审批。本工作流完全不碰正式版。
+# ==================================================================
+#
+# 关键约束：
+#   本工作流是「测试版部署」的唯一正确性来源，且是「首次安全推送」的闸门。
+#   1) 先用「带测试钩子 + 默认前缀 lrv2」构建，跑审计 + 完整 Puppeteer 回归
+#      （reward / stage1 / chapter2 / pages-interface-scan）；
+#      其中 pages-interface-scan 会自己再构建一份「干净生产包」并断言其中
+#      不含任何调试接口（window.__sim / __garage 等）。
+#   2) 上述每一步都是顺序执行，任一步失败整个 job 即失败 → 后续步骤不会执行；
+#      只有全部测试通过，最后一步才会用「测试前缀 lrv2test + 测试基路径」构建
+#      并上传 preview-dist 产物；而这份最终 preview-dist 在上传前还会再过两道
+#      独立校验（产物级 + 浏览器运行时启动冒烟），任一项失败即中止上传。
+#      deploy-preview 是本工作流内的独立 job（needs: test），只有 test 全部成功、
+#      且是 develop 分支的 push 时才运行 —— 测试失败或来源不符则预览绝不上线。
+#   3) Puppeteer 在 Ubuntu Runner 上的安装与运行（sudo 与用户两步严格分离）：
+#      - GitHub-hosted Runner 的默认用户在 sudoers 中免密，但**不是 root**；
+#        `--install-deps` / `--with-deps` 这类「安装浏览器时顺带装系统依赖」的开关，
+#        在普通用户下会因尝试非 root 写系统目录而失败，因此这里**不使用**；
+#      - 第一步：只用 `sudo apt-get install` 单独安装 Chrome 运行库，
+#        sudo 仅作用于系统依赖，不碰浏览器。这一步内部再拆两段：
+#        (a) 与发行版无关的公共运行库（libnss3 / libgbm1 / libx11-6 …）一次装齐；
+#        (b) 再用 apt-cache 判断 libasound2t64 是否存在，二选一安装
+#            libasound2t64（Ubuntu 24.04+）或 libasound2（旧版）。
+#        两段分开，避免「libasound 包名不存在 → 整条安装失败 → 回退命令
+#        只装 libasound2、遗漏前面全部公共依赖」；
+#      - 第二步：浏览器二进制由「普通 runner 用户」用 `npx @puppeteer/browsers
+#        install chrome@stable` 安装到 $HOME/.cache/puppeteer（不加 --install-deps、
+#        不加 sudo）——否则浏览器会落到 /root，导致运行用户无权读取；
+#      - 校验浏览器文件属主 == 运行用户（$USER），确认安装位置与运行身份一致；
+#      - 把 Chrome 真实可执行文件路径导出为 PUPPETEER_EXECUTABLE_PATH，测试代码
+#        （tools/test/lib.mjs 的 findBrowser()）会优先读取该变量；
+#      - 安装完成后实际启动一次 Chrome（`--version` + headless `--dump-dom`），
+#        确认它真的能跑起来，而不仅仅是「文件存在」；
+#      - 测试启动参数已含 --no-sandbox --disable-dev-shm-usage，适配 CI 非 root 环境。
+name: Build & Test
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+# 全工作流最小权限：只读源码与 artifacts。写入外部测试仓库由
+# TEST_REPO_TOKEN（仅 deploy-preview job 持有）完成，不提升 GITHUB_TOKEN。
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (locked versions)
+        run: npm ci
+
+      # 第一步：系统依赖用 sudo 单独安装（只装运行库，不碰浏览器本体）。
+      # 说明（对应需求 1）：
+      #   · GitHub-hosted Runner 的默认用户在 sudoers 中免密，但**不是 root**；
+      #   · 这一步用 sudo 只跑 apt-get 装 libnss3 / libgbm1 等 Chrome 运行库；
+      #   · 不要把 sudo 用在整个安装命令上——否则浏览器二进制会被装到 /root，
+      #     导致后续运行用户无权读取（权限错配）。
+      - name: Install Chrome system dependencies (sudo, runner user)
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+
+          # 第 1 步：把与发行版无关的公共运行库一次性装齐。
+          # 注意：绝不能把 libasound 包名和这些公共依赖写在同一条 apt-get 里再用
+          # `|| sudo apt-get install -y libasound2` 回退 —— 一旦 libasound2t64
+          # 在该系统不存在，第一条整条失败，回退命令只会装 libasound2，
+          # 前面所有公共依赖全部被遗漏（Chrome 随后因缺库启动失败）。
+          COMMON_DEPS=(
+            libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2
+            libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3
+            libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libatspi2.0-0
+            libxshmfence1 libgtk-3-0 libx11-6 libxcb1 libxext6
+          )
+          sudo apt-get install -y "${COMMON_DEPS[@]}"
+          echo "✓ 公共依赖已安装（${#COMMON_DEPS[@]} 项）"
+
+          # 第 2 步：单独判断 libasound 包名再二选一安装。
+          # Ubuntu 24.04 起为 libasound2t64（t64 过渡），旧版为 libasound2。
+          # 用 apt-cache show 判断「候选包是否存在」，而不是让整条安装失败后回退，
+          # 这样无论走哪个分支，上面的公共依赖都已装好、绝不会被跳过。
+          if apt-cache show libasound2t64 >/dev/null 2>&1; then
+            echo "libasound 包名：libasound2t64"
+            sudo apt-get install -y libasound2t64
+          else
+            echo "libasound 包名：libasound2（回退）"
+            sudo apt-get install -y libasound2
+          fi
+          echo "✓ Chrome 系统依赖安装完成（公共依赖 + libasound 二选一）"
+
+      # 第二步：浏览器二进制由「普通 runner 用户」安装到 $HOME/.cache/puppeteer。
+      # 不加 --install-deps（该开关在普通用户下会因尝试非 root 写系统目录而失败），
+      # 也不加 sudo（否则落到 /root）。运行用户与安装用户一致 → 后续测试可读可执行。
+      - name: Install headless Chrome for Puppeteer regression (runner user)
+        run: |
+          set -euo pipefail
+          INSTALL_LOG=$(npx --yes @puppeteer/browsers install chrome@stable 2>&1)
+          echo "$INSTALL_LOG"
+
+          # 优先从安装日志里取可执行文件路径（形如：chrome@<build> <abs-path>）
+          CHROME_BIN=$(printf '%s\n' "$INSTALL_LOG" | grep -oE '/[^ ]*/chrome$' | tail -n1)
+          # 兜底：在运行用户 home 的缓存目录里查找 chrome-linux64/chrome
+          if [ -z "${CHROME_BIN:-}" ] || [ ! -x "$CHROME_BIN" ]; then
+            CHROME_BIN=$(find "$HOME/.cache/puppeteer" -type f -name chrome -path '*chrome-linux64*' 2>/dev/null | head -n1)
+          fi
+          if [ -z "${CHROME_BIN:-}" ] || [ ! -x "$CHROME_BIN" ]; then
+            echo "::error::Chrome 未安装成功或不可执行"
+            exit 1
+          fi
+
+          # 安装位置必须与运行用户一致（不能落在 /root 等其它用户目录）
+          OWNER=$(stat -c '%U' "$CHROME_BIN")
+          echo "Chrome 路径：$CHROME_BIN（属主：$OWNER / 当前用户：$USER）"
+          if [ "$OWNER" != "$USER" ]; then
+            echo "::error::Chrome 属主($OWNER) 与运行用户($USER) 不一致，存在权限错配"
+            exit 1
+          fi
+
+          # 实际启动验证：确认 Chrome 真的能运行，而不仅仅是文件存在
+          "$CHROME_BIN" --version
+          if ! "$CHROME_BIN" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --dump-dom about:blank >/dev/null 2>&1; then
+            echo "::error::Chrome 启动验证失败（headless --dump-dom 异常退出）"
+            exit 1
+          fi
+
+          # 导出给后续步骤的测试代码使用
+          echo "PUPPETEER_EXECUTABLE_PATH=$CHROME_BIN" >> "$GITHUB_ENV"
+          echo "✓ Chrome 安装并启动验证通过"
+
+      # 快速门禁：纯 Node 审计（不依赖浏览器），尽早发现赛道/配速异常。
+      - name: Fast track audit (pure Node, no browser)
+        run: node tools/audit-track.mjs --json
+
+      # 用「带测试钩子 + 默认前缀 lrv2」构建，供 reward/stage1/chapter2 回归驱动游戏。
+      # （pages-interface-scan 会另行构建自己的干净生产包，无需测试钩子。）
+      - name: Build for regression (test hooks ON, canonical lrv2 keys)
+        run: npm run build
+        env:
+          VITE_TEST_HOOKS: '1'
+
+      # 完整 Puppeteer 回归套件（reward / stage1 / chapter2 / pages-interface-scan）。
+      # 任一步失败 → test job 失败 → 不会走到下方的预览产物构建与 deploy-preview job。
+      - name: Regression · reward
+        run: node tools/test/reward.mjs
+      - name: Regression · stage1
+        run: node tools/test/stage1.mjs
+      - name: Regression · chapter2
+        run: node tools/test/chapter2.mjs
+      - name: Regression · pages-interface-scan (asserts no debug hooks in prod build)
+        run: node tools/test/pages-interface-scan.mjs
+
+      # 仅当以上全部通过、且当前是「develop 分支的 push」时才构建隔离预览产物。
+      # PR（含 fork PR）与 workflow_dispatch 都不会生成可部署产物。
+      # 该产物使用 lrv2test 前缀 + /little-racing-v2-test/ 基路径，与正式版零重叠，
+      # 由本工作流的 deploy-preview job 下载并部署到独立测试仓库。
+      - name: Build isolated preview artifact (lrv2test / hooks OFF / test base)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: npm run build
+        env:
+          VITE_TEST_HOOKS: '0'
+          VITE_SAVE_PREFIX: 'lrv2test'
+          VITE_BASE: '/little-racing-v2-test/'
+
+      # 对「最终要部署的 preview-dist」做独立校验 —— 不能只因上面带钩子的回归
+      # 构建通过，就认定这份最终产物也已完整回归。
+      #   · 产物级：前缀确实是 lrv2test、基路径是测试路径、无正式路径/正式键泄漏、
+      #            未启用测试钩子（无 window.__sim= 等赋值）、测试命名空间确实生效
+      #   · 运行时：无头浏览器实际打开，确认能 boot、canvas 渲染、无未捕获异常、
+      #            资源全加载、且 localStorage 实际写入的是 lrv2test 命名空间
+      # 任一项失败 → 步骤非零退出 → job 失败 → 不会走到上传与部署。
+      - name: Verify preview artifact (build-level checks)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: node tools/verify-preview-build.mjs
+
+      - name: Verify preview artifact (runtime boot smoke)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: node tools/test/preview-smoke.mjs
+
+      - name: Upload preview artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-dist
+          path: dist
+          if-no-files-found: error
+
+  # ==================================================================
+  # 预览部署 Job（替代原 deploy-preview.yml 的 workflow_run 独立工作流）
+  # ==================================================================
+  deploy-preview:
+    name: Deploy Preview (develop push only)
+    needs: test
+    # 三道条件同时成立才允许部署：
+    #   · needs.test.result == 'success' —— test job 全部步骤成功（失败/取消即跳过）
+    #   · github.event_name == 'push'   —— 排除 PR、workflow_dispatch、fork 来源
+    #   · github.ref == develop         —— 只有 develop 分支的 push
+    # needs: test 本身也是硬阻断：test 失败时 GitHub 直接跳过本 job。
+    if: >-
+      needs.test.result == 'success' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: https://sadkikyo0930.github.io/little-racing-v2-test/
+    # 最小权限：只读源码与 artifacts。跨仓库写入由 TEST_REPO_TOKEN 完成，
+    # 不提升 GITHUB_TOKEN 的 contents 权限；本 job 也不需要 checkout 源码。
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      # 门禁（纵深防御）：把事件字段通过 env 传入，不直接把 ${{ }} 拼进 shell，
+      # 逐项打印并校验，任何一项不符立即 exit 1，绝不带部署凭据继续。
+      - name: Gate · assert deployment source
+        env:
+          EVT_NAME: ${{ github.event_name }}
+          EVT_REF: ${{ github.ref }}
+          TEST_RESULT: ${{ needs.test.result }}
+          SRC_SHA: ${{ github.sha }}
+          SRC_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          echo "event         : $EVT_NAME"
+          echo "ref           : $EVT_REF"
+          echo "test result   : $TEST_RESULT"
+          echo "source commit : $SRC_SHA"
+          echo "source repo   : $SRC_REPO"
+          if [ "$TEST_RESULT" != "success" ]; then
+            echo "::error::test job 未成功（$TEST_RESULT）"; exit 1; fi
+          if [ "$EVT_NAME" != "push" ]; then
+            echo "::error::非 push 事件（$EVT_NAME），禁止部署"; exit 1; fi
+          if [ "$EVT_REF" != "refs/heads/develop" ]; then
+            echo "::error::非 develop 分支（$EVT_REF），禁止部署"; exit 1; fi
+          echo "✓ 门禁通过：develop push，且 test job 全部成功"
+
+      # 同一 workflow run 内的 artifact，天然锁定「本次被测过的那一份」，
+      # 无需 run-id / github-token / 跨运行查找，也不会串到别的运行或 PR。
+      - name: Download the exact tested artifact (same workflow run)
+        uses: actions/download-artifact@v4
+        with:
+          name: preview-dist
+          path: ./preview-dist
+
+      # 部署前再校验一次产物，防止空包 / 基路径错误被推上线。
+      - name: Verify downloaded artifact before deploying
+        run: |
+          set -euo pipefail
+          if [ ! -s ./preview-dist/index.html ]; then
+            echo "::error::preview-dist/index.html 缺失或为空"; exit 1; fi
+          if ! grep -q '/little-racing-v2-test/' ./preview-dist/index.html; then
+            echo "::error::产物基路径不是隔离测试版路径 /little-racing-v2-test/"; exit 1; fi
+          echo "✓ 产物完整，基路径为隔离测试版路径"
+
+      # TEST_REPO_TOKEN 在**整个仓库的全部工作流里只在此处**被引用。
+      # 建议把它配置为 preview 环境的 Environment secret，使 GitHub 层面
+      # 也只有绑定该环境的 job 能读取（见交付文档 GITHUB_STATUS.md）。
+      - name: Deploy preview to isolated test repo
+        id: deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ secrets.TEST_REPO_TOKEN }}
+          external_repository: sadkikyo0930/little-racing-v2-test
+          publish_dir: ./preview-dist
+          publish_branch: gh-pages
+          user_name: github-actions
+          user_email: actions@github.com
+          commit_message: "preview: ${{ github.sha }} (develop)"
+
+      # 部署记录：成功/失败都写入 Job Summary，便于事后审计「哪次 commit 上线了」。
+      # 所有事件字段经 env 传递，不插值进 shell 命令；用步骤 outcome 记录真实结果。
+      - name: Record deployment in Job Summary
+        if: always()
+        env:
+          SRC_SHA: ${{ github.sha }}
+          EVT_REF: ${{ github.ref }}
+          TEST_RESULT: ${{ needs.test.result }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          RUN_ID: ${{ github.run_id }}
+          TARGET_REPO: sadkikyo0930/little-racing-v2-test
+          TARGET_URL: https://sadkikyo0930.github.io/little-racing-v2-test/
+        run: |
+          {
+            echo "## Preview deployment record"
+            echo ""
+            echo "| 项 | 值 |"
+            echo "|---|---|"
+            echo "| commit | \`$SRC_SHA\` |"
+            echo "| branch | \`$EVT_REF\` |"
+            echo "| test job | \`$TEST_RESULT\` |"
+            echo "| deploy outcome | \`$DEPLOY_OUTCOME\` |"
+            echo "| run id | \`$RUN_ID\` |"
+            echo "| target repo | \`$TARGET_REPO\` (branch \`gh-pages\`) |"
+            echo "| URL | $TARGET_URL |"
+            echo "| artifact | \`preview-dist\` (同一 run，来自 test job) |"
+            echo "| save prefix | \`lrv2test\` (与正式版 \`lrv2\` 零重叠) |"
+            echo "| time (UTC) | $(date -u +%Y-%m-%dT%H:%M:%SZ) |"
+          } >> "$GITHUB_STEP_SUMMARY"

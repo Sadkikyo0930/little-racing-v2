@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-test/
+.DS_Store
+*.log
+.vite/
+# 本地验证用的 Chrome 缓存（不作为交付物提交）
+.chrome/
+# 测试输出 / 调试脚本
+tools/out/
+_dbg*.mjs

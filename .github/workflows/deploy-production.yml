@@ -1,0 +1,99 @@
+# deploy-production.yml
+# 正式版部署（GitHub Pages · Actions 发布模式）。
+#
+# 关键约束（对应需求 3 / 4 / 5）：
+#   - 只能通过「手动 workflow_dispatch」触发，绝不因 push 自动发布；
+#   - 只允许 main 分支正式发布：develop / 其它分支触发会被 `if` 直接跳过，
+#     develop 永远无法直接覆盖正式版；
+#   - 构建绝不开启 VITE_TEST_HOOKS（不把调试接口 / 测试构建部署到正式游戏）；
+#   - 构建使用正式版专属前缀（VITE_SAVE_PREFIX=lrv2）与基路径（VITE_BASE=/little-racing-v2/），
+#     与测试版零重叠；
+#   - 审批只保留在最终 deploy job：build job 不绑定 environment，
+#     因此构建会先自动跑完，deploy 才卡在 production 环境审批 → 避免重复审批。
+#   - 发布说明（note）通过环境变量 + 写入 Job Summary 记录，绝不插值进 shell 命令，
+#     杜绝命令注入。
+#
+# ⚠️ 关于 Pages 设置（需求 5）：本工作流使用 GitHub Actions 发布（actions/deploy-pages），
+#    要求仓库 Pages 的 Source 为「GitHub Actions」。当前仓库若仍是
+#    「Deploy from a branch / main / docs」，请按交付文档 06 的步骤切换到
+#    「GitHub Actions」；切换后即可直接复用本文件，无需改动主线或任何游戏代码。
+#    （若坚持保留「branch / main / docs」，交付文档同时给出兼容方案备选。）
+#
+# 前置（见交付文档 06）：仓库 Settings → Environments → 新建 production，
+# 勾选 Required reviewers（至少一名家长/负责人）。
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: '发布说明（用于部署记录）'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # 仅 main 分支允许正式部署；从 develop 等其它分支手动触发会被跳过
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (locked versions)
+        run: npm ci
+
+      - name: Build production (NO test hooks, prod keys + base)
+        run: npm run build
+        env:
+          VITE_TEST_HOOKS: '0'
+          VITE_SAVE_PREFIX: 'lrv2'
+          VITE_BASE: '/little-racing-v2/'
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    # 与 build 同样门禁：仅 main 分支（build 被跳过时本 job 也自动跳过）
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # 审批只保留在最终 deploy job：production 环境配置了 Required reviewers，
+    # build job 不绑定 environment → 构建先自动完成，deploy 才等待人工批准。
+    environment:
+      name: production
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # 发布说明通过环境变量传递（不插值进命令行），再以 Job Summary 记录，
+      # 避免 note 中的特殊字符被 shell 解释执行（命令注入防护）。
+      - name: Record deploy note (safe, no shell eval)
+        if: ${{ github.event.inputs.note != '' }}
+        env:
+          DEPLOY_NOTE: ${{ github.event.inputs.note }}
+        run: |
+          {
+            echo "## Production deploy"
+            echo "- commit: ${{ github.sha }}"
+            echo "- time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo ""
+            echo "### 发布说明"
+            echo "$DEPLOY_NOTE"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
