@@ -1,0 +1,36 @@
+{
+  "name": "小小赛车 · 快乐卡丁车冒险",
+  "short_name": "小小赛车",
+  "description": "为 6～8 岁小朋友设计的 3D 卡通卡丁车游戏：三圈比赛、道具、剧情和车库。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "orientation": "landscape",
+  "background_color": "#05070c",
+  "theme_color": "#0a1c33",
+  "categories": ["games", "kids"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

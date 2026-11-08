@@ -1,0 +1,68 @@
+name: Chapter 2 release regression
+on:
+  push:
+    branches: [release/qa-chapter2-20261108]
+permissions:
+  contents: read
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Reproduce accepted preview exactly
+        run: VITE_BASE=/little-racing-v2-test/ VITE_SAVE_PREFIX=lrv2test VITE_TEST_HOOKS=0 npm run build -- --outDir dist-preview
+      - name: Build production exactly
+        run: VITE_BASE=/little-racing-v2/ VITE_SAVE_PREFIX=lrv2 VITE_TEST_HOOKS=0 npm run build
+      - name: Verify both full SHA256 manifests and track
+        run: |
+          python3 - <<'PY'
+          import json, hashlib
+          from pathlib import Path
+          for folder, manifest in [('dist-preview','accepted-preview-sha256.json'),('dist','production-sha256.json')]:
+              p=Path(folder)
+              actual={str(f.relative_to(p)):hashlib.sha256(f.read_bytes()).hexdigest() for f in p.rglob('*') if f.is_file()}
+              assert actual==json.loads(Path(manifest).read_text()), folder
+              print('PASS',folder,len(actual),'exact files')
+          PY
+          node tools/audit-track.mjs --json
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [reward, chapter2, stage1, chapter2-voice, pages-interface-scan]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Use installed Chrome
+        run: echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+      - name: Build final production and instrumented regression
+        run: |
+          VITE_BASE=/little-racing-v2/ VITE_SAVE_PREFIX=lrv2 VITE_TEST_HOOKS=0 npm run build
+          VITE_BASE=./ VITE_SAVE_PREFIX=lrv2 VITE_TEST_HOOKS=1 npm run build -- --outDir dist-test
+      - name: Run original complete regression assertions
+        env:
+          SUITE: ${{ matrix.suite }}
+        run: |
+          if [ "$SUITE" = pages-interface-scan ]; then
+            TEST_BASE=/little-racing-v2/ node tools/test/$SUITE.mjs --no-build
+          else
+            node tools/test/$SUITE.mjs --no-build
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-regression-${{ matrix.suite }}
+          path: |
+            tools/out/
+            deliver/

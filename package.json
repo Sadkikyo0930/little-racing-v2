@@ -1,0 +1,20 @@
+{
+  "name": "old-san-juan-kart",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Old San Juan Kart - a Three.js arcade kart racer set in Viejo San Juan, Puerto Rico",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@puppeteer/browsers": "^2.6.1",
+    "puppeteer-core": "^23.11.1",
+    "vite": "^8.2.0"
+  }
+}
