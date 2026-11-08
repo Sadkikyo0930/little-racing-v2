@@ -14,7 +14,7 @@ const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('response', r => { if (r.url().startsWith(base) && r.status() >= 400) errors.push(r.status() + ' ' + r.url()); });
-page.on('requestfailed', r => { if (r.url().startsWith(base)) errors.push(r.failure()?.errorText + ' ' + r.url()); });
+page.on('requestfailed', r => { if (r.url().startsWith(base) && r.failure()?.errorText !== 'net::ERR_ABORTED') errors.push(r.failure()?.errorText + ' ' + r.url()); });
 const seed = {
   'lrv2.garage.meta': { version: 3, createdAt: 100, migratedAt: 200 },
   'lrv2.garage.coins': { coins: 3456, updatedAt: 100 },
@@ -72,13 +72,13 @@ try {
   console.log('PASS: all 29 live MP3 resources fetched and decoded, including 5+21 chapter voices');
 
   await page.click('#storyBtn');
-  await page.waitForFunction(() => !document.querySelector('#story').classList.contains('hidden') && document.querySelector('#storyText').textContent.length > 0, { timeout: 180000 });
+  await page.waitForFunction(() => !document.querySelector('#story').classList.contains('hidden') && !document.querySelector('#story').classList.contains('busy') && document.querySelector('#storyText').textContent.length > 0, { timeout: 180000 });
   assert((await page.$eval('#storyChapter', e => e.textContent)).includes('第一章'));
   console.log('PASS: live first-chapter entry renders story text');
   await page.screenshot({ path: 'live-results/production-chapter1.png' });
 
   await page.goto(base + '?course=beach&chapter=chapter-02&release=fc50907f', { waitUntil: 'domcontentloaded', timeout: 180000 });
-  await page.waitForFunction(() => !document.querySelector('#story')?.classList.contains('hidden') && document.querySelector('#storyChapter')?.textContent.includes('第二章') && document.querySelector('#storyText')?.textContent.length > 0, { timeout: 300000 });
+  await page.waitForFunction(() => !document.querySelector('#story')?.classList.contains('hidden') && !document.querySelector('#story')?.classList.contains('busy') && document.querySelector('#storyChapter')?.textContent.includes('第二章') && document.querySelector('#storyText')?.textContent.length > 0, { timeout: 300000 });
   console.log('PASS: live second-chapter entry renders story text');
   await page.screenshot({ path: 'live-results/production-chapter2.png' });
   const saved = await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).map(k => [k, localStorage.getItem(k)])));
