@@ -1,0 +1,88 @@
+name: Sharded complete chapter 2 release gate
+on:
+  push:
+    branches: [release/sharded-gate-chapter2-20261108]
+permissions:
+  contents: read
+jobs:
+  default-profile-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify the five completed default-profile jobs
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          base='https://api.github.com/repos/Sadkikyo0930/little-racing-v2/actions/runs/42445777467'
+          def get(url):
+              with urllib.request.urlopen(url,timeout=30) as r:return json.load(r)
+          assert get(base)['head_sha']=='ac235dfb17326f687d7fcc8191f89f2901a90053'
+          jobs={j['name']:j for j in get(base+'/jobs')['jobs']}
+          for name in ['integrity','regression (chapter2)','regression (stage1)','regression (chapter2-voice)','regression (pages-interface-scan)']:
+              assert jobs[name]['conclusion']=='success',name
+              print('PASS original default-profile validation:',name)
+          PY
+  reward:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [first-clear, write-failures, migration, recovery-abc, recovery-def, imports, legacy-vehicles, isolation-ui]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+      - name: Build unchanged production and regression bundles
+        run: |
+          VITE_BASE=/little-racing-v2/ VITE_SAVE_PREFIX=lrv2 VITE_TEST_HOOKS=0 npm run build
+          VITE_BASE=./ VITE_SAVE_PREFIX=lrv2 VITE_TEST_HOOKS=1 npm run build -- --outDir dist-test
+      - name: Run unchanged original assertions at independent fresh-save boundary
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: node tools/test/run-reward-shard.mjs "$SHARD"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reward-shard-${{ matrix.shard }}
+          path: tools/out/
+  full-103-case-coverage:
+    needs: [default-profile-validation, reward]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: reward-shard-*
+          path: results
+      - name: Require all 103 original cases without omissions or failed assertions
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          expected=set(json.loads(Path('expected-reward-cases.json').read_text()))
+          assert len(expected)==103
+          reports=list(Path('results').rglob('reward-report.json'))
+          assert len(reports)==8,len(reports)
+          observed={}
+          executed=0
+          for file in reports:
+              report=json.loads(file.read_text())
+              assert report['ok'] and report['failed']==0,str(file)
+              for item in report['items']:
+                  assert item['ok'],item
+                  assert item['name'] in expected,item['name']
+                  observed[item['name']]=True
+                  executed+=1
+          assert set(observed)==expected,sorted(expected-set(observed))
+          result=dict(ok=True,originalCasesPassed=len(observed),missing=[],failed=0,assertionExecutions=executed,shards=len(reports),originalRewardScriptGitBlob='a1974467c84f65a8399b47154e35e736447244ea')
+          Path('release-coverage.json').write_text(json.dumps(result,indent=2))
+          print('PASS: all 103 original reward/save assertions; no omissions; no failures;',executed,'executions across eight independent fresh-save shards')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: complete-release-coverage
+          path: release-coverage.json
