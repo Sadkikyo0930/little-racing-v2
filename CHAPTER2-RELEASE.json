@@ -1,0 +1,19 @@
+{
+  "accepted_test_repository": "Sadkikyo0930/little-racing-v2-test",
+  "accepted_test_commit": "c8c67c3cfb08ed8ba7c6e8dabe5437960e8356e1",
+  "previous_production_commit": "6a5eedbb93622918ea23f7455c042e9ecf073fa1",
+  "rollback_branch": "rollback/pre-chapter2-20261108",
+  "build": {
+    "VITE_BASE": "/little-racing-v2/",
+    "VITE_SAVE_PREFIX": "lrv2",
+    "VITE_TEST_HOOKS": "0",
+    "vite": "8.2.0"
+  },
+  "source_verification": "Rebuilt preview matches all 82 SHA256 entries from accepted test commit",
+  "save_policy": "Original lrv2.garage.* and littleRacingV2.story.chapter1/chapter2; no reset; retain previous hashed assets",
+  "pages": {
+    "source": "main",
+    "path": "/docs"
+  },
+  "rollback": "Restore previous docs/index.html and docs/manifest.webmanifest from previous_production_commit in a new main commit; retain all hashed assets and player storage"
+}
