@@ -1,0 +1,45 @@
+name: Verify live chapter 2 production
+on:
+  push:
+    branches: [release/live-chapter2-20261108]
+permissions:
+  contents: read
+jobs:
+  live-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+      - name: Check all 82 online files against production SHA256
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, hashlib, concurrent.futures
+          from pathlib import Path
+          expected=json.loads(Path('production-sha256.json').read_text())
+          base='https://sadkikyo0930.github.io/little-racing-v2/'
+          def check(item):
+              path, sha=item
+              with urllib.request.urlopen(base+path+'?release=fc50907f',timeout=60) as r:
+                  data=r.read()
+                  assert r.status==200,(path,r.status)
+                  assert hashlib.sha256(data).hexdigest()==sha,('SHA256',path)
+                  return dict(path=path,status=r.status,bytes=len(data),sha256='OK')
+          with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+              results=list(pool.map(check,expected.items()))
+          Path('live-results').mkdir(exist_ok=True)
+          Path('live-results/sha256.json').write_text(json.dumps(results,indent=2))
+          print('PASS: all',len(results),'live production files HTTP 200 and exact SHA256')
+          PY
+      - name: Verify live desktop, mobile, both chapters, audio decoding and old save
+        run: node tools/test/live-production.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-production-verification
+          path: live-results/
