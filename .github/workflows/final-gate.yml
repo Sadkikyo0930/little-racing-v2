@@ -1,0 +1,48 @@
+name: Complete chapter 2 release gate
+on:
+  push:
+    branches: [release/final-gate-chapter2-20261108]
+permissions:
+  contents: read
+jobs:
+  verify-completed-default-profile-results:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all five existing default-profile validations
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          base='https://api.github.com/repos/Sadkikyo0930/little-racing-v2/actions/runs/42445777467'
+          def get(url):
+              with urllib.request.urlopen(url,timeout=30) as r:return json.load(r)
+          run=get(base)
+          assert run['head_sha']=='ac235dfb17326f687d7fcc8191f89f2901a90053'
+          jobs={j['name']:j for j in get(base+'/jobs')['jobs']}
+          for name in ['integrity','regression (chapter2)','regression (stage1)','regression (chapter2-voice)','regression (pages-interface-scan)']:
+              assert jobs[name]['conclusion']=='success',name
+              print('PASS: verified original default-profile job:',name)
+          PY
+  reward-all-original-assertions-low-profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+      - name: Build identical production and instrumented regression
+        run: |
+          VITE_BASE=/little-racing-v2/ VITE_SAVE_PREFIX=lrv2 VITE_TEST_HOOKS=0 npm run build
+          VITE_BASE=./ VITE_SAVE_PREFIX=lrv2 VITE_TEST_HOOKS=1 npm run build -- --outDir dist-test
+      - name: Run every original reward assertion with supported quality=low
+        run: node tools/test/reward-low-profile.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reward-all-assertions-low-profile
+          path: |
+            tools/out/
+            deliver/
