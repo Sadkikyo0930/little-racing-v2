@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0a1c33" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="小小赛车" />
+<title>小小赛车 · 学习通行证</title>
+<style>
+  :root{
+    --ink:#12243d; --sub:#5b7290; --card:#ffffff; --line:#dbe6f3;
+    --red:#e23b2e; --yellow:#ffd23f; --green:#2fae6a; --blue:#2f6fd0;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    background:radial-gradient(1200px 600px at 50% -10%,#1d3f6b 0%,#0a1c33 55%,#06101f 100%);
+    display:flex;align-items:center;justify-content:center;padding:18px;
+  }
+  .card{
+    width:100%;max-width:520px;background:var(--card);border-radius:26px;padding:26px 22px 22px;
+    box-shadow:0 24px 60px rgba(0,0,0,.45);position:relative;overflow:hidden;
+  }
+  .card::before{content:"";position:absolute;inset:0 0 auto;height:8px;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green),var(--blue))}
+  h1{font-size:22px;margin:6px 0 4px;letter-spacing:.5px}
+  .sub{color:var(--sub);font-size:14px;line-height:1.6;margin:0 0 18px}
+  .state{display:none}
+  .state.on{display:block;animation:pop .24s ease-out}
+  @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .big{font-size:52px;line-height:1;margin:8px 0 12px;text-align:center}
+  .title{font-size:20px;font-weight:700;text-align:center;margin:0 0 8px}
+  .hint{font-size:14px;color:var(--sub);text-align:center;line-height:1.65;margin:0 0 16px}
+  .btn{
+    display:block;width:100%;border:0;border-radius:16px;padding:16px;font-size:17px;font-weight:700;
+    cursor:pointer;font-family:inherit;margin-top:10px;
+  }
+  .btn.primary{background:var(--red);color:#fff;box-shadow:0 8px 18px rgba(226,59,46,.32)}
+  .btn.ghost{background:#eef4fb;color:var(--ink)}
+  .btn:disabled{opacity:.5}
+  .mods{list-style:none;padding:0;margin:0 0 18px;display:grid;gap:10px}
+  .mods li{display:flex;align-items:center;justify-content:space-between;background:#f6f9fd;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px}
+  .mods .ok{color:var(--green);font-weight:700}
+  .mods .no{color:var(--sub)}
+  .meta{display:flex;justify-content:center;gap:18px;font-size:13px;color:var(--sub);margin:0 0 12px}
+  .meta b{color:var(--ink);font-size:15px}
+  .spin{width:46px;height:46px;border-radius:50%;border:4px solid #e6eef7;border-top-color:var(--red);margin:18px auto 10px;animation:sp .9s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .foot{font-size:12px;color:#93a6bd;text-align:center;margin-top:16px;line-height:1.6}
+  .count{display:inline-block;min-width:22px;text-align:center;font-weight:800;color:var(--red)}
+  .dev{font-size:11px;color:#a8b8cc;text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>🏁 小小赛车 · 学习通行证</h1>
+  <p class="sub" id="subtitle">先看看今天的学习任务完成了吗～</p>
+
+  <section class="state on" id="st-checking">
+    <div class="spin" aria-hidden="true"></div>
+    <p class="hint">正在问云端确认学习资格…</p>
+  </section>
+
+  <section class="state" id="st-pass">
+    <div class="big" aria-hidden="true">🎉</div>
+    <p class="title" id="pass-title">学习完成啦！</p>
+    <p class="hint" id="pass-hint">赛车马上开始…</p>
+    <div class="meta"><span>今天还能玩 <b id="pass-remaining">–</b></span></div>
+    <button class="btn primary" id="btn-enter">现在就出发 <span class="count" id="pass-count"></span></button>
+  </section>
+
+  <section class="state" id="st-lock">
+    <div class="big" aria-hidden="true">📚</div>
+    <p class="title" id="lock-title">今天的两个学习任务还没完成</p>
+    <p class="hint" id="lock-hint">完成两个模块，每个答对 80%，就能解锁赛车啦～</p>
+    <ul class="mods" id="lock-mods"></ul>
+    <button class="btn primary" id="btn-learn">去学习（V6 学习平台）</button>
+    <button class="btn ghost" id="btn-retry">我已经学完了，再检查一次</button>
+  </section>
+
+  <!-- 成绩未同步 / 计划未发布：单独一屏，明确告诉孩子不是他的错 -->
+  <section class="state" id="st-sync">
+    <div class="big" aria-hidden="true">☁️</div>
+    <p class="title">学习记录还在路上</p>
+    <p class="hint">今天的学习成绩还没送到云端，先等一下下，或者请爸爸妈妈看一眼～</p>
+    <button class="btn primary" id="btn-retry-sync">再检查一次</button>
+    <button class="btn ghost" id="btn-learn-sync">去学习（V6 学习平台）</button>
+  </section>
+
+  <section class="state" id="st-timeup">
+    <div class="big" aria-hidden="true">🌙</div>
+    <p class="title">今天的 30 分钟用完啦</p>
+    <p class="hint">明天再来玩，今天的存档都给你留好了～</p>
+    <button class="btn primary" id="btn-learn2">去学习（V6 学习平台）</button>
+  </section>
+
+  <section class="state" id="st-nodevice">
+    <div class="big" aria-hidden="true">🔑</div>
+    <p class="title">请用爸爸妈妈给你的链接打开</p>
+    <p class="hint">链接里带一个小小的“钥匙”，打开一次就会记住，下次点主屏幕图标就能直接进。</p>
+    <button class="btn ghost" id="btn-learn3">去学习（V6 学习平台）</button>
+  </section>
+
+  <section class="state" id="st-error">
+    <div class="big" aria-hidden="true">🛠️</div>
+    <p class="title" id="err-title">网络有点忙</p>
+    <p class="hint" id="err-hint">等一下再试试，学习记录不会丢。</p>
+    <button class="btn primary" id="btn-retry2">再试一次</button>
+    <button class="btn ghost" id="btn-learn4">去学习（V6 学习平台）</button>
+  </section>
+
+  <p class="foot">能不能玩、玩了多久，全部由云端说了算：刷新、退出重进都不会重新计时。</p>
+  <p class="dev" id="devline"></p>
+</main>
+
+<script type="module">
+import { createR5Gate, messageFor, formatClock, R5Error } from './r5/r5-online.mjs';
+import { R5_CONFIG, learnUrl } from './r5/config.mjs';
+import { gameUrl } from './r5/paths.mjs';
+import { captureDeviceFromUrl, getDevice, issueGrant, clearGrant } from './r5/grant.mjs';
+
+const $ = (id) => document.getElementById(id);
+const states = ['st-checking', 'st-pass', 'st-lock', 'st-sync', 'st-timeup', 'st-nodevice', 'st-error'];
+function show(id) {
+  states.forEach((s) => $(s).classList.toggle('on', s === id));
+}
+function setSub(t) { $('subtitle').textContent = t; }
+
+captureDeviceFromUrl();
+const device = getDevice();
+// 不显示令牌的任何片段，只显示是否已记住
+$('devline').textContent = device ? '本设备已记住（钥匙不会显示在这里）' : '本设备尚未绑定';
+
+const learnHref = learnUrl();
+['btn-learn', 'btn-learn2', 'btn-learn3', 'btn-learn4', 'btn-learn-sync'].forEach((id) => {
+  $(id).addEventListener('click', () => { location.href = learnHref; });
+});
+
+let countdownTimer = null;
+function enterGame() {
+  clearInterval(countdownTimer);
+  location.replace(gameUrl());
+}
+
+function renderModules(modules) {
+  const ul = $('lock-mods');
+  ul.innerHTML = '';
+  (modules || []).forEach((m) => {
+    const li = document.createElement('li');
+    const pct = m.accuracy_pct == null ? '–' : `${m.accuracy_pct}%`;
+    const done = m.passed ? '<span class="ok">✓ 已达标</span>' : '<span class="no">还没完成</span>';
+    li.innerHTML = `<span>${m.subject || '学习'}</span><span>${pct} ${done}</span>`;
+    ul.appendChild(li);
+  });
+}
+
+function lockScreen(st) {
+  if (st.reason === 'TIME_LIMIT_REACHED') {
+    setSub('今天的赛车时间用完啦'); show('st-timeup'); return;
+  }
+  if (st.reason === 'PLAN_UNPUBLISHED') {
+    setSub('学习记录还没送到云端'); show('st-sync'); return;
+  }
+  if (st.reason === 'PARENT_CONTROL_DISABLED' || st.reason === 'PARENT_DISABLED') {
+    setSub('今天不能玩赛车');
+    $('err-title').textContent = messageFor('PARENT_CONTROL_DISABLED');
+    $('err-hint').textContent = '想玩的话，请爸爸妈妈在家长中心打开赛车开关。';
+    show('st-error'); return;
+  }
+  setSub('先去学习，再来赛车');
+  $('lock-title').textContent = st.reason === 'NO_TASKS_TODAY' ? '今天是休息日' : '今天的两个学习任务还没完成';
+  $('lock-hint').textContent = st.reason === 'NO_TASKS_TODAY'
+    ? '今天没有安排学习任务，可以直接去赛车啦～'
+    : '完成两个模块，每个答对 80%，就能解锁 30 分钟赛车时间。';
+  renderModules(st.modules);
+  show('st-lock');
+}
+
+function passScreen(st) {
+  setSub('云端确认通过');
+  $('pass-title').textContent = st.reason === 'NO_TASKS_TODAY' ? '今天是休息日，放心玩！' : '学习完成啦！';
+  $('pass-remaining').textContent = formatClock(st.remaining_seconds);
+  $('pass-hint').textContent = '计时从云端开始，用完会自动结束哦～';
+  // 这里签发的只是「防深链凭证」，游戏页还会再次向云端确认
+  issueGrant(device, R5_CONFIG.grantTtlSeconds, { remaining: st.remaining_seconds });
+  show('st-pass');
+
+  let left = 2;
+  $('pass-count').textContent = `(${left})`;
+  clearInterval(countdownTimer);
+  countdownTimer = setInterval(() => {
+    left -= 1;
+    $('pass-count').textContent = left > 0 ? `(${left})` : '';
+    if (left <= 0) enterGame();
+  }, 1000);
+}
+
+async function check() {
+  if (!device) { setSub('还没有绑定设备'); show('st-nodevice'); return; }
+  show('st-checking');
+  setSub('正在问云端确认学习资格…');
+  const gate = createR5Gate({
+    base: R5_CONFIG.base,
+    familyId: R5_CONFIG.familyId,
+    device,
+    timeoutMs: R5_CONFIG.timeoutMs,
+  });
+  try {
+    const st = await gate.status();       // 只读：r5_child_entry → r5_status
+    if (st.allowed && Number(st.remaining_seconds) > 0) passScreen(st);
+    else lockScreen(st);
+  } catch (e) {
+    // 断网 / 超时 / 服务异常 / 未绑定：一律不放行
+    clearGrant();
+    setSub('暂时确认不了');
+    const code = e instanceof R5Error ? e.code : 'R5_NETWORK';
+    $('err-title').textContent = messageFor(code);
+    $('err-hint').textContent = code === 'R5_MEMBER_DENIED'
+      ? '这台设备还没有绑定到家庭。请爸爸妈妈在家长中心绑定后，用新链接打开。'
+      : '先检查一下网络，再点“再试一次”。计时不会因为这次失败而增加。';
+    show('st-error');
+  }
+}
+
+$('btn-enter').addEventListener('click', enterGame);
+$('btn-retry').addEventListener('click', check);
+$('btn-retry2').addEventListener('click', check);
+$('btn-retry-sync').addEventListener('click', check);
+
+check();
+</script>
+</body>
+</html>
