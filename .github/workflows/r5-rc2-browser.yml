@@ -1,0 +1,28 @@
+name: R5 rc2 staging browser
+on:
+  push:
+    branches: [validation/r5-prodlink-rc2-20261109]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Sadkikyo0930/little-growth-workbench
+          ref: b910825e3c03834e396df8b3715809eefc25a150
+          path: v6-stage
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --ignore-scripts --prefix validation puppeteer-core@23.11.1
+      - run: node validation/browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r5-rc2-browser
+          path: rc2-browser-report.json
