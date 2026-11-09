@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com; img-src data:; base-uri 'none'">
+<title>家长授权这台手机 · 小小赛车</title>
+<style>
+  :root{--bg:#f7f8fb;--card:#fff;--ink:#1b2330;--sub:#5b6675;--line:#e3e7ee;--brand:#2f6df6;--ok:#128a4b;--warn:#b45309;--bad:#c0392b;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:20px 16px 48px}
+  .wrap{max-width:520px;margin:0 auto}
+  h1{font-size:21px;margin:8px 0 4px}
+  p.lead{color:var(--sub);margin:0 0 18px;font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  .card h2{font-size:15px;margin:0 0 10px}
+  label{display:block;font-size:13px;color:var(--sub);margin:10px 0 6px}
+  input{width:100%;padding:12px 13px;font-size:16px;border:1px solid var(--line);border-radius:10px;background:#fbfcfe;color:var(--ink)}
+  input:focus{outline:2px solid #cfe0ff;border-color:var(--brand)}
+  button{width:100%;margin-top:12px;padding:14px;font-size:16px;font-weight:600;border:0;border-radius:12px;background:var(--brand);color:#fff}
+  button.ghost{background:#eef2fa;color:#274a8f}
+  button.danger{background:#fdeceb;color:var(--bad)}
+  button[disabled]{opacity:.55}
+  .row{display:flex;gap:10px}
+  .row button{margin-top:0}
+  .msg{margin-top:12px;padding:11px 12px;border-radius:10px;font-size:14px;display:none;white-space:pre-line}
+  .msg.show{display:block}
+  .msg.ok{background:#e8f7ee;color:var(--ok)}
+  .msg.err{background:#fdeceb;color:var(--bad)}
+  .msg.info{background:#eef2fa;color:#274a8f}
+  .msg.warn{background:#fdf5e6;color:var(--warn)}
+  .dev{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px}
+  .dev:last-child{border-bottom:0}
+  .dev small{color:var(--sub)}
+  .badge{font-size:12px;padding:1px 7px;border-radius:99px;background:#e8f7ee;color:var(--ok)}
+  .badge.off{background:#f1f3f6;color:#7a8494}
+  .hint{font-size:12px;color:var(--sub);margin-top:10px}
+  .kv{display:flex;justify-content:space-between;font-size:14px;padding:4px 0}
+  .kv b{font-weight:600}
+  a.go{display:block;text-align:center;text-decoration:none;margin-top:12px;padding:13px;border-radius:12px;background:#128a4b;color:#fff;font-weight:600}
+  .hidden{display:none}
+  .pill{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;background:#eef2fa;color:#274a8f;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>家长授权这台手机</h1>
+  <p class="lead">授权后，这台手机打开赛车时不再需要登录；三台手机共用同一个家庭的学习资格与每天 30 分钟额度。</p>
+
+  <div class="card" id="stateCard">
+    <h2>这台手机的状态<span class="pill" id="statePill">核对中</span></h2>
+    <div id="stateBody" class="hint">正在向云端确认…</div>
+  </div>
+
+  <div class="card" id="bindCard">
+    <h2>授权这台手机</h2>
+    <label for="label">给这台手机起个名字（例如：爸爸的手机）</label>
+    <input id="label" type="text" maxlength="40" placeholder="爸爸的手机" autocomplete="off" spellcheck="false">
+    <label for="secret">家长口令</label>
+    <input id="secret" type="password" maxlength="200" placeholder="请输入家长口令" autocomplete="off" spellcheck="false">
+    <button id="btnBind">授权这台手机</button>
+    <p class="hint">
+      口令只发到家庭云端校验一次，不保存在这台手机上；页面也不会显示或保存设备令牌，令牌只写进这台手机的浏览器存储。
+    </p>
+    <p class="hint">
+      这个口令对应家庭里<b>固定的那一个家长账号</b>。谁输入它，都会以该账号的身份完成授权——页面没有登录概念，
+      也不识别输入者本人是谁。所以请只由爸爸妈妈操作。
+    </p>
+    <p class="hint">
+      如果授权请求超时或断网，页面会<b>沿用同一个设备标识</b>重试，不会在家庭里多出一台手机；
+      本机没拿到确认之前，也不会把「本地有记录」当成「已授权」。
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>本家庭已授权的手机</h2>
+    <div id="devList" class="hint">展开需要家长口令。</div>
+    <div class="row" style="margin-top:12px">
+      <button class="ghost" id="btnList">刷新列表</button>
+      <button class="ghost" id="btnCheck">检查今天的资格</button>
+    </div>
+    <p class="hint">
+      如果这里出现了一台你不认识的设备，说明之前某次授权没有收到回执（比如中途断网），
+      重试时又新建了一台。让多出来的那台保持「有效」不会影响使用，也可以在这里把它撤销。
+    </p>
+  </div>
+
+  <div class="card hidden" id="revokeCard">
+    <h2>撤销这台手机</h2>
+    <p class="hint" style="margin-top:0">撤销后这台手机将无法打开赛车，其它手机不受影响。</p>
+    <div class="row" style="margin-top:10px">
+      <button class="danger" id="btnRevoke">撤销这台手机的授权</button>
+    </div>
+  </div>
+
+  <div class="msg" id="msg"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var GATEWAY = 'https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5';
+  var FAMILY = 'little-growth-family-001';
+  var DEVICE_KEY = 'r5_device';          // 云端已确认有效的令牌
+  var PENDING_KEY = 'r5_device_pending'; // 已提交、但还没拿到确认的候选令牌
+  var GRANT_KEY = 'r5.grant';
+  var TOKEN_RE = /^[A-Za-z0-9_-]{8,80}$/;
+  var TIMEOUT_MS = 20000;
+  /* 自动化测试只允许把超时调小，不能调大或取消 */
+  try {
+    var __ov = Number(window.__R5_BIND_TIMEOUT_MS);
+    if (__ov >= 50 && __ov <= TIMEOUT_MS) TIMEOUT_MS = __ov;
+  } catch (e) { /* ignore */ }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var msgBox = $('msg');
+
+  /* state: unknown | checking | valid | invalid | offline | pending */
+  var state = 'unknown';
+  var binding = false;
+
+  function show(kind, text) {
+    msgBox.className = 'msg show ' + kind;
+    msgBox.textContent = text;
+  }
+  function hide() { msgBox.className = 'msg'; msgBox.textContent = ''; }
+
+  function newToken() {
+    if (!window.crypto || !window.crypto.getRandomValues) throw new Error('NO_CRYPTO');
+    var b = new Uint8Array(16);
+    window.crypto.getRandomValues(b);
+    var s = '';
+    for (var i = 0; i < b.length; i++) s += ('0' + b[i].toString(16)).slice(-2);
+    return 'r5dev_' + s;
+  }
+
+  function readKey(key) {
+    try {
+      var v = localStorage.getItem(key);
+      return v && TOKEN_RE.test(v) ? v : '';
+    } catch (e) { return ''; }
+  }
+  function writeKey(key, t) {
+    try { localStorage.setItem(key, t); } catch (e) { /* 隐私模式 */ }
+  }
+  function dropKey(key) { try { localStorage.removeItem(key); } catch (e) {} }
+
+  var localDevice = function () { return readKey(DEVICE_KEY); };
+  var pendingDevice = function () { return readKey(PENDING_KEY); };
+  var saveDevice = function (t) { writeKey(DEVICE_KEY, t); };
+  var savePending = function (t) { writeKey(PENDING_KEY, t); };
+  var clearPending = function () { dropKey(PENDING_KEY); };
+  function clearDevice() {
+    dropKey(DEVICE_KEY);
+    dropKey(PENDING_KEY);
+    try { sessionStorage.removeItem(GRANT_KEY); } catch (e) {}
+  }
+
+  /* 带超时的请求：没有 AbortController 的老浏览器退化为「等它自己失败」，
+     但语义上仍然是「不知道有没有成功」，由调用方去 whoami 核对。 */
+  function post(path, body, secret, extra, timeoutMs) {
+    var headers = { 'content-type': 'application/json' };
+    if (secret) headers['x-r5-parent'] = secret;
+    if (extra) for (var k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) headers[k] = extra[k];
+
+    var opts = { method: 'POST', headers: headers, body: JSON.stringify(body || {}) };
+    var ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    var timer = null;
+    if (ctrl) {
+      opts.signal = ctrl.signal;
+      timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, timeoutMs || TIMEOUT_MS);
+    }
+    var done = function () { if (timer) { clearTimeout(timer); timer = null; } };
+
+    return Promise.resolve().then(function () {
+      return fetch(GATEWAY + path, opts);
+    }).then(function (res) {
+      return res.text().then(function (t) {
+        var j = null;
+        try { j = t ? JSON.parse(t) : null; } catch (e) { j = null; }
+        return { status: res.status, json: j };
+      });
+    }).then(function (r) { done(); return r; }, function (e) { done(); throw e; });
+  }
+
+  /* 注意：网关不认账号，只认「口令 → 固定家长 UID」这一层映射，
+     所以这里的文案不能说成「你的账号没有权限」。 */
+  var CODE_TEXT = {
+    R5_PARENT_AUTH_FAILED: '家长口令不对，请再试一次。',
+    R5_PARENT_SECRET_NOT_CONFIGURED: '云端还没有配置家长口令，请联系维护者。',
+    R5_PARENT_UID_NOT_CONFIGURED: '云端还没有配置家长账号，请联系维护者。',
+    R5_FAMILY_NOT_ALLOWED: '这个家庭还没有开通（不在白名单里）。',
+    R5_MEMBER_DENIED: '这个家长口令对应的账号没有管理这个家庭的权限，请联系维护者确认。',
+    R5_DEVICE_REQUIRED: '没有带上设备标识，请刷新页面重试。',
+    R5_INVALID_DEVICE: '设备标识格式不对，请刷新页面重试。',
+    R5_INVALID_FAMILY: '家庭标识格式不对。',
+    R5_INVALID_ACTION: '请求动作不合法。',
+    DEVICE_NOT_BOUND: '这台手机的授权在云端已经不存在了（可能被撤销过）。',
+  };
+
+  function explain(r) {
+    var code = (r.json && r.json.error) || '';
+    if (CODE_TEXT[code]) return CODE_TEXT[code];
+    if (r.status === 401) return CODE_TEXT.R5_PARENT_AUTH_FAILED;
+    if (r.status === 403) return CODE_TEXT.R5_FAMILY_NOT_ALLOWED;
+    if (r.status === 503) return '云端配置还没就绪，请联系维护者。';
+    if (r.status >= 500) return '云端暂时没有响应，请稍后再试。';
+    return '操作没有成功（' + (code || ('HTTP ' + r.status)) + '）。';
+  }
+
+  function fmtTime(s) {
+    if (!s) return '从未';
+    var d = new Date(String(s).replace(' ', 'T'));
+    if (isNaN(d.getTime())) return String(s).slice(0, 16);
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  var REASON = {
+    STUDY_PASSED: '今天两科已达标，可以去赛车',
+    STUDY_INCOMPLETE_OR_SCORE_UNVERIFIED: '今天两科还没完成（或成绩还没同步）',
+    PLAN_UNPUBLISHED: '今天的学习计划还没发布，先打开一次学习页',
+    NO_TASKS_TODAY: '今天是休息日，可以直接玩',
+    TIME_LIMIT_REACHED: '今天的 30 分钟已经用完',
+    PARENT_CONTROL_DISABLED: '家长控制已关闭',
+    R5_MEMBER_DENIED: '这台手机还没有被授权',
+  };
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function setPill(text, kind) {
+    var p = $('statePill');
+    p.textContent = text;
+    p.style.background = kind === 'ok' ? '#e8f7ee' : kind === 'bad' ? '#fdeceb' : '#fdf5e6';
+    p.style.color = kind === 'ok' ? '#128a4b' : kind === 'bad' ? '#c0392b' : '#b45309';
+  }
+
+  function setBindEnabled(on, text) {
+    var btn = $('btnBind');
+    btn.disabled = !on;
+    btn.textContent = text || '授权这台手机';
+    $('label').disabled = !on;
+    $('secret').disabled = !on;
+  }
+
+  function whoami(token) {
+    return post('/v1/device/whoami', { family_id: FAMILY }, null, { 'x-r5-device': token })
+      .then(function (r) {
+        if (r.status !== 200 || !r.json) throw new Error('WHOAMI_' + r.status);
+        return r.json;
+      });
+  }
+
+  function showValid(j) {
+    state = 'valid';
+    setPill('已授权', 'ok');
+    $('stateBody').innerHTML = '这台手机<b>已授权</b>，云端已确认。<br><small>今天的资格：' +
+      escapeHtml(REASON[j.reason] || ('状态 ' + j.reason)) + '</small>' +
+      '<a class="go" href="./gate.html">打开赛车（这台手机）</a>';
+    $('revokeCard').className = 'card';
+    setBindEnabled(false, '这台手机已授权，无需重复操作');
+  }
+
+  function showCandidate(retryLabel) {
+    state = 'pending';
+    setPill('待确认', 'warn');
+    $('revokeCard').className = 'card hidden';
+    $('stateBody').innerHTML = '这台手机<b>还没有完成授权</b>：上次请求已经带着设备标识发出去了，'
+      + '但本机没拿到云端确认。<br><small>再点一次授权会<b>沿用同一个设备标识</b>，'
+      + '不会在家庭里多出一台手机。</small>';
+    setBindEnabled(true, retryLabel || '重试授权（沿用同一个设备标识）');
+  }
+
+  /* ------------------------------------------------------------ 状态核对 */
+  /* 关键：本地有令牌 ≠ 已授权。必须由服务端回答，本地存储是会说谎的。 */
+  function refreshState() {
+    var t = localDevice();
+    var body = $('stateBody');
+
+    if (!t) {
+      var p = pendingDevice();
+      if (p) return resolveCandidate(p);
+      state = 'unknown';
+      setPill('未授权', 'info');
+      $('revokeCard').className = 'card hidden';
+      body.innerHTML = '这台手机<b>还没有授权</b>。在上面输入家长口令，点一次「授权这台手机」。';
+      setBindEnabled(true);
+      return;
+    }
+
+    state = 'checking';
+    setPill('核对中', 'info');
+    body.innerHTML = '这台手机本地有授权记录，正在向云端确认是否仍然有效…';
+    whoami(t).then(function (j) {
+      if (j && j.bound === true) {
+        showValid(j);
+      } else {
+        // 云端明确说没有 → 本地令牌是死的，清掉，避免孩子拿着它反复撞墙
+        state = 'invalid';
+        dropKey(DEVICE_KEY);
+        setPill('授权失效', 'bad');
+        $('revokeCard').className = 'card hidden';
+        body.innerHTML = '这台手机<b>的授权已经失效</b>（可能被撤销过）。'
+          + '请在上面重新输入家长口令，再授权一次。';
+        setBindEnabled(true);
+      }
+    }).catch(function () {
+      // 网络失败：既不能说已授权，也不能擅自清掉本地令牌
+      state = 'offline';
+      setPill('未能确认', 'info');
+      $('revokeCard').className = 'card';
+      body.innerHTML = '这台手机本地有授权记录，但<b>没能和云端确认</b>（网络问题）。'
+        + '先检查 WiFi，再点下面重新核对。'
+        + '<div class="row" style="margin-top:10px"><button class="ghost" id="btnRetry">重新核对</button></div>';
+      setBindEnabled(false, '先确认当前状态');
+      var b = $('btnRetry');
+      if (b) b.addEventListener('click', function () { refreshState(); });
+    });
+  }
+
+  /* 上次提交了候选令牌但没拿到回执：先问云端到底成没成。 */
+  function resolveCandidate(token) {
+    state = 'checking';
+    setPill('核对中', 'info');
+    $('stateBody').innerHTML = '上次授权没收到确认，正在用同一个设备标识向云端核对…';
+    return whoami(token).then(function (j) {
+      if (j && j.bound === true) {
+        saveDevice(token);
+        clearPending();
+        showValid(j);
+        return;
+      }
+      showCandidate('重试授权（沿用同一个设备标识）');
+    }).catch(function () {
+      state = 'offline';
+      setPill('未能确认', 'info');
+      $('revokeCard').className = 'card hidden';
+      $('stateBody').innerHTML = '上次授权没收到确认，现在<b>也没能连上云端</b>。'
+        + '本机已经记住了这次要用的设备标识，等网络好了点「重新核对」即可，'
+        + '不会因此多出一台手机。'
+        + '<div class="row" style="margin-top:10px"><button class="ghost" id="btnRetry">重新核对</button></div>';
+      setBindEnabled(true, '重试授权（沿用同一个设备标识）');
+      var b = $('btnRetry');
+      if (b) b.addEventListener('click', function () { refreshState(); });
+    });
+  }
+
+  /* -------------------------------------------------------------- 授权 */
+  /* 服务端 5xx / 超时 / 断网时无法判断「到底写没写」，用候选令牌去问一次。
+     问不到就保留候选令牌，重试沿用同一个 → r5_bind_device 按 device_uid 幂等，
+     不会产生第二台孤儿设备。 */
+  function settleUnknown(token, secret, why) {
+    show('warn', why + '，正在用同一个设备标识向云端核对…');
+    return whoami(token).then(function (j) {
+      if (j && j.bound === true) {
+        saveDevice(token);
+        clearPending();
+        show('ok', '已授权：云端确认这台手机已经绑好了（' + why + '，但结果成功）。');
+        refreshState();
+        loadDevices(secret, true);
+        return;
+      }
+      showCandidate('重试授权（沿用同一个设备标识）');
+      show('warn', '这次没有授权成功（' + why + '）。再点一次会沿用同一个设备标识，'
+        + '不会在家庭里多出一台手机。');
+    }).catch(function () {
+      showCandidate('重试授权（沿用同一个设备标识）');
+      show('warn', '没能和云端确认（' + why + '）。本机已经记住这次要用的设备标识，'
+        + '等网络好了再点一次授权即可，不会产生第二台设备。');
+    });
+  }
+
+  function doBind() {
+    if (binding) return;                                   // 连点两次不会发出第二个令牌
+    if (state === 'valid') { show('info', '这台手机已经授权过了，不需要重复操作。'); return; }
+    var label = ($('label').value || '').trim() || '孩子的新手机';
+    var secret = $('secret').value || '';
+    if (!secret) { show('err', '请先输入家长口令。'); return; }
+
+    // 复用上次没确认的候选令牌；没有才新生成。这一步是「不产生孤儿设备」的关键。
+    var token = pendingDevice();
+    if (!token) {
+      try { token = newToken(); } catch (e) {
+        show('err', '当前浏览器不支持安全随机数，请用 https 正常打开本页。'); return;
+      }
+      savePending(token);          // 先落盘，再发请求
+    }
+
+    binding = true;
+    setBindEnabled(false, '正在授权…');
+    hide();
+    post('/v1/parent/bind', { family_id: FAMILY, device: token, label: label }, secret)
+      .then(function (r) {
+        $('secret').value = '';
+        if (r.status === 200 && r.json && (r.json.ok === true || r.json.device_uid)) {
+          saveDevice(token);
+          clearPending();
+          show('ok', '已授权：「' + label + '」。这台手机现在可以直接打开赛车了。');
+          // 立刻用服务端复查一次，确认令牌真的能用
+          refreshState();
+          loadDevices(secret, true);
+          return;
+        }
+        if (r.status >= 500 || r.status === 408 || r.status === 429) {
+          // 服务端可能已经写进去了，也可能没写 → 用同一个令牌核对
+          return settleUnknown(token, secret, '云端暂时没有响应（HTTP ' + r.status + '）');
+        }
+        // 4xx：服务端明确拒绝，没有写任何设备；候选令牌可以继续用
+        clearPending();
+        show('err', explain(r));
+        setBindEnabled(true);
+      })
+      .catch(function () {
+        return settleUnknown(token, secret, '请求超时或网络中断');
+      })
+      .then(function () { binding = false; });
+  }
+
+  function loadDevices(secret, silent) {
+    var s = secret || $('secret').value || '';
+    if (!s) { if (!silent) show('err', '刷新列表需要先输入家长口令。'); return; }
+    if (!silent) show('info', '正在读取设备列表…');
+    post('/v1/parent/devices', { family_id: FAMILY }, s).then(function (r) {
+      $('secret').value = '';
+      if (r.status !== 200 || !r.json) { $('devList').textContent = explain(r); if (!silent) show('err', explain(r)); return; }
+      var list = (r.json.devices && r.json.devices.devices) || r.json.devices || [];
+      if (!list.length) { $('devList').textContent = '还没有授权任何手机。'; if (!silent) hide(); return; }
+      var html = '';
+      for (var i = 0; i < list.length; i++) {
+        var d = list[i] || {};
+        var active = d.active !== false;
+        html += '<div class="dev"><div>' + escapeHtml(d.label || '未命名') +
+          '<br><small>绑定 ' + fmtTime(d.bound_at) + ' · 最近 ' + fmtTime(d.last_seen) + '</small></div>' +
+          '<div><span class="badge' + (active ? '' : ' off') + '">' + (active ? '有效' : '已撤销') + '</span></div></div>';
+      }
+      $('devList').innerHTML = html;
+      if (!silent) hide();
+    }).catch(function () { if (!silent) show('err', '网络连不上，检查一下 WiFi 再试。'); });
+  }
+
+  /* -------------------------------------------------------------- 撤销 */
+  function doRevoke() {
+    var t = localDevice();
+    if (!t) { show('err', '这台手机本来就没有授权。'); return; }
+    var secret = $('secret').value || '';
+    if (!secret) { show('err', '撤销需要输入家长口令。'); return; }
+    if (!window.confirm('确定撤销这台手机的授权吗？撤销后需要重新授权才能玩赛车。')) return;
+    post('/v1/parent/revoke', { family_id: FAMILY, device: t }, secret).then(function (r) {
+      $('secret').value = '';
+      if (r.status === 200 && r.json && r.json.ok) {
+        clearDevice();
+        show('ok', '已撤销这台手机的授权。');
+        refreshState();
+      } else {
+        show('err', explain(r));
+      }
+    }).catch(function () { show('err', '网络连不上，检查一下 WiFi 再试。'); });
+  }
+
+  /* ---------------------------------------------------------- 检查资格 */
+  /* 用家长口令走只读的 parent/status：三台手机共享同一份资格，
+     所以看家庭整体就够了，也不需要在孩子设备上产生写入。 */
+  function doCheck() {
+    var secret = $('secret').value || '';
+    if (!secret) { show('err', '检查资格需要先输入家长口令。'); return; }
+    show('info', '正在向云端查询家庭资格…');
+    post('/v1/parent/status', { family_id: FAMILY }, secret).then(function (r) {
+      if (r.status !== 200 || !r.json) { show('err', explain(r)); return; }
+      var j = r.json;
+      if (j.error) { show('err', explain(r)); return; }
+      var lines = [];
+      lines.push(REASON[j.reason] || ('状态：' + j.reason));
+      lines.push('今天剩余 ' + Math.round(Number(j.remaining_seconds || 0) / 60) + ' 分钟（上限 ' +
+        Math.round(Number((j.daily_seconds || 0) + (j.bonus_seconds || 0)) / 60) + ' 分钟）');
+      if (j.modules && j.modules.length) {
+        for (var i = 0; i < j.modules.length; i++) {
+          var m = j.modules[i];
+          lines.push('· ' + m.subject + '：' + (m.passed ? '已达标' : '未达标') +
+            (m.total ? '，' + m.correct + '/' + m.total + '（' + m.accuracy_pct + '%）' : ''));
+        }
+      }
+      show(j.allowed ? 'ok' : 'info', lines.join('\n'));
+    }).catch(function () { show('err', '网络连不上，检查一下 WiFi 再试。'); });
+  }
+
+  $('btnBind').addEventListener('click', doBind);
+  $('btnList').addEventListener('click', function () { loadDevices(); });
+  $('btnCheck').addEventListener('click', doCheck);
+  $('btnRevoke').addEventListener('click', doRevoke);
+
+  try {
+    var ua = navigator.userAgent || '';
+    var guess = /iPhone/.test(ua) ? '爸爸的手机' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? '安卓手机' : '孩子的新手机';
+    $('label').value = guess;
+  } catch (e) {}
+
+  refreshState();
+})();
+</script>
+</body>
+</html>
