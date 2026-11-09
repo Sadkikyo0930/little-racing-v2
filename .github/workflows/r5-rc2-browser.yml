@@ -1,7 +1,7 @@
 name: R5 rc2 staging browser
 on:
   push:
-    branches: [validation/r5-prodlink-rc2-20261109]
+    branches: [validation/r5-prodlink-rc2-20261109-retest]
 permissions:
   contents: read
 jobs:

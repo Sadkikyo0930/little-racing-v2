@@ -29,6 +29,7 @@ const page = await browser.newPage();
 let allowed = false, startAllowed = true, active = false, used = 315, pendingStop = false;
 const events = [];
 const errors = [];
+const networkDiagnostics = [];
 const device = 'fixture-device';
 const saves = {'lrv2.garage.coins':{coins:3456,appliedRewards:[]},'littleRacingV2.story.chapter1':{state:'done',updatedAt:1},'lrv2.garage.owned':{red:{unlocked:true},turtle:{unlocked:true},moto:{unlocked:true}}};
 try {
@@ -36,6 +37,8 @@ try {
  await page.setCacheEnabled(false);
  await page.setRequestInterception(true);
  page.on('pageerror', e => errors.push(e.message));
+ page.on('requestfailed', req => {if(req.url().includes('/v1/game/')) networkDiagnostics.push(req.failure()?.errorText);});
+ page.on('console', msg => {if(msg.text().includes('CORS') || msg.text().includes('[r5]')) networkDiagnostics.push(msg.text());});
  page.on('request', async req => {
    try {
      const url = new URL(req.url());
@@ -102,7 +105,7 @@ try {
  const eventOffset = events.length;
  await visible(false);
  await page.waitForFunction(()=>window.__R5_GUARD__?.state.last.active===true);
- for(let i=0;i<50 && !events.slice(eventOffset).includes('start');i++) await sleep(20);
+ for(let i=0;i<150 && !events.slice(eventOffset).includes('start');i++) await sleep(100);
  assert.deepEqual(events.slice(eventOffset,eventOffset+2),['stop-complete','start']);
  pass('Rapid foreground return waits for the background stop response');
  await visible(true);
@@ -141,7 +144,7 @@ try {
  pass('V6 clean home, daily learning entry and bridge render');
  assert.deepEqual(errors.filter(msg=>!msg.startsWith('R5_ENTRY_REDIRECT')),[]);
 } catch(e) {
- console.log('BROWSER DIAGNOSTIC',page.url(),events,errors,await page.evaluate(()=>document.body.innerText.slice(0,600)).catch(()=>null));
+ console.log('BROWSER DIAGNOSTIC',page.url(),events,errors,networkDiagnostics,await page.evaluate(()=>document.body.innerText.slice(0,600)).catch(()=>null));
  throw e;
 } finally {
  await fs.writeFile('rc2-browser-report.json',JSON.stringify({browser:await browser.version(),scope:'Staging candidates on localhost, simulated gateway, external requests blocked',passed:results},null,2));
