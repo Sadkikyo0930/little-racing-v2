@@ -99,7 +99,8 @@
   <section class="state" id="st-nodevice">
     <div class="big" aria-hidden="true">🔑</div>
     <p class="title">请用爸爸妈妈给你的链接打开</p>
-    <p class="hint">链接里带一个小小的“钥匙”，打开一次就会记住，下次点主屏幕图标就能直接进。</p>
+    <p class="hint">请在当前窗口完成家长绑定。若这是首次在主屏幕版绑定，它可能作为独立设备占用一个家庭设备名额。</p>
+    <button class="btn primary" id="btn-bind" type="button">家长绑定这台设备</button>
     <button class="btn ghost" id="btn-learn3">去学习（V6 学习平台）</button>
   </section>
 
@@ -127,6 +128,8 @@ function show(id) {
   states.forEach((s) => $(s).classList.toggle('on', s === id));
 }
 function setSub(t) { $('subtitle').textContent = t; }
+
+$('btn-bind').addEventListener('click', () => { location.href = './bind.html'; });
 
 captureDeviceFromUrl();
 const device = getDevice();
