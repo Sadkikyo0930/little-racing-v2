@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>小小赛车 V2 · 存档备份 / 恢复 / 重置（R5 生日版 v2.0）</title>
+<style>
+  :root{--navy:#0c2342;--blue:#1b5fc4;--gold:#ffd23f;--ink:#10141c}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;background:#06101f;color:#eaf2ff;padding:18px;line-height:1.5}
+  h1{font-size:20px;margin:0 0 4px}
+  h2{font-size:15px;margin:22px 0 8px;color:#9fd7ff}
+  .sub{color:#8fa6c2;font-size:13px;margin-bottom:10px}
+  .card{background:#0e1c33;border:1px solid #ffffff1f;border-radius:14px;padding:14px 16px;margin-bottom:14px}
+  button{font-family:inherit;font-weight:800;border:none;border-radius:999px;padding:10px 18px;font-size:14px;cursor:pointer;margin:4px 6px 4px 0}
+  .primary{background:linear-gradient(#fff3a6,#ffd23f 48%,#ffb300);color:#4a2400;box-shadow:0 4px #b06a00}
+  .ghost{background:#ffffff14;color:#cfe6ff;border:1px solid #ffffff2e}
+  .danger{background:linear-gradient(#ff8a6a,#e02b16);color:#fff;box-shadow:0 4px #8f1a0c}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #ffffff14;vertical-align:top}
+  th{color:#9fd7ff;font-weight:700}
+  .tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;margin-right:4px}
+  .t-reset{background:#3a1f1f;color:#ffb3a3;border:1px solid #ff6a4a55}
+  .t-keep{background:#16331f;color:#a8f0bf;border:1px solid #4caf6a55}
+  .t-info{background:#16263f;color:#9fd7ff;border:1px solid #4a8fd655}
+  code{background:#00000055;padding:1px 5px;border-radius:5px;font-size:12px}
+  textarea{width:100%;height:120px;background:#06101f;border:1px solid #ffffff2e;border-radius:8px;color:#cfe6ff;font-family:monospace;font-size:12px;padding:8px}
+  .ok{color:#8ef0a8}.bad{color:#ff9a8a}.warn{color:#ffd66b}
+  .note{font-size:12.5px;color:#9fb3cf}
+  #status{font-size:13px;margin-top:6px;min-height:18px}
+  .hidden{display:none}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  input[type=text]{background:#06101f;border:1px solid #ffffff2e;border-radius:8px;color:#fff;padding:8px 10px;font-size:13px;flex:1;min-width:180px}
+  .vbadge{font-size:11px;color:#06101f;background:#ffd23f;border-radius:999px;padding:1px 8px;margin-left:8px;vertical-align:middle}
+</style>
+</head>
+<body>
+  <h1>小小赛车 V2 · 赛车存档 备份 / 恢复 / 重置 <span class="vbadge">v2.0</span></h1>
+  <div class="sub">R5 生日版 · 同源（与游戏同域）运行 · 所有操作仅作用于本机浏览器 localStorage，不会触碰 CloudBase 学习记录 / 家庭 / 设备授权 / 生日超跑。<b>v2.0：每条存档写入真实 SHA-256；恢复前、恢复后双重校验，任一失败即中止/回滚，绝不显示恢复成功。</b></div>
+
+  <div class="card">
+    <h2 style="margin-top:0">① 审计：本机当前赛车存档</h2>
+    <div class="note">赛车进度（金币 / 车辆解锁 / 成就 / 剧情章节 / 比赛奖励）全部保存在本机浏览器 <code>localStorage</code>，按“设备 + 浏览器”隔离，不与其它设备共享。下表为当前设备读到的真实键；SHA-256 列为该键值的真实 64 位校验值（悬停可看全值）。</div>
+    <div id="auditTable"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" id="btnRefresh">重新扫描</button>
+      <button class="primary" id="btnExport">导出备份 v2.0（每条真实 SHA-256）</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">② 从文件恢复（恢复前 / 恢复后均校验 SHA-256）</h2>
+    <div class="note">
+      恢复流程：<b>① 恢复前校验</b>备份文件自身（每条 value 的 SHA-256 是否与记录一致 + 清单 manifestSha256 是否一致）→ 不通过则<b>中止，不写入任何数据</b>；
+      <b>② 写入</b>（自动跳过设备绑定等受保护键）；<b>③ 恢复后校验</b>逐键读回 localStorage 再算 SHA-256 比对 → 不通过则<b>自动回滚</b>到恢复前状态。
+      只有前后两次校验全部通过，才会显示「恢复成功」。旧版（含 <code>computed-on-demand</code> 占位符）备份不可恢复，请重新导出 v2.0 备份。
+    </div>
+    <textarea id="importBox" placeholder="把导出的 JSON 粘贴到这里，或选择文件…"></textarea>
+    <div class="row" style="margin-top:8px">
+      <input type="file" id="importFile" accept=".json,application/json" />
+      <button class="ghost" id="btnImport">恢复备份（双重校验）</button>
+      <button class="ghost" id="btnVerifyImport">仅校验备份文件（不写入）</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">③ 重置为全新进度（生日当天给孩子用）</h2>
+    <div class="note warn">仅清除下方标红（<span class="tag t-reset">重置</span>）的赛车进度键；<b>必定保留</b>设备绑定 <code>r5_device</code>、家长/学习闸门会话、以及音频等设置键。<br>正式家庭数据重置须由家长在确认清理范围后，于孩子将要使用的设备（生日赛车 iPad 等）上手动执行本步。本工具不会自动连云、不会清空任何 CloudBase 表。</div>
+    <div id="resetTable"></div>
+    <div class="row" style="margin-top:10px">
+      <input type="text" id="resetConfirm" placeholder='请输入 “RESET” 以解锁重置按钮' autocomplete="off" />
+      <button class="danger" id="btnReset" disabled>执行重置（保留设备绑定）</button>
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">说明与边界</h2>
+    <ul class="note" style="margin:0">
+      <li>本机赛车进度与 CloudBase（学习记录 52 条 / 家庭 little-growth-family-001 / 设备授权 / 1800 秒 md-1 计时 / 生日超跑“六星闪耀”）完全分离；本工具<b>不发任何网络请求</b>（无 fetch / XHR / CloudBase SDK），不读取也不修改云端，不修改 GitHub。</li>
+      <li>SHA-256 采用内嵌标准实现（与 Node / openssl 结果一致），<b>不依赖 crypto.subtle</b>，因此用 <code>file://</code> 直接打开或 http 非安全上下文也能算出真实哈希。</li>
+      <li>备份范围仅为本机赛车存档键；<code>r5_device</code> 等设备绑定 / 授权 / 设置键<b>不进入备份、也不会被恢复覆盖</b>，避免跨设备串号。</li>
+      <li>“生日限定超跑”由服务端在 2026-11-14 按可信时间自动发放，不在本地存档中，重置本地数据不会提前领取或删除它。</li>
+      <li>不同设备各自独立：爸爸试玩若只在爸爸设备，孩子设备本就是全新；若爸爸曾在孩子设备试玩，则在该设备执行重置即可，无需碰其它设备。</li>
+      <li>如无法确认某条记录属于“爸爸试玩”还是“孩子真实进度”，请勿整表清空；先导出备份，再单独处理可确认的项。</li>
+    </ul>
+  </div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ============ 内嵌标准 SHA-256（同步，不依赖 crypto.subtle） ============ */
+  function utf8Bytes(str){
+    if (typeof TextEncoder !== 'undefined') return Array.from(new TextEncoder().encode(str));
+    var out=[];
+    for(var i=0;i<str.length;i++){
+      var c=str.charCodeAt(i);
+      if(c<0x80) out.push(c);
+      else if(c<0x800) out.push(0xc0|(c>>6),0x80|(c&63));
+      else if(c>=0xd800&&c<=0xdbff&&i+1<str.length){var c2=str.charCodeAt(i+1);var cp=0x10000+((c-0xd800)<<10)+(c2-0xdc00);i++;out.push(0xf0|(cp>>18),0x80|((cp>>12)&63),0x80|((cp>>6)&63),0x80|(cp&63));}
+      else out.push(0xe0|(c>>12),0x80|((c>>6)&63),0x80|(c&63));
+    }
+    return out;
+  }
+  var K=[
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  function rotr(x,n){ return (x>>>n)|(x<<(32-n)); }
+  function sha256Hex(str){
+    var bytes=utf8Bytes(String(str));
+    var H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    var bits=bytes.length*8, hi=Math.floor(bits/4294967296), lo=bits>>>0;
+    bytes.push(0x80);
+    while(bytes.length%64!==56) bytes.push(0);
+    bytes.push((hi>>>24)&255,(hi>>>16)&255,(hi>>>8)&255,hi&255,(lo>>>24)&255,(lo>>>16)&255,(lo>>>8)&255,lo&255);
+    for(var o=0;o<bytes.length;o+=64){
+      var w=new Array(64);
+      for(var i=0;i<16;i++){var j=o+i*4;w[i]=(bytes[j]<<24)|(bytes[j+1]<<16)|(bytes[j+2]<<8)|bytes[j+3];}
+      for(i=16;i<64;i++){var a=w[i-15],b=w[i-2];var s0=rotr(a,7)^rotr(a,18)^(a>>>3);var s1=rotr(b,17)^rotr(b,19)^(b>>>10);w[i]=(w[i-16]+s0+w[i-7]+s1)|0;}
+      var A=H[0],B=H[1],C=H[2],D=H[3],E=H[4],F=H[5],G=H[6],HH=H[7];
+      for(i=0;i<64;i++){var S1=rotr(E,6)^rotr(E,11)^rotr(E,25);var ch=(E&F)^(~E&G);var t1=(HH+S1+ch+K[i]+w[i])|0;var S0=rotr(A,2)^rotr(A,13)^rotr(A,22);var maj=(A&B)^(A&C)^(B&C);var t2=(S0+maj)|0;HH=G;G=F;F=E;E=(D+t1)|0;D=C;C=B;B=A;A=(t1+t2)|0;}
+      H[0]=(H[0]+A)|0;H[1]=(H[1]+B)|0;H[2]=(H[2]+C)|0;H[3]=(H[3]+D)|0;H[4]=(H[4]+E)|0;H[5]=(H[5]+F)|0;H[6]=(H[6]+G)|0;H[7]=(H[7]+HH)|0;
+    }
+    return H.map(function(x){return (x>>>0).toString(16).padStart(8,'0');}).join('');
+  }
+  function isHex64(s){ return typeof s==='string' && /^[0-9a-f]{64}$/.test(s); }
+  function manifestSha256(keys){
+    var lines=keys.map(function(k){ return k.key+':'+k.sha256; });
+    lines.sort();
+    return sha256Hex(lines.join('\n'));
+  }
+
+  /* ============ 键分类（重置清单保持与 v1 完全一致，未改动） ============ */
+  var RESET_KEYS = [
+    'lrv2.garage.meta','lrv2.garage.coins','lrv2.garage.tx','lrv2.garage.owned',
+    'lrv2.garage.current','lrv2.garage.rewards.story','lrv2.garage.rewards.study',
+    'lrv2.garage.claims','lrv2.garage.achievements','lrv2.garage.reward-ledger',
+    'lrv2.vehicle','lrv2.driverSkin',
+    'littleRacingV2.story.chapter1','littleRacingV2.story.chapter2'
+  ];
+  var RESET_PREFIXES = ['lrv2.garage.backup.'];
+  var KEEP_KEYS = ['r5_device'];
+  var KEEP_PREFIXES = ['r5.'];
+  var KEEP_INFO = ['oldSanJuanKart.audio','lrv2.fsHintSeen','littleRacingV2.music','littleRacingV2.voice'];
+
+  function classify(key){
+    if (RESET_KEYS.indexOf(key) >= 0) return 'reset';
+    for (var i=0;i<RESET_PREFIXES.length;i++) if (key.indexOf(RESET_PREFIXES[i])===0) return 'reset';
+    if (KEEP_KEYS.indexOf(key) >= 0) return 'keep';
+    for (var j=0;j<KEEP_PREFIXES.length;j++) if (key.indexOf(KEEP_PREFIXES[j])===0) return 'keep';
+    if (KEEP_INFO.indexOf(key) >= 0) return 'keep';
+    return 'info';
+  }
+
+  /* ============ 读取 / 审计 ============ */
+  function readAll(){
+    var out = [];
+    for (var i=0;i<localStorage.length;i++){
+      var k = localStorage.key(i);
+      if (!k) continue;
+      var v = '';
+      try { v = localStorage.getItem(k) || ''; } catch(e){ v=''; }
+      out.push({key:k, value:v, bytes:utf8Bytes(v).length, chars:v.length});
+    }
+    return out;
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function btoaSafe(s){ try{return btoa(unescape(encodeURIComponent(s)));}catch(e){return 'k'+Math.abs(hashCode(s));} }
+  function hashCode(s){ var h=0; for(var i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i)|0;} return h; }
+  function deviceFingerprint(){
+    try{ return (navigator.userAgent||'')+'|'+(screen.width+'x'+screen.height); }catch(e){ return 'unknown'; }
+  }
+
+  function renderAudit(){
+    var rows = readAll();
+    var html = '<table><thead><tr><th>类别</th><th>键</th><th>字节</th><th>SHA-256（值，真实）</th></tr></thead><tbody>';
+    if(!rows.length) html += '<tr><td colspan="4" class="note">（本机暂无 little-racing-v2 相关存档）</td></tr>';
+    rows.forEach(function(r){
+      var cls = classify(r.key);
+      var tag = cls==='reset'?'<span class="tag t-reset">重置</span>'
+              : cls==='keep'?'<span class="tag t-keep">保留</span>'
+              : '<span class="tag t-info">信息</span>';
+      html += '<tr><td>'+tag+'</td><td><code>'+escapeHtml(r.key)+'</code></td><td>'+r.bytes+'</td><td class="note" id="h_'+btoaSafe(r.key)+'">…</td></tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('auditTable').innerHTML = html;
+    rows.forEach(function(r){
+      var el=document.getElementById('h_'+btoaSafe(r.key));
+      if(el){ var h=sha256Hex(r.value); el.textContent=h.slice(0,20)+'…'; el.title=h; }
+    });
+    renderReset();
+  }
+
+  function renderReset(){
+    var present = RESET_KEYS.filter(function(k){ return localStorage.getItem(k)!=null; });
+    var prefixHits = [];
+    RESET_PREFIXES.forEach(function(p){ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k && k.indexOf(p)===0) prefixHits.push(k); } });
+    var all = present.concat(prefixHits);
+    var html = '<table><thead><tr><th>将清除的键</th><th>当前值预览</th></tr></thead><tbody>';
+    if(!all.length) html += '<tr><td colspan="2" class="note">（没有可清除的赛车进度键，本机已是全新状态）</td></tr>';
+    all.forEach(function(k){
+      var v=''; try{v=localStorage.getItem(k)||''}catch(e){}
+      html += '<tr><td><code>'+escapeHtml(k)+'</code></td><td class="note">'+(v.length>80?escapeHtml(v.slice(0,80))+'…':escapeHtml(v))+'</td></tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('resetTable').innerHTML = html;
+  }
+
+  /* ============ 导出：每条写入真实 SHA-256 + 整体 manifest ============ */
+  function buildExport(){
+    var rows = readAll().filter(function(r){
+      return classify(r.key)==='reset';
+    });
+    var keys = rows.map(function(r){
+      return { key:r.key, value:r.value, bytes:r.bytes, chars:r.chars, sha256:sha256Hex(r.value) };
+    });
+    keys.sort(function(a,b){ return a.key<b.key?-1:(a.key>b.key?1:0); });
+    return {
+      tool:'lrv2-backup-restore',
+      version:'2.0',
+      hashAlgo:'SHA-256',
+      scope:'racing-save-only',
+      exportedAt:new Date().toISOString(),
+      origin:location.origin,
+      device:deviceFingerprint(),
+      count:keys.length,
+      manifestSha256:manifestSha256(keys),
+      keys:keys
+    };
+  }
+
+  /* ============ 恢复前校验：验证备份文件自身完整性（纯逻辑，无 DOM 依赖） ============ */
+  function verifyBackup(data){
+    var errors=[];
+    if(!data || typeof data!=='object') return {ok:false, errors:['备份内容不是对象'], checked:0, perOk:0};
+    if(data.tool!=='lrv2-backup-restore') errors.push('tool 标识不匹配');
+    if(data.version!=='2.0') errors.push('备份版本不是 2.0（旧版占位符备份不可恢复，请重新导出）');
+    if(data.hashAlgo!=='SHA-256') errors.push('hashAlgo 不是 SHA-256');
+    if(!Array.isArray(data.keys) || !data.keys.length) return {ok:false, errors:errors.concat(['keys 为空或格式不对']), checked:0, perOk:0};
+    if(typeof data.count==='number' && data.count!==data.keys.length) errors.push('count 与 keys 条数不一致');
+    var perOk=0, seen=Object.create(null);
+    for(var i=0;i<data.keys.length;i++){
+      var k=data.keys[i];
+      if(!k || typeof k.key!=='string' || typeof k.value!=='string'){ errors.push('第 '+(i+1)+' 条结构异常'); continue; }
+      if(classify(k.key)!=='reset' || seen[k.key]){ errors.push('赛车键不在白名单内或重复：'+k.key); continue; }
+      seen[k.key]=true;
+      if(!isHex64(k.sha256)){ errors.push(k.key+'：缺少真实 64 位 SHA-256（占位符 / 旧版备份 / 被篡改）'); continue; }
+      if(sha256Hex(k.value)!==k.sha256){ errors.push(k.key+'：内容与 SHA-256 不匹配（备份被修改或损坏）'); continue; }
+      perOk++;
+    }
+    if(!isHex64(data.manifestSha256)) errors.push('缺少有效 manifestSha256');
+    else if(errors.length===0 && manifestSha256(data.keys)!==data.manifestSha256) errors.push('manifestSha256 不匹配（记录被增删或篡改）');
+    return {ok:errors.length===0, errors:errors, checked:data.keys.length, perOk:perOk};
+  }
+
+  function rollback(snap){
+    var ok=true;
+    Object.keys(snap).forEach(function(k){
+      try{ if(snap[k]===null) localStorage.removeItem(k); else localStorage.setItem(k, snap[k]); if(localStorage.getItem(k)!==snap[k]) ok=false; }catch(e){ok=false;}
+    });
+    return ok;
+  }
+
+  /* ============ 恢复：前校验 → 写入 → 后校验 → 失败回滚（纯逻辑，返回结果对象） ============ */
+  function restoreFromData(data){
+    var pre=verifyBackup(data);
+    if(!pre.ok){
+      return {ok:false, stage:'pre', errors:pre.errors, message:'备份 SHA-256 校验失败（'+pre.errors.length+' 项）',
+              written:0, skipped:0, rolledBack:false};
+    }
+    // 受保护键（设备绑定 / 授权 / 设置）绝不写入，即使备份里被人为塞入
+    var targets=data.keys.filter(function(k){ return classify(k.key)==='reset'; });
+    var skipped=data.keys.length-targets.length;
+    var snap=Object.create(null);
+    var written=0;
+    try{
+      targets.forEach(function(k){ snap[k.key]=localStorage.getItem(k.key); });
+      targets.forEach(function(k){
+        if(k.value===null || k.value===undefined) localStorage.removeItem(k.key);
+        else localStorage.setItem(k.key, k.value);
+        written++;
+      });
+    }catch(e){
+      var restored=rollback(snap);
+      return {ok:false, stage:'write', errors:[String((e&&e.message)||e)], message:restored?'写入失败，已回滚':'写入失败，回滚未完全成功',
+              written:0, skipped:skipped, rolledBack:restored};
+    }
+    // 恢复后校验：逐键读回再算 SHA-256
+    var postErr=[];
+    targets.forEach(function(k){
+      var cur=null; try{ cur=localStorage.getItem(k.key); }catch(e){}
+      if(cur===null || sha256Hex(cur)!==k.sha256) postErr.push(k.key);
+    });
+    if(postErr.length){
+      var restored=rollback(snap);
+      return {ok:false, stage:'post', errors:postErr, message:'恢复后 SHA-256 校验失败（'+postErr.length+' 项不一致）',
+              written:written, skipped:skipped, rolledBack:restored};
+    }
+    return {ok:true, stage:'done', errors:[], message:'前后双重校验通过',
+            written:written, skipped:skipped, rolledBack:false, preChecked:pre.checked};
+  }
+
+  /* ============ 导出下载 / 状态显示 ============ */
+  function download(name, text){
+    var blob = new Blob([text], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 200);
+  }
+  function setStatus(msg, cls){
+    var el=document.getElementById('status');
+    el.className=cls||'';
+    el.innerHTML = Array.isArray(msg)? msg.join('<br>') : msg;
+  }
+
+  /* ============ 执行重置（仅按明确清单清除；逻辑与 v1 一致） ============ */
+  function doReset(){
+    var cleared=0, kept=0;
+    RESET_KEYS.forEach(function(k){ if(localStorage.getItem(k)!=null){ try{localStorage.removeItem(k);cleared++;}catch(e){} } });
+    RESET_PREFIXES.forEach(function(p){ for(var i=localStorage.length-1;i>=0;i--){ var k=localStorage.key(i); if(k && k.indexOf(p)===0){ try{localStorage.removeItem(k);cleared++;}catch(e){} } } });
+    KEEP_KEYS.forEach(function(k){ if(localStorage.getItem(k)!=null) kept++; });
+    return {cleared:cleared, kept:kept};
+  }
+
+  /* ============ 事件绑定 ============ */
+  document.getElementById('btnRefresh').onclick = renderAudit;
+
+  document.getElementById('btnExport').onclick = function(){
+    var data = buildExport();
+    download('lrv2-save-backup-'+Date.now()+'.json', JSON.stringify(data, null, 2));
+    setStatus([
+      '<b class="ok">已导出 '+data.count+' 条赛车存档（备份版本 v2.0）。</b>',
+      '每条记录均写入<b>真实 64 位 SHA-256</b>（非占位符）；清单校验和 manifestSha256 = <code>'+escapeHtml(data.manifestSha256.slice(0,24))+'…</code>',
+      '请妥善保存；重置前务必留存。本工具不发任何网络请求。'
+    ], 'ok');
+  };
+
+  document.getElementById('importFile').onchange = function(e){
+    var f = e.target.files && e.target.files[0]; if(!f) return;
+    var rd = new FileReader(); rd.onload = function(){ document.getElementById('importBox').value = rd.result; }; rd.readAsText(f);
+  };
+
+  document.getElementById('btnVerifyImport').onclick = function(){
+    var txt = document.getElementById('importBox').value.trim();
+    if(!txt){ setStatus('请先粘贴或选择备份 JSON。','bad'); return; }
+    var data; try{ data = JSON.parse(txt); }catch(e){ setStatus('JSON 解析失败：'+escapeHtml(e.message),'bad'); return; }
+    var v = verifyBackup(data);
+    if(!v.ok){
+      setStatus([
+        '<b class="bad">备份 SHA-256 校验未通过（未写入任何数据）。</b>',
+        '共 '+v.errors.length+' 项问题：'
+      ].concat(v.errors.slice(0,8).map(function(x){return '· '+escapeHtml(x);})), 'bad');
+      return;
+    }
+    var same=0, diff=0;
+    data.keys.forEach(function(k){ var cur=''; try{cur=localStorage.getItem(k.key)||'';}catch(e){} if(cur===k.value && sha256Hex(cur)===k.sha256) same++; else diff++; });
+    setStatus([
+      '<b class="ok">备份自身 SHA-256 校验通过：'+v.checked+' 条逐条一致，manifestSha256 一致。</b>',
+      '该文件未被篡改。点「恢复备份」时还会再各校验一次（恢复前 + 恢复后）。',
+      '当前设备与备份内容：一致 '+same+' 条 / 差异 '+diff+' 条（差异属正常，表示本机进度与备份不同）。'
+    ], 'ok');
+  };
+
+  document.getElementById('btnImport').onclick = function(){
+    var txt = document.getElementById('importBox').value.trim();
+    if(!txt){ setStatus('请先粘贴或选择备份 JSON。','bad'); return; }
+    var data; try{ data = JSON.parse(txt); }catch(e){ setStatus('JSON 解析失败：'+escapeHtml(e.message),'bad'); return; }
+    var r = restoreFromData(data);
+    if(!r.ok){
+      var lines = [
+        '<b class="bad">恢复失败：'+escapeHtml(r.message)+'</b>',
+        r.stage==='pre'  ? '恢复前校验未通过 → 已中止，未写入任何数据，本机存档保持不变。' : '',
+        r.stage==='post' ? '恢复后校验未通过 → 已自动回滚到恢复前状态。' : '',
+        r.stage==='write'? '写入阶段异常 → 已自动回滚。' : '',
+        '本次恢复已被阻止；数据保持原样，请核对备份文件或重新导出 v2.0 备份。'
+      ].filter(Boolean);
+      if(r.errors && r.errors.length) lines = lines.concat(r.errors.slice(0,8).map(function(x){return '<span class="bad">· '+escapeHtml(x)+'</span>';}));
+      setStatus(lines, 'bad');
+      renderAudit();
+      return;
+    }
+    setStatus([
+      '<b class="ok">恢复成功：恢复前、恢复后两次 SHA-256 校验全部通过。</b>',
+      '恢复前校验 '+r.preChecked+' 条一致；写入 '+r.written+' 个键；恢复后逐键读回校验 '+r.written+' 条一致。',
+      (r.skipped? '已跳过 '+r.skipped+' 个受保护键（设备绑定/授权/设置），未覆盖。' : '设备绑定 <code>r5_device</code> 未被触碰。')
+    ], 'ok');
+    renderAudit();
+  };
+
+  var confirmBox = document.getElementById('resetConfirm');
+  var resetBtn = document.getElementById('btnReset');
+  confirmBox.oninput = function(){ resetBtn.disabled = confirmBox.value.trim() !== 'RESET'; };
+  resetBtn.onclick = function(){
+    if(confirmBox.value.trim() !== 'RESET'){ setStatus('需输入 RESET 才能执行。','bad'); return; }
+    if(!confirm('确认在本机清除赛车进度（金币/车辆/成就/剧情章节/比赛奖励）？\n设备绑定与音频设置会保留。此操作可逆——只要之前导出过 v2.0 备份即可恢复。')) return;
+    var r = doReset();
+    setStatus('已清除 '+r.cleared+' 个赛车进度键；设备绑定等保留键仍在（'+r.kept+' 项确认保留）。仅按清单清除，未触碰学习记录 / r5_device / 任何云端数据。游戏刷新后即回到全新进度。','ok');
+    renderAudit();
+  };
+
+  /* ============ 只读测试接口（供隔离测试页调用生产代码本身，非枚举、不可写） ============ */
+  try {
+    Object.defineProperty(window, '__LRV2__', {
+      value: Object.freeze({
+        version:'2.0',
+        sha256Hex:sha256Hex, utf8Bytes:utf8Bytes, manifestSha256:manifestSha256,
+        buildExport:buildExport, verifyBackup:verifyBackup, restoreFromData:restoreFromData,
+        classify:classify, readAll:readAll, doReset:doReset,
+        RESET_KEYS:RESET_KEYS.slice(), RESET_PREFIXES:RESET_PREFIXES.slice(),
+        KEEP_KEYS:KEEP_KEYS.slice(), KEEP_PREFIXES:KEEP_PREFIXES.slice()
+      }),
+      enumerable:false, writable:false, configurable:false
+    });
+  } catch(e){}
+
+  renderAudit();
+})();
+</script>
+</body>
+</html>

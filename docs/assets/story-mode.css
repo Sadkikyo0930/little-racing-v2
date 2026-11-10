@@ -1,0 +1,118 @@
+/* ===========================================================================
+ * story-mode.css — 「剧情模式」统一入口 + 章节选择页（R5 生日版）
+ * 仅新增首页交互层，不改动游戏代码 / 剧情资源 / 存档读写。
+ * 视觉沿用原游戏标题按钮语言（第一章蓝、第二章橙），不引入突兀的普通网页按钮。
+ * ===========================================================================*/
+
+/* 统一的「剧情模式」按钮：放在原两章剧情按钮的位置，沿用故事按钮的胶囊/描边风格，
+   用蓝紫渐变表示“两章合并”。 */
+.storyModeBtn {
+  font-family: var(--font-cn);
+  color: #f3ecff;
+  background: linear-gradient(#7b5cffea, #4a2bb8ea);
+  border-radius: 999px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  padding: 11px 26px;
+  transition: transform .12s, box-shadow .12s, filter .12s;
+  display: flex;
+  box-shadow: 0 8px #2c1a6e, 0 18px 34px #00000073;
+  border: 2px solid #c9b6ffb3 !important;
+}
+.storyModeBtn .sbLabel { letter-spacing: .1em; text-indent: .1em; font-size: 19px; font-weight: 900; }
+.storyModeBtn .sbBadge { letter-spacing: .06em; color: #d9ccff; font-size: 10px; font-weight: 700; }
+.storyModeBtn:hover { transform: translateY(-2px); box-shadow: 0 10px #2c1a6e, 0 22px 40px #00000080; }
+.storyModeBtn:active { transform: translateY(5px); box-shadow: 0 3px #2c1a6e; }
+
+/* ---- 章节选择覆盖层 ---- */
+#storyChapterSelect {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  /* #ui 默认 pointer-events:none；覆盖层作为子节点需显式恢复，否则真实点击/触摸无法命中 */
+  pointer-events: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(120% 90% at 50% 22%, #081a3466, #040914e6);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  padding: 18px;
+  overflow: auto;
+}
+#storyChapterSelect.hidden { display: none; }
+
+.scsCard {
+  width: min(720px, 94vw);
+  background: linear-gradient(180deg, #0c2342f2, #071528f2);
+  border: 2px solid #ffffff1f;
+  border-radius: 22px;
+  box-shadow: 0 24px 60px #000a;
+  padding: 18px 18px 22px;
+}
+.scsHead { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.scsHead h2 {
+  margin: 0; color: #fff; font-family: var(--font-cn);
+  font-size: clamp(18px, 2.4vw, 24px); letter-spacing: .06em;
+}
+.scsBack {
+  font-family: var(--font-cn); color: #cfe6ff; background: #ffffff14;
+  border: 1px solid #ffffff2e; border-radius: 999px; padding: 7px 14px;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.scsBack:hover { background: #ffffff22; }
+
+.scsGrid { display: flex; flex-direction: column; gap: 14px; }
+.scsChapter {
+  display: flex; align-items: center; gap: 16px; text-align: left; cursor: pointer;
+  border-radius: 18px; padding: 14px 16px; border: 2px solid #ffffff24;
+  background: #0a1c33cc; transition: transform .12s, box-shadow .12s, filter .12s;
+  font-family: var(--font-cn); color: #fff;
+}
+.scsChapter:hover { transform: translateY(-2px); box-shadow: 0 12px 28px #0008; }
+.scsChapter:active { transform: translateY(3px); }
+
+/* 章节插图：沿用游戏配色（第一章海蓝、第二章阳光橙），中央一个卡通小车剪影 */
+.scsIllu {
+  width: 84px; height: 84px; border-radius: 14px; flex: none;
+  position: relative; overflow: hidden;
+}
+.illu1 { background: linear-gradient(160deg, #2a7fd6, #0c3866); }
+.illu2 { background: linear-gradient(160deg, #ffb43a, #c9741a); }
+.scsIllu::before {
+  content: ""; position: absolute; left: 50%; top: 46%;
+  width: 32px; height: 15px; border-radius: 5px; background: #fff;
+  transform: translate(-50%, -70%);
+}
+.scsIllu::after {
+  content: ""; position: absolute; left: 50%; top: 54%;
+  width: 48px; height: 22px; border-radius: 7px 7px 9px 9px; background: #e23b2e;
+  transform: translate(-50%, -45%); box-shadow: 0 11px 0 -3px #e23b2e;
+}
+.scsInfo { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.scsKicker { font-size: 12px; color: #9fd7ff; font-weight: 800; letter-spacing: .12em; }
+.scsChapter.ch2 .scsKicker { color: #ffe1a8; }
+.scsName { font-size: clamp(17px, 2.2vw, 22px); font-weight: 900; letter-spacing: .04em; }
+.scsProgress { font-size: 12px; color: #bcd2e6; }
+.scsChapter.done { border-color: #ffd23f !important; }
+.scsChapter.done .scsProgress { color: #ffd66b; }
+.scsChapter.locked { filter: grayscale(.55) brightness(.82); cursor: not-allowed; }
+.scsArrow { font-size: 26px; color: #ffffffaa; flex: none; }
+
+/* 小屏手机 */
+@media (max-width: 640px) {
+  .storyModeBtn { padding: 9px 20px; }
+  .storyModeBtn .sbLabel { font-size: 16px; }
+  .storyModeBtn .sbBadge { font-size: 9px; }
+  .scsIllu { width: 64px; height: 64px; }
+  .scsChapter { gap: 12px; padding: 12px; }
+  .scsHead h2 { font-size: 18px; }
+}
+/* 手机横屏：两章并排，更省纵向空间 */
+@media (orientation: landscape) and (max-height: 560px) {
+  .scsGrid { flex-direction: row; }
+  .scsChapter { flex: 1; flex-direction: column; text-align: center; }
+  .scsArrow { display: none; }
+}
