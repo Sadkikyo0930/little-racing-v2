@@ -15,6 +15,7 @@ import { createGuard } from './guard-core.mjs';
 
 // Export a promise consumed by the only game-module loader in index.html.
 // No game JS may execute until the server confirms eligibility AND start succeeds.
+let requestBirthdayClaim;
 export const ready = (async () => {
   const device = getDevice();
   const grant = readGrant(device);
@@ -63,6 +64,15 @@ export const ready = (async () => {
   try {
     const result = await guard.boot();
     if (!result.ok) console.info('[r5] 未放行:', result.reason || result.error);
+    if (result.ok) {
+      requestBirthdayClaim = async () => {
+        if (device !== getDevice() || guard.isLocked() || guard.isExpired()) return null;
+        const { readBirthdayClaim } = await import('./birthday-claim.mjs');
+        const response = await gate.claimBirthday();
+        if (device !== getDevice() || guard.isLocked() || guard.isExpired()) return null;
+        return readBirthdayClaim(response, gate.familyId);
+      };
+    }
     return !!result.ok;
   } catch (e) {
     console.error('[r5] 守卫异常:', e);
@@ -71,3 +81,9 @@ export const ready = (async () => {
     return false;
   }
 })();
+
+// This request runs alongside game startup and never controls R5 eligibility.
+let birthdayClaim;
+export function getBirthdayClaim() {
+  return birthdayClaim ??= ready.then(() => requestBirthdayClaim?.()).catch(() => null);
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "file": "birthday-voice-01.mp3",
+    "startSeconds": 0,
+    "durationSeconds": 6.557,
+    "endSeconds": 6.557,
+    "sha256": "695a7ac390449d20af6da5edac6b064095b6536774d59bfa725f87eddd3e919e"
+  },
+  {
+    "file": "birthday-voice-02.mp3",
+    "startSeconds": 6.7,
+    "durationSeconds": 10.005,
+    "endSeconds": 16.705,
+    "sha256": "6e0f12f4bcd0c304218caf55c95a8ed80cb9cbe3aa97c7a05f058b2de4804a8d"
+  },
+  {
+    "file": "birthday-voice-03.mp3",
+    "startSeconds": 16.8,
+    "durationSeconds": 5.355,
+    "endSeconds": 22.155,
+    "sha256": "76d83a862b14280454887621e1557019d9512579f0e22d415f65f820af761d07"
+  },
+  {
+    "file": "birthday-voice-04.mp3",
+    "startSeconds": 22.2,
+    "durationSeconds": 6.243,
+    "endSeconds": 28.443,
+    "sha256": "50d61756a23c2233af8f1b5b75e94ca344955396dfe2c0fb25a22cee3c9d89e4"
+  },
+  {
+    "file": "birthday-voice-05.mp3",
+    "startSeconds": 31.0,
+    "durationSeconds": 7.314,
+    "endSeconds": 38.314,
+    "sha256": "7420f78cbaa87f42db7df27e3e7c1125ae0c0f878023e2adb0ad50f88f65ecd5"
+  }
+]

@@ -60,7 +60,7 @@ export function createR5Gate(options = {}) {
   const fetchImpl = options.fetch || globalThis.fetch.bind(globalThis);
   const timeoutMs = options.timeoutMs || 15000;
 
-  async function post(path, body) {
+  async function post(path, body, expectedApi = 'r5_status') {
     if (!device) throw new R5Error('R5_DEVICE_REQUIRED', 0, null);
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -85,7 +85,7 @@ export function createR5Gate(options = {}) {
     if (!json) throw new R5Error('R5_BAD_RESPONSE', res.status, text);
     if (json.error) throw new R5Error(json.error, res.status, json);
     // 服务端返回体必须带 api 标记，避免把代理错误页当成合法状态
-    if (json.api !== 'r5_status') throw new R5Error('R5_BAD_RESPONSE', res.status, json);
+    if (json.api !== expectedApi || (expectedApi === 'r5_birthday' && !res.ok)) throw new R5Error('R5_BAD_RESPONSE', res.status, json);
     return json;
   }
 
@@ -95,6 +95,7 @@ export function createR5Gate(options = {}) {
     start: () => post('/v1/game/action', { action: 'start' }),
     tick: () => post('/v1/game/action', { action: 'tick' }),
     stop: () => post('/v1/game/action', { action: 'stop' }),
+    claimBirthday: () => post('/v1/birthday/claim', {}, 'r5_birthday'),
     messageFor,
   };
 }
