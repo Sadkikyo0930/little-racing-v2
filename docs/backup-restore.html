@@ -86,7 +86,8 @@
     </ul>
   </div>
 
-<script>
+<script type="module">
+import {previewStorage as localStorage} from "./r5/isolation-storage.mjs";
 (function(){
   'use strict';
 
@@ -142,7 +143,7 @@
     'lrv2.garage.meta','lrv2.garage.coins','lrv2.garage.tx','lrv2.garage.owned',
     'lrv2.garage.current','lrv2.garage.rewards.story','lrv2.garage.rewards.study',
     'lrv2.garage.claims','lrv2.garage.achievements','lrv2.garage.reward-ledger',
-    'lrv2.vehicle','lrv2.driverSkin',
+    'lrv2.vehicle','lrv2.driverSkin','lrv2.garage.items','lrv2.garage.fragments',
     'littleRacingV2.story.chapter1','littleRacingV2.story.chapter2'
   ];
   var RESET_PREFIXES = ['lrv2.garage.backup.'];
