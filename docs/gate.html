@@ -113,11 +113,88 @@
     <button class="btn ghost" id="btn-learn4">去学习（V6 学习平台）</button>
   </section>
 
-  <a class="btn ghost backup-link" id="parent-backup-link" href="./backup-restore.html" target="_self">家长备份赛车存档</a>
-  <p class="hint" style="margin-top:8px">在当前桌面窗口导出本机存档，无需解锁赛车。</p>
+  <button class="btn ghost backup-link" id="parent-backup-link" type="button">家长备份赛车存档（当前页面）</button>
+  <section id="parent-backup-panel" hidden><p id="parent-backup-status" role="status"></p><button class="btn ghost" id="parent-backup-export" type="button" disabled>导出完整备份 JSON</button><textarea id="parent-backup-json" readonly hidden aria-label="备份 JSON" style="width:100%;height:120px"></textarea></section>
+  <p class="hint" style="margin-top:8px">不跳转页面、不重置存档。版本：页内备份 1.0。</p>
   <p class="foot">能不能玩、玩了多久，全部由云端说了算：刷新、退出重进都不会重新计时。</p>
   <p class="dev" id="devline"></p>
 </main>
+
+
+<script>
+(function(){
+'use strict';
+  function utf8Bytes(str){
+    if (typeof TextEncoder !== 'undefined') return Array.from(new TextEncoder().encode(str));
+    var out=[];
+    for(var i=0;i<str.length;i++){
+      var c=str.charCodeAt(i);
+      if(c<0x80) out.push(c);
+      else if(c<0x800) out.push(0xc0|(c>>6),0x80|(c&63));
+      else if(c>=0xd800&&c<=0xdbff&&i+1<str.length){var c2=str.charCodeAt(i+1);var cp=0x10000+((c-0xd800)<<10)+(c2-0xdc00);i++;out.push(0xf0|(cp>>18),0x80|((cp>>12)&63),0x80|((cp>>6)&63),0x80|(cp&63));}
+      else out.push(0xe0|(c>>12),0x80|((c>>6)&63),0x80|(c&63));
+    }
+    return out;
+  }
+  var K=[
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  function rotr(x,n){ return (x>>>n)|(x<<(32-n)); }
+  function sha256Hex(str){
+    var bytes=utf8Bytes(String(str));
+    var H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    var bits=bytes.length*8, hi=Math.floor(bits/4294967296), lo=bits>>>0;
+    bytes.push(0x80);
+    while(bytes.length%64!==56) bytes.push(0);
+    bytes.push((hi>>>24)&255,(hi>>>16)&255,(hi>>>8)&255,hi&255,(lo>>>24)&255,(lo>>>16)&255,(lo>>>8)&255,lo&255);
+    for(var o=0;o<bytes.length;o+=64){
+      var w=new Array(64);
+      for(var i=0;i<16;i++){var j=o+i*4;w[i]=(bytes[j]<<24)|(bytes[j+1]<<16)|(bytes[j+2]<<8)|bytes[j+3];}
+      for(i=16;i<64;i++){var a=w[i-15],b=w[i-2];var s0=rotr(a,7)^rotr(a,18)^(a>>>3);var s1=rotr(b,17)^rotr(b,19)^(b>>>10);w[i]=(w[i-16]+s0+w[i-7]+s1)|0;}
+      var A=H[0],B=H[1],C=H[2],D=H[3],E=H[4],F=H[5],G=H[6],HH=H[7];
+      for(i=0;i<64;i++){var S1=rotr(E,6)^rotr(E,11)^rotr(E,25);var ch=(E&F)^(~E&G);var t1=(HH+S1+ch+K[i]+w[i])|0;var S0=rotr(A,2)^rotr(A,13)^rotr(A,22);var maj=(A&B)^(A&C)^(B&C);var t2=(S0+maj)|0;HH=G;G=F;F=E;E=(D+t1)|0;D=C;C=B;B=A;A=(t1+t2)|0;}
+      H[0]=(H[0]+A)|0;H[1]=(H[1]+B)|0;H[2]=(H[2]+C)|0;H[3]=(H[3]+D)|0;H[4]=(H[4]+E)|0;H[5]=(H[5]+F)|0;H[6]=(H[6]+G)|0;H[7]=(H[7]+HH)|0;
+    }
+    return H.map(function(x){return (x>>>0).toString(16).padStart(8,'0');}).join('');
+  }
+  function isHex64(s){ return typeof s==='string' && /^[0-9a-f]{64}$/.test(s); }
+  function manifestSha256(keys){
+    var lines=keys.map(function(k){ return k.key+':'+k.sha256; });
+    lines.sort();
+    return sha256Hex(lines.join('\n'));
+  }
+
+
+const keys = ['lrv2.garage.meta','lrv2.garage.coins','lrv2.garage.tx','lrv2.garage.owned','lrv2.garage.current','lrv2.garage.rewards.story','lrv2.garage.rewards.study','lrv2.garage.claims','lrv2.garage.achievements','lrv2.garage.reward-ledger','littleRacingV2.story.chapter1','littleRacingV2.story.chapter2','lrv2.vehicle','lrv2.driverSkin','lrv2.garage.items','lrv2.garage.fragments'];
+let payload;
+const status=document.getElementById('parent-backup-status'),exportButton=document.getElementById('parent-backup-export');
+document.getElementById('parent-backup-link').addEventListener('click',function(){
+ document.getElementById('parent-backup-panel').hidden=false;
+ exportButton.disabled=true; payload=null;
+ try {
+  const selected=new Set(keys);
+  for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(key && key.startsWith('lrv2.garage.backup.'))selected.add(key);}
+  const rows=[];
+  for(const key of [...selected].sort()){const value=localStorage.getItem(key);if(value!==null)rows.push({key,value,bytes:utf8Bytes(value).length,chars:value.length,sha256:sha256Hex(value)});}
+  const standalone=navigator.standalone===true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  if(!rows.length){status.textContent='当前窗口没有读到赛车存档（0 键），已停止导出。不能将空档用于迁移。窗口模式：'+(standalone?'桌面全屏':'浏览器窗口')+'。本机数据未修改。';return;}
+  payload={tool:'lrv2-backup-restore',version:'2.0',hashAlgo:'SHA-256',scope:'racing-save-only',exportedAt:new Date().toISOString(),origin:location.origin,device:'parent-current-window',count:rows.length,manifestSha256:manifestSha256(rows),keys:rows};
+  status.textContent='当前窗口读到 '+rows.length+' 个赛车存档键；窗口模式：'+(standalone?'桌面全屏':'浏览器窗口')+'。请导出后交给家长验证，本页未修改存档。';exportButton.disabled=false;
+ }catch(error){status.textContent='无法读取当前窗口存储，未导出、未修改存档。';}
+});
+exportButton.addEventListener('click',function(){
+ if(!payload || !payload.count)return;
+ const text=JSON.stringify(payload,null,2),box=document.getElementById('parent-backup-json');box.value=text;box.hidden=false;
+ const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='lrv2-save-backup-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
+});
+})();
+</script>
 
 <script type="module">
 import { createR5Gate, messageFor, formatClock, R5Error } from './r5/r5-online.mjs';
@@ -145,12 +222,14 @@ const learnHref = learnUrl();
 });
 
 let countdownTimer = null;
+let parentBackupOpen = false;
 $('parent-backup-link').addEventListener('click', event => {
   event.preventDefault();
   clearInterval(countdownTimer);
-  location.assign(new URL('./backup-restore.html', location.href).href);
+  parentBackupOpen = true;
 });
 function enterGame() {
+  if (parentBackupOpen) return;
   clearInterval(countdownTimer);
   location.replace(gameUrl());
 }
