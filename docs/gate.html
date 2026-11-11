@@ -50,6 +50,7 @@
   @keyframes sp{to{transform:rotate(360deg)}}
   .foot{font-size:12px;color:#93a6bd;text-align:center;margin-top:16px;line-height:1.6}
   .count{display:inline-block;min-width:22px;text-align:center;font-weight:800;color:var(--red)}
+  .backup-link{text-align:center;text-decoration:none;border:1px solid var(--line)}
   .dev{font-size:11px;color:#a8b8cc;text-align:center;margin-top:8px}
 </style>
 </head>
@@ -112,6 +113,8 @@
     <button class="btn ghost" id="btn-learn4">去学习（V6 学习平台）</button>
   </section>
 
+  <a class="btn ghost backup-link" id="parent-backup-link" href="./backup-restore.html" target="_self">家长备份赛车存档</a>
+  <p class="hint" style="margin-top:8px">在当前桌面窗口导出本机存档，无需解锁赛车。</p>
   <p class="foot">能不能玩、玩了多久，全部由云端说了算：刷新、退出重进都不会重新计时。</p>
   <p class="dev" id="devline"></p>
 </main>
@@ -142,6 +145,11 @@ const learnHref = learnUrl();
 });
 
 let countdownTimer = null;
+$('parent-backup-link').addEventListener('click', event => {
+  event.preventDefault();
+  clearInterval(countdownTimer);
+  location.assign(new URL('./backup-restore.html', location.href).href);
+});
 function enterGame() {
   clearInterval(countdownTimer);
   location.replace(gameUrl());

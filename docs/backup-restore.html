@@ -2,6 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="小小赛车" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>小小赛车 V2 · 存档备份 / 恢复 / 重置（R5 生日版 v2.0）</title>
 <style>
@@ -36,6 +38,7 @@
 </head>
 <body>
   <h1>小小赛车 V2 · 赛车存档 备份 / 恢复 / 重置 <span class="vbadge">v2.0</span></h1>
+  <p class="note">请始终留在从桌面图标打开的当前窗口。这里读取当前窗口的存档；不要切到普通 Safari 重新打开链接。打开页面只扫描，不会自动恢复、重置或迁移。</p>
   <div class="sub">R5 生日版 · 同源（与游戏同域）运行 · 所有操作仅作用于本机浏览器 localStorage，不会触碰 CloudBase 学习记录 / 家庭 / 设备授权 / 生日超跑。<b>v2.0：每条存档写入真实 SHA-256；恢复前、恢复后双重校验，任一失败即中止/回滚，绝不显示恢复成功。</b></div>
 
   <div class="card">
@@ -48,6 +51,8 @@
     </div>
   </div>
 
+  <details class="card">
+    <summary>家长高级操作：恢复或重置（默认收起）</summary>
   <div class="card">
     <h2 style="margin-top:0">② 从文件恢复（恢复前 / 恢复后均校验 SHA-256）</h2>
     <div class="note">
@@ -73,6 +78,8 @@
     </div>
     <div id="status"></div>
   </div>
+
+  </details>
 
   <div class="card">
     <h2 style="margin-top:0">说明与边界</h2>
