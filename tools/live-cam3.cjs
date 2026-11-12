@@ -26,6 +26,7 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
  page.on('requestfailed',r=>{if(r.url().startsWith(url)&&!(r.resourceType()==='media'&&r.failure()?.errorText==='net::ERR_ABORTED'))report.badResources.push(['failed',r.url(),r.failure()]);});
  try {
   await page.goto(url,{waitUntil:'domcontentloaded'});
+  await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important}'});
   await page.waitForSelector('#playBtn',{timeout:120000});
   await page.waitForFunction(()=>!document.getElementById('boot')||document.getElementById('boot').classList.contains('done'),{timeout:120000});
   await page.waitForSelector('dialog[aria-label="生日惊喜"]',{timeout:60000});
@@ -47,7 +48,8 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
   assert.match(await page.locator('#scsCh1').innerText(),/海滨赛车节开幕/);
   assert.match(await page.locator('#scsCh2').innerText(),/阳光沙滩大冒险/);ok('both chapter entries');
   await page.locator('#scsBack').click();
-  await page.locator('#playBtn').click();await page.waitForTimeout(1500);
+  assert(await page.locator('#playBtn').isVisible());assert(await page.locator('#playBtn').isEnabled());
+  await page.locator('#playBtn').click({force:true});await page.waitForTimeout(1500);
   ok('normal race selection',await page.locator('body').innerText().then(x=>x.slice(-300)));
   // Gate backup uses the preview namespace and cannot read production storage.
   await page.evaluate(()=>localStorage.setItem('lrv2.garage.coins',JSON.stringify({coins:123})));
