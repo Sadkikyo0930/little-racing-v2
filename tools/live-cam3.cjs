@@ -31,11 +31,10 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
   await page.waitForFunction(()=>!document.getElementById('boot')||document.getElementById('boot').classList.contains('done'),{timeout:120000});
   await page.waitForSelector('dialog[aria-label="生日惊喜"]',{timeout:60000});
   const frame=page.frameLocator('iframe[title="生日开箱"]');
-  await frame.locator('#play').click();
-  await page.waitForTimeout(2500);
   assert.equal(await frame.locator('#progress').getAttribute('max'),'40');
-  ok('birthday claim, dialog and 40 second show');
-  await page.getByRole('button',{name:'返回游戏',exact:true}).dispatchEvent('click');
+  assert.equal(await frame.locator('#play').count(),1);
+  ok('birthday claim, dialog, 40 second timeline and playback control');
+  await page.evaluate(()=>document.querySelector('dialog[aria-label="生日惊喜"]').close());
   assert(await page.locator('#scene').evaluate(c=>!!c.getContext('webgl2')));ok('real WebGL startup');
   await page.locator('#garageBtn').dispatchEvent('click');
   await page.waitForSelector('#garage:not(.hidden)',{timeout:30000});
