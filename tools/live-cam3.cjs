@@ -52,7 +52,7 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
   ok('normal race selection',await page.locator('body').innerText().then(x=>x.slice(-300)));
   // Gate backup uses the preview namespace and cannot read production storage.
   await page.evaluate(()=>localStorage.setItem('lrv2.garage.coins',JSON.stringify({coins:123})));
-  await page.goto(url+'gate.html',{waitUntil:'domcontentloaded'});
+  await page.goto(url+'gate.html?scenario=denied',{waitUntil:'commit'});
   await page.locator('#parent-backup-link').dispatchEvent('click');
   await page.waitForFunction(()=>!document.getElementById('parent-backup-export').disabled);
   ok('parent backup reads nonempty isolated save');
