@@ -11,8 +11,10 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
  const mr=await api.get(url+'production-sha256.json');assert.equal(mr.status(),200);
  const manifest=await mr.json(),entries=Object.entries(manifest);
  for(let i=0;i<entries.length;i+=8)await Promise.all(entries.slice(i,i+8).map(async([path,hash])=>{
-  const r=await api.get(url+path);assert.equal(r.status(),200,path);
-  assert.equal(crypto.createHash('sha256').update(await r.body()).digest('hex'),hash,path);
+  const r=await api.get(url+path+'?qa='+Date.now());assert.equal(r.status(),200,path);
+  const body=await r.body();const actual=crypto.createHash('sha256').update(body).digest('hex');
+  if(actual!==hash){fs.writeFileSync('/tmp/cam3-evidence/mismatch-'+path.replaceAll('/','_'),body);console.log('HASH MISMATCH',path,r.headers());}
+  assert.equal(actual,hash,path);
  }));ok('deployed resource SHA256',entries.length);
  const browser=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']});
  const context=await browser.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true,deviceScaleFactor:1});
