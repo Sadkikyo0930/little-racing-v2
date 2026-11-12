@@ -1,5 +1,5 @@
-import { WebGLRenderer, Scene, PerspectiveCamera, Group, Box3, HemisphereLight, DirectionalLight, MeshBasicMaterial } from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
-import { GLTFLoader } from 'https://esm.sh/three@0.180.0/examples/jsm/loaders/GLTFLoader.js?deps=three@0.180.0';
+import { WebGLRenderer, Scene, PerspectiveCamera, Group, Box3, HemisphereLight, DirectionalLight, MeshBasicMaterial } from '../vendor/three.module.js';
+import { GLTFLoader } from '../vendor/GLTFLoader.js';
 
 export async function loadVehicle(stage) {
   const loader = new GLTFLoader();

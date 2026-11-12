@@ -21,3 +21,22 @@ jobs:
           name: thunder-cam3-complete-static
           path: docs/
           include-hidden-files: true
+  deployed-check:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --prefix /tmp/cam3-qa playwright
+      - run: /tmp/cam3-qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Test published isolated preview
+        run: node tools/live-cam3.cjs
+        env:
+          PLAYWRIGHT_PATH: /tmp/cam3-qa/node_modules/playwright
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cam3-live-evidence
+          path: /tmp/cam3-evidence/
