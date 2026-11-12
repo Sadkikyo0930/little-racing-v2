@@ -13,7 +13,7 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
  for(let i=0;i<entries.length;i+=8)await Promise.all(entries.slice(i,i+8).map(async([path,hash])=>{
   const r=await api.get(url+path+'?qa='+Date.now());assert.equal(r.status(),200,path);
   const body=await r.body();const actual=crypto.createHash('sha256').update(body).digest('hex');
-  if(actual!==hash){fs.writeFileSync('/tmp/cam3-evidence/mismatch-'+path.replaceAll('/','_'),body);console.log('HASH MISMATCH',path,r.headers());}
+  if(actual!==hash){fs.writeFileSync('/tmp/cam3-evidence/mismatch-'+path.replaceAll('/','_'),body);console.log('HASH MISMATCH',path,r.headers(),body.toString().slice(-1800));}
   assert.equal(actual,hash,path);
  }));ok('deployed resource SHA256',entries.length);
  const browser=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']});
