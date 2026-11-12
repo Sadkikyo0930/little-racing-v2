@@ -1,0 +1,23 @@
+name: Cam3 isolated candidate
+on:
+  push:
+    branches: [feature/thunder-cam3-integration-20261112]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify complete candidate
+        run: node tools/verify-cam3.mjs
+      - name: Upload isolated deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thunder-cam3-complete-static
+          path: docs/
+          include-hidden-files: true
