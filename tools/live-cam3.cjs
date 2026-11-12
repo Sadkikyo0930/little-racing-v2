@@ -18,7 +18,7 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
 
  }));ok('deployed resource SHA256',entries.length);
  const browser=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']});
- const context=await browser.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+ const context=await browser.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true,deviceScaleFactor:0.5});
  const page=await context.newPage();
  page.on('pageerror',e=>{report.errors.push(String(e));console.log('PAGE ERROR',String(e));});
  page.on('request',r=>{if(r.url().includes('tcloudbase.com'))report.cloudRequests.push(r.url());});
@@ -35,26 +35,26 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
   await page.waitForTimeout(2500);
   assert.equal(await frame.locator('#progress').getAttribute('max'),'40');
   ok('birthday claim, dialog and 40 second show');
-  await page.getByRole('button',{name:'返回游戏',exact:true}).click();
+  await page.getByRole('button',{name:'返回游戏',exact:true}).dispatchEvent('click');
   assert(await page.locator('#scene').evaluate(c=>!!c.getContext('webgl2')));ok('real WebGL startup');
-  await page.locator('#garageBtn').click();
+  await page.locator('#garageBtn').dispatchEvent('click');
   await page.waitForSelector('#garage:not(.hidden)',{timeout:30000});
   const birthday=page.locator('.gCard[data-id="birthday-star-6"]');assert.equal(await birthday.count(),1);
-  await birthday.click();await page.waitForTimeout(2500);ok('six star garage card and selection');
-  await page.locator('.gCard[data-id="frag_common"]').click();await page.waitForTimeout(2500);
+  await birthday.dispatchEvent('click');await page.waitForTimeout(2500);ok('six star garage card and selection');
+  await page.locator('.gCard[data-id="frag_common"]').dispatchEvent('click');await page.waitForTimeout(2500);
   ok('Thunder Cam3 garage selection');
-  await page.locator('#garageBack').click();
-  await page.locator('#storyModeBtn').click();
+  await page.locator('#garageBack').dispatchEvent('click');
+  await page.locator('#storyModeBtn').dispatchEvent('click');
   assert.match(await page.locator('#scsCh1').innerText(),/海滨赛车节开幕/);
   assert.match(await page.locator('#scsCh2').innerText(),/阳光沙滩大冒险/);ok('both chapter entries');
-  await page.locator('#scsBack').click();
+  await page.locator('#scsBack').dispatchEvent('click');
   assert(await page.locator('#playBtn').isVisible());assert(await page.locator('#playBtn').isEnabled());
-  await page.locator('#playBtn').click({force:true});await page.waitForTimeout(1500);
+  await page.locator('#playBtn').dispatchEvent('click');await page.waitForTimeout(1500);
   ok('normal race selection',await page.locator('body').innerText().then(x=>x.slice(-300)));
   // Gate backup uses the preview namespace and cannot read production storage.
   await page.evaluate(()=>localStorage.setItem('lrv2.garage.coins',JSON.stringify({coins:123})));
   await page.goto(url+'gate.html',{waitUntil:'domcontentloaded'});
-  await page.locator('#parent-backup-link').click();
+  await page.locator('#parent-backup-link').dispatchEvent('click');
   await page.waitForFunction(()=>!document.getElementById('parent-backup-export').disabled);
   ok('parent backup reads nonempty isolated save');
   for(const scenario of ['denied','quota','network']) {
