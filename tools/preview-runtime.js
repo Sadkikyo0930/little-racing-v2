@@ -19,6 +19,15 @@
   localStorage.setItem('r5_device','cam3-selftest-device');
   if (location.pathname.endsWith('/') || location.pathname.endsWith('/index.html')) sessionStorage.setItem('r5.grant',JSON.stringify({device:'cam3-selftest-device',at:Date.now(),exp:Date.now()+300000}));
   localStorage.removeItem('r5.family-sync.migration-confirmed.v1');
+  if(!localStorage.getItem('preview.fixture.v1')) {
+    const at=Date.now();
+    localStorage.setItem('lrv2.garage.meta',JSON.stringify({version:4,createdAt:at,migratedAt:at}));
+    localStorage.setItem('lrv2.garage.coins',JSON.stringify({coins:5000,updatedAt:at}));
+    localStorage.setItem('lrv2.garage.owned',JSON.stringify({frag_common:{at,source:'isolated-demo'},turtle:{at,source:'isolated-demo'}}));
+    localStorage.setItem('littleRacingV2.story.chapter1',JSON.stringify({state:'done',updatedAt:at}));
+    localStorage.setItem('preview.fixture.v1','true');
+  }
+
   const nativeFetch=window.fetch.bind(window),family='r5-selftest-family';
   window.fetch=async(input,options={})=>{
     const url=new URL(typeof input==='string'?input:input.url,location.href);
@@ -42,7 +51,7 @@
   };
   document.addEventListener('DOMContentLoaded',()=>{
     const a=document.createElement('a');a.id='cam3-preview-note';a.href='./gate.html';
-    a.textContent='隔离试玩 · 本机存档 · 模拟学习闸门';
+    a.textContent='隔离试玩 · 演示存档 · 无云同步';
     a.style.cssText='position:fixed;bottom:3px;right:5px;z-index:2147483647;color:#fff;background:#13253bdc;padding:5px 8px;border-radius:8px;font:11px system-ui;text-decoration:none';
     document.body.append(a);
   });

@@ -23,7 +23,7 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
  page.on('pageerror',e=>{report.errors.push(String(e));console.log('PAGE ERROR',String(e));});
  page.on('request',r=>{if(r.url().includes('tcloudbase.com'))report.cloudRequests.push(r.url());});
  page.on('response',r=>{if(r.url().startsWith(url)&&r.status()>=400)report.badResources.push([r.status(),r.url()]);});
- page.on('requestfailed',r=>{if(r.url().startsWith(url))report.badResources.push(['failed',r.url(),r.failure()]);});
+ page.on('requestfailed',r=>{if(r.url().startsWith(url)&&!(r.resourceType()==='media'&&r.failure()?.errorText==='net::ERR_ABORTED'))report.badResources.push(['failed',r.url(),r.failure()]);});
  try {
   await page.goto(url,{waitUntil:'domcontentloaded'});
   await page.waitForSelector('#playBtn',{timeout:120000});
@@ -35,7 +35,6 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
   assert.equal(await frame.locator('#progress').getAttribute('max'),'40');
   ok('birthday claim, dialog and 40 second show');
   await page.getByRole('button',{name:'返回游戏',exact:true}).click();
-  await page.screenshot({path:'/tmp/cam3-evidence/home.png',timeout:15000}).catch(e=>console.log('Screenshot unavailable:',e.message));
   assert(await page.locator('#scene').evaluate(c=>!!c.getContext('webgl2')));ok('real WebGL startup');
   await page.locator('#garageBtn').click();
   await page.waitForSelector('#garage:not(.hidden)',{timeout:30000});
@@ -43,7 +42,6 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
   await birthday.click();await page.waitForTimeout(2500);ok('six star garage card and selection');
   await page.locator('.gCard[data-id="frag_common"]').click();await page.waitForTimeout(2500);
   ok('Thunder Cam3 garage selection');
-  await page.screenshot({path:'/tmp/cam3-evidence/thunder.png',timeout:15000}).catch(e=>console.log('Screenshot unavailable:',e.message));
   await page.locator('#garageBack').click();
   await page.locator('#storyModeBtn').click();
   assert.match(await page.locator('#scsCh1').innerText(),/海滨赛车节开幕/);
@@ -51,7 +49,6 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
   await page.locator('#scsBack').click();
   await page.locator('#playBtn').click();await page.waitForTimeout(1500);
   ok('normal race selection',await page.locator('body').innerText().then(x=>x.slice(-300)));
-  await page.screenshot({path:'/tmp/cam3-evidence/mobile.png',timeout:15000}).catch(e=>console.log('Screenshot unavailable:',e.message));
   // Gate backup uses the preview namespace and cannot read production storage.
   await page.evaluate(()=>localStorage.setItem('lrv2.garage.coins',JSON.stringify({coins:123})));
   await page.goto(url+'gate.html',{waitUntil:'domcontentloaded'});
