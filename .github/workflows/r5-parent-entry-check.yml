@@ -1,0 +1,17 @@
+name: R5 parent entry (isolated)
+on:
+  push:
+    branches: [feature/r5-parent-quick-entry-20261113]
+  pull_request:
+    paths: ['docs/gate.html', 'tools/check-parent-entry.mjs', 'docs/r5/PARENT_QUICK_ENTRY_BACKEND.md']
+permissions:
+  contents: read
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tools/check-parent-entry.mjs
