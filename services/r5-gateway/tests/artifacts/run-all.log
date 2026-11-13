@@ -1,0 +1,197 @@
+R5 家长账号授权 · 全量回归
+开始时间(UTC)：2026-11-13T03:52:12Z
+隔离家庭：r5-selftest-family
+网关：https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5
+正式家庭 little-growth-family-001：未写入、未启用
+
+===== phase-a =====
+PASS | A:dad 正确密码可授权（角色 parent） | status=200 {"api":"r5_parent_session","authorized":true,"remaining_seconds":1657,"used_seconds":143,"ttl_seconds":120,"member_role":"parent"}
+PASS | A:dad 密码错误被拒绝 | status=401 error=R5_PARENT_AUTH_FAILED
+PASS | A:mom 正确密码可授权（角色 owner） | status=200 {"api":"r5_parent_session","authorized":true,"remaining_seconds":1657,"used_seconds":143,"ttl_seconds":120,"member_role":"owner"}
+PASS | A:mom 密码错误被拒绝 | status=401 error=R5_PARENT_AUTH_FAILED
+PASS | A:grandma 正确密码可授权（角色 grandparent） | status=200 {"api":"r5_parent_session","authorized":true,"remaining_seconds":1657,"used_seconds":143,"ttl_seconds":120,"member_role":"grandparent"}
+PASS | A:grandma 密码错误被拒绝 | status=401 error=R5_PARENT_AUTH_FAILED
+PASS | A:冒用 用别的账号密码登录爸爸账号被拒绝 | status=401 error=R5_PARENT_AUTH_FAILED
+PASS | A:冒用 不存在的账号被拒绝 | status=401 error=R5_PARENT_AUTH_FAILED
+PASS | A:旧口令路径已下线（410，不再接受 x-r5-parent） | status=410 error=R5_PARENT_SECRET_RETIRED
+
+phase-a: 9 passed / 0 failed
+----- phase-a exit=0 -----
+
+===== phase-b =====
+PASS | B1 未绑定设备被拒绝 | status=403 error=R5_DEVICE_NOT_BOUND
+PASS | B2 已撤销设备被拒绝 | status=403 error=R5_DEVICE_REVOKED
+PASS | B3 跨家庭设备被拒绝 | status=403 error=R5_DEVICE_FAMILY_MISMATCH
+PASS | B4 跨家庭设备连进场都拒绝 | status=200 {"error":"R5_MEMBER_DENIED"}
+
+phase-b: 4 passed / 0 failed
+----- phase-b exit=0 -----
+
+===== phase-c =====
+PASS | C1 家长授权成功 | {"api":"r5_parent_session","authorized":true,"remaining_seconds":1657,"used_seconds":143,"ttl_seconds":120,"member_role":"grandparent"}
+PASS | C2 授权后可以进场（仅跳过学习条件） | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":false,"remaining_seconds":1657,"used_seconds":143,"parent_override":true}
+PASS | C3 启动会话时一次性票据被原子消费，并下发服务端会话标识 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"remaining_seconds":1657,"used_seconds":143,"parent_override":true,"override_consumed":true}
+PASS | C4 票据已消费，再次进场被拒绝（刷新/重进需要密码） | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":true,"remaining_seconds":1657,"used_seconds":143,"parent_override":false}
+PASS | C5 重复 start 被拒绝：一次授权只能创建一个游戏会话 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":true,"remaining_seconds":1657,"used_seconds":143,"parent_override":false,"override_consumed":false}
+PASS | C5b 带会话标识只能续接同一个会话（session_id 不变） | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"remaining_seconds":1657,"used_seconds":143,"parent_override":true,"override_consumed":false}
+PASS | C6 已启动的会话按原规则继续（带标识心跳放行且照常扣秒） | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"remaining_seconds":1654,"used_seconds":146,"parent_override":true,"override_consumed":false}
+PASS | C6b 心跳不带会话标识被拒绝，且不误杀已有会话 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":true,"remaining_seconds":1654,"used_seconds":146,"parent_override":false,"override_consumed":false}
+PASS | C7 主动结束会话 | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1654,"used_seconds":146,"parent_override":false,"override_consumed":false}
+PASS | C8 退出后重新进入必须重新验证家长 | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1654,"used_seconds":146,"parent_override":false}
+PASS | C9 退出后不能凭旧授权开始新会话 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":false,"remaining_seconds":1654,"used_seconds":146,"parent_override":false,"override_consumed":false}
+
+phase-c: 11 passed / 0 failed
+----- phase-c exit=0 -----
+
+===== phase-d =====
+PASS | D1 重放测试前置授权 | {"api":"r5_parent_session","authorized":true,"remaining_seconds":1654,"used_seconds":146,"ttl_seconds":120,"member_role":"grandparent"}
+PASS | D2 不带密码的请求被拒绝 | status=401 error=R5_PARENT_CREDENTIALS_REQUIRED
+PASS | D3 请求体里伪造 authorized/remaining 无效 | status=401 error=R5_PARENT_AUTH_FAILED
+PASS | D4 伪造 x-r5-parent 头无效（旧口令通道已关闭） | status=401 error=R5_PARENT_CREDENTIALS_REQUIRED
+PASS | D5 仍可用 D1 的票据进场（票据是服务端状态，不是请求内容） | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":false,"remaining_seconds":1654,"used_seconds":146,"parent_override":true}
+
+phase-d: 5 passed / 0 failed
+----- phase-d exit=0 -----
+
+===== phase-g =====
+PASS | G1 家长账号能拿到 CloudBase 会话 token（用于模拟真实客户端） | status=200
+PASS | G:客户端直接调用 r5_override_consume 被拒绝 | status=403 body={"code":"DATABASE_42501","message":"permission denied for function r5_override_consume","requestId":"fcc23e1c-c480-4805-
+PASS | G:客户端直接调用 r5_parent_override_issue 被拒绝 | status=403 body={"code":"DATABASE_42501","message":"permission denied for function r5_parent_override_issue","requestId":"fad97013-164d-
+PASS | G:客户端直接调用 r5_override_bind 被拒绝 | status=403 body={"code":"DATABASE_42501","message":"permission denied for function r5_override_bind","requestId":"705ad36a-63da-48b4-9b8
+PASS | G:客户端直接调用 r5_session_open 被拒绝 | status=403 body={"code":"DATABASE_42501","message":"permission denied for function r5_session_open","requestId":"e7b33e76-bf61-4c09-9043
+PASS | G:客户端直接调用 r5_session_close 被拒绝 | status=403 body={"code":"DATABASE_42501","message":"permission denied for function r5_session_close","requestId":"b476c434-3a1c-4d45-a95
+PASS | G:客户端直接调用 r5_session_beat 被拒绝 | status=403 body={"code":"DATABASE_42501","message":"permission denied for function r5_session_beat","requestId":"ab458723-ee98-456c-afce
+PASS | G:客户端直接调用 r5_gate_status_core 被拒绝 | status=403 body={"code":"DATABASE_42501","message":"permission denied for function r5_gate_status_core","requestId":"b3b9e17e-f691-4313-
+PASS | G:客户端直接调用 r5_override_bind_session 被拒绝 | status=403 body={"code":"DATABASE_42501","message":"permission denied for function r5_override_bind_session","requestId":"7a1f52d9-06e9-
+
+phase-g: 9 passed / 0 failed
+----- phase-g exit=0 -----
+
+===== walkthrough =====
+PASS | 页面可打开且已是账号密码版（无 x-r5-parent 旧通道） | gate.html=200 bytes=21425
+PASS | 家长账号清单模块可加载（不含任何密码） | parent-accounts.mjs=200 bytes=510
+PASS | 未验证家长时进不去（学习未达标） | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1654,"used_seconds":146,"parent_override":false,"session_id":null,"session_origin":null}
+PASS | 密码错误被拒绝 | status=401 error=R5_PARENT_AUTH_FAILED
+PASS | 选择账号 + 正确密码 → 拿到一次性授权 | {"api":"r5_parent_session","authorized":true,"remaining_seconds":1654,"used_seconds":146,"session_id":null,"session_origin":null}
+PASS | 授权后进场成功（只跳过学习条件） | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":false,"remaining_seconds":1654,"used_seconds":146,"parent_override":true,"session_id":null,"session_origin":null}
+PASS | 开始游戏时票据被消费，并拿到服务端会话标识 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"remaining_seconds":1654,"used_seconds":146,"parent_override":true,"override_consumed":true,"session_id":"c64edaff014349219f7f2db224c28607","session_origin":"parent_override","session_resumed":false}
+PASS | 刷新页面后进场被拒绝（不再免密） | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":true,"remaining_seconds":1654,"used_seconds":146,"parent_override":false,"session_id":null,"session_origin":null}
+PASS | 刷新后再次 start 被拒绝（已消费票据 + 设备身份不再足够） | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":true,"remaining_seconds":1654,"used_seconds":146,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false}
+PASS | 带原会话标识可以续接同一个会话，标识不变 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"remaining_seconds":1654,"used_seconds":146,"parent_override":true,"override_consumed":false,"session_id":"c64edaff014349219f7f2db224c28607","session_origin":"parent_override","session_resumed":true}
+PASS | 结束游戏 | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1653,"used_seconds":147,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false}
+PASS | 退出后重新进入必须再次输入家长密码 | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1653,"used_seconds":147,"parent_override":false,"session_id":null,"session_origin":null}
+PASS | 退出后凭旧授权无法开始游戏 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":false,"remaining_seconds":1653,"used_seconds":147,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false}
+PASS | 重新输入密码后可再次进场（额度继续累计，不清零） | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":false,"remaining_seconds":1653,"used_seconds":147,"parent_override":true,"session_id":null,"session_origin":null} | session={"api":"r5_parent_session","authorized":true,"remaining_seconds":1653,"used_seconds":147,"session_id":null,"session_origin":null}
+PASS | 重新验证后可以创建全新会话（新标识与上一次不同） | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"remaining_seconds":1653,"used_seconds":147,"parent_override":true,"override_consumed":true,"session_id":"6cf1612720764916bfe45de5247aa03c","session_origin":"parent_override","session_resumed":false}
+
+acceptance-walkthrough: 15 passed / 0 failed
+----- walkthrough exit=0 -----
+
+===== phase-h1 =====
+PASS | H1 家长账号授权成功（票据未消费） | {"api":"r5_parent_session","used_seconds":147,"remaining_seconds":1653,"session_id":null,"session_origin":null,"authorized":true}
+PASS | H2 持票据时进场放行（仅跳过学习条件） | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":false,"used_seconds":147,"remaining_seconds":1653,"parent_override":true,"session_id":null,"session_origin":null,"session_bound":true}
+PASS | H3 首次 start 返回服务端会话标识，且票据被原子消费 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":147,"remaining_seconds":1653,"parent_override":true,"override_consumed":true,"session_id":"521839f2609145ca9a7a53cf06a299b3","session_origin":"parent_override","session_resumed":false,"session_bound":true,"active_devices":1}
+PASS | H4 重复 start（不带标识）被拒绝——本轮修复的核心 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":true,"used_seconds":147,"remaining_seconds":1653,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":1}
+PASS | H5 被拒绝的重复 start 不会回传会话标识 | session_id=null
+PASS | H6 刷新页面（新客户端无标识）仍进不去，且票据无法二次消费 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":true,"used_seconds":147,"remaining_seconds":1653,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":1} | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":true,"used_seconds":147,"remaining_seconds":1653,"parent_override":false,"session_id":null,"session_origin":null,"session_bound":true}
+PASS | H7 带原会话标识可以续接同一个会话（不是新会话） | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":147,"remaining_seconds":1653,"parent_override":true,"override_consumed":false,"session_id":"521839f2609145ca9a7a53cf06a299b3","session_origin":"parent_override","session_resumed":true,"session_bound":true,"active_devices":1}
+PASS | H8 心跳带标识放行并照常计费 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":147,"remaining_seconds":1653,"parent_override":true,"override_consumed":false,"session_id":"521839f2609145ca9a7a53cf06a299b3","session_origin":"parent_override","session_resumed":false,"session_bound":true,"active_devices":1}
+PASS | H9 心跳不带标识被拒绝，且不泄漏标识 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":true,"used_seconds":148,"remaining_seconds":1652,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":1}
+PASS | H10 伪造会话标识被拒绝 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":true,"used_seconds":148,"remaining_seconds":1652,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":1}
+PASS | H11 上述拒绝没有误杀正在进行的会话（原标识仍可心跳） | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":148,"remaining_seconds":1652,"parent_override":true,"override_consumed":false,"session_id":"521839f2609145ca9a7a53cf06a299b3","session_origin":"parent_override","session_resumed":false,"session_bound":true,"active_devices":1}
+PASS | H12 会话标识也可以通过 x-r5-session 请求头传递 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":148,"remaining_seconds":1652,"parent_override":true,"override_consumed":false,"session_id":"521839f2609145ca9a7a53cf06a299b3","session_origin":"parent_override","session_resumed":false,"session_bound":true,"active_devices":1}
+PASS | H13 累计时长单调不减（1800 秒上限只减不增） | used 147 -> 148
+PASS | H14 结束会话后 active=false | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"used_seconds":148,"remaining_seconds":1652,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":0}
+PASS | H15 会话重放：结束后用旧标识 start 被拒绝 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":false,"used_seconds":148,"remaining_seconds":1652,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":0}
+PASS | H16 结束后不带标识 start 同样被拒绝（已消费票据不能开第二次） | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":false,"used_seconds":148,"remaining_seconds":1652,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":0}
+PASS | H17 结束后再进场需要重新家长验证 | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"used_seconds":148,"remaining_seconds":1652,"parent_override":false,"session_id":null,"session_origin":null,"session_bound":true}
+--- phase-h1: 17 passed / 0 failed ---
+----- phase-h1 exit=0 -----
+
+===== phase-h2 =====
+PASS | H18 重新授权后可创建新会话（旧授权已作废） | {"api":"r5_parent_session","used_seconds":148,"remaining_seconds":1652,"session_id":null,"session_origin":null,"authorized":true} | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":148,"remaining_seconds":1652,"parent_override":true,"override_consumed":true,"session_id":"4646a7caaeb44a83bc8603bd0d469a63","session_origin":"parent_override","session_resumed":false,"session_bound":true,"active_devices":1}
+PASS | H19 短暂断线（3 秒无心跳）后带标识可原地恢复 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":151,"remaining_seconds":1649,"parent_override":true,"override_consumed":false,"session_id":"4646a7caaeb44a83bc8603bd0d469a63","session_origin":"parent_override","session_resumed":true,"session_bound":true,"active_devices":1}
+… 模拟真实断线：50 秒不发心跳（服务端空闲上限 45 秒）
+PASS | H20 断线超过空闲上限后心跳被拒绝 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":false,"used_seconds":151,"remaining_seconds":1649,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":0}
+PASS | H21 断线超时后旧标识无法恢复会话（不会长期免密重进） | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":false,"used_seconds":151,"remaining_seconds":1649,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":0}
+PASS | H22 断线超时后再进场需要家长重新验证 | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"used_seconds":151,"remaining_seconds":1649,"parent_override":false,"session_id":null,"session_origin":null,"session_bound":true}
+PASS | H23 超时后重新验证家长可以重新开始，并拿到全新会话标识 | {"api":"r5_parent_session","used_seconds":151,"remaining_seconds":1649,"session_id":null,"session_origin":null,"authorized":true} | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":151,"remaining_seconds":1649,"parent_override":true,"override_consumed":true,"session_id":"cc248863a316463e9ae93e2f8d5da822","session_origin":"parent_override","session_resumed":false,"session_bound":true,"active_devices":1}
+PASS | H24 旧会话标识在新会话开始后仍然无效 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":true,"used_seconds":151,"remaining_seconds":1649,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":1}
+--- phase-h2: 7 passed / 0 failed ---
+----- phase-h2 exit=0 -----
+
+===== phase-h3 =====
+PASS | H25 设备A 授权并开始会话 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":151,"remaining_seconds":1649,"parent_override":true,"override_consumed":true,"session_id":"0032566e580441c2a426d22ab5a4c67d","session_origin":"parent_override","session_resumed":false,"session_bound":true,"active_devices":1}
+PASS | H26 设备B 没有票据时 start 被拒绝（不能搭便车） | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":true,"used_seconds":152,"remaining_seconds":1648,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":1}
+PASS | H27 设备B 拿设备A 的会话标识也无法续接（标识绑定设备） | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":true,"used_seconds":152,"remaining_seconds":1648,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":1}
+PASS | H28 设备B 自己授权后可开始自己的会话，标识与A 不同 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":152,"remaining_seconds":1648,"parent_override":true,"override_consumed":true,"session_id":"c07310b768484cb499b2fe548a259179","session_origin":"parent_override","session_resumed":false,"session_bound":true,"active_devices":2}
+PASS | H29 设备A 用设备B 的标识被拒绝 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":true,"used_seconds":153,"remaining_seconds":1647,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":2}
+PASS | H30 两台设备各自心跳都放行 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":153,"remaining_seconds":1647,"parent_override":true,"override_consumed":false,"session_id":"0032566e580441c2a426d22ab5a4c67d","session_origin":"parent_override","session_resumed":false,"session_bound":true,"active_devices":2} | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":153,"remaining_seconds":1647,"parent_override":true,"override_consumed":false,"session_id":"c07310b768484cb499b2fe548a259179","session_origin":"parent_override","session_resumed":false,"session_bound":true,"active_devices":2}
+PASS | H31 服务端同时看到两个活跃会话 | active_devices=2
+PASS | H32 A 结束后 A 被拒，B 不受影响 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":true,"used_seconds":153,"remaining_seconds":1647,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":1} | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"used_seconds":153,"remaining_seconds":1647,"parent_override":true,"override_consumed":false,"session_id":"c07310b768484cb499b2fe548a259179","session_origin":"parent_override","session_resumed":false,"session_bound":true,"active_devices":1}
+PASS | H33 B 结束后两台都无活跃会话 | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"used_seconds":153,"remaining_seconds":1647,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":0}
+--- phase-h3: 9 passed / 0 failed ---
+----- phase-h3 exit=0 -----
+
+本批失败阶段：0
+PASS  L0 隔离家庭测试账号已就绪（不打印密码）  | r5test_dad 已从 .local 加载
+PASS  L1 跨域预检放行  | status=204
+PASS  L2 预检允许 x-r5-device 与 x-r5-session 头  | allow-headers=content-type,x-r5-device,x-r5-session
+PASS  L3 未带密码被拒绝（fail-closed）  | status=401 error=R5_PARENT_CREDENTIALS_REQUIRED
+PASS  L4 账号+密码返回 200 且 api=r5_parent_session  | status=200 api=r5_parent_session
+PASS  L5 authorized=true（前端据此才跳转）  | authorized=true
+PASS  L6 remaining_seconds>0（前端第二道校验）  | remaining=1647
+PASS  L7 一次性票据有效期 <= 120 秒  | ttl=120
+PASS  L8 响应带跨域头，浏览器可读  | acao=*
+PASS  L9 受权设备 child/entry 放行（只跳过学习条件）  | allowed=true reason=STUDY_PASSED_WITH_WAIVER
+PASS  L10 旧口令端点固定 410 R5_PARENT_SECRET_RETIRED  | status=410 error=R5_PARENT_SECRET_RETIRED
+PASS  L11 网关版本为 1.5.0-session-bound 且开启会话绑定  | version=1.5.0-session-bound session_binding=true idle=45
+PASS  L12 验收站点 gate.html 可访问  | status=200
+PASS  L12 验收站点 r5/parent-accounts.mjs 可访问  | status=200
+PASS  L12 验收站点 r5/r5-online.mjs 可访问  | status=200
+PASS  L13 线上 gate.html 已是三账号版（无旧口令通道）  | len=21425 session=true
+PASS  L14 验收站点家庭为 r5-selftest-family  | config 已隔离
+
+17 passed / 0 failed  -> tests/artifacts/link.json
+===== phase-d2 =====
+PASS | D6 超过有效期的票据不能进场 | {"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1647,"used_seconds":153,"parent_override":false}
+PASS | D7 超过有效期的票据也不能开始会话 | {"api":"r5_status","allowed":false,"reason":"SESSION_REQUIRED","active":false,"remaining_seconds":1647,"used_seconds":153,"parent_override":false,"override_consumed":false}
+
+phase-d2: 2 passed / 0 failed
+----- phase-d2 exit=0 -----
+
+本批失败阶段：0
+===== phase-f =====
+PASS | F1 正常学习达标后可进场（不依赖家长授权） | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED","active":false,"remaining_seconds":1647,"used_seconds":153,"parent_override":false}
+PASS | F2 学习路径可以开始会话，且没有消耗家长票据 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED","active":true,"remaining_seconds":1647,"used_seconds":153,"parent_override":false,"override_consumed":false}
+PASS | F3 家庭存档接口正常（六星闪耀 / 雷霆 Cam3 所在存档链） | status=200 keys=api,action,status,gateway,family_id,sync_enabled,save,birthday_owned,tx_audit,event_count,backup_count,fragment,fragment_program
+PASS | F4 生日/六星闪耀接口在线且未 5xx | status=200 {"api":"r5_birthday"}
+
+phase-f: 4 passed / 0 failed
+----- phase-f exit=0 -----
+
+===== phase-h4 =====
+PASS | H34 学习达标时不需要票据也能开始（session_origin=study） | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED","active":true,"used_seconds":153,"remaining_seconds":1647,"parent_override":false,"override_consumed":false,"session_id":"927bfde3a0504c15a65968fb37498c77","session_origin":"study","session_resumed":false,"session_bound":true,"active_devices":1}
+PASS | H35 学习路径带标识心跳正常 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED","active":true,"used_seconds":154,"remaining_seconds":1646,"parent_override":false,"override_consumed":false,"session_id":"927bfde3a0504c15a65968fb37498c77","session_origin":"study","session_resumed":false,"session_bound":true,"active_devices":1}
+PASS | H36 旧前端（心跳不带标识）在学习路径下仍可用 | {"api":"r5_status","allowed":true,"reason":"STUDY_PASSED","active":true,"used_seconds":154,"remaining_seconds":1646,"parent_override":false,"override_consumed":false,"session_id":"1377f04fb1224c059856087746bb08e3","session_origin":"study","session_resumed":false,"session_bound":true,"active_devices":1}
+PASS | H37 学习路径结束会话正常 | {"api":"r5_status","allowed":false,"reason":"STUDY_PASSED","active":false,"used_seconds":154,"remaining_seconds":1646,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":0}
+--- phase-h4: 4 passed / 0 failed ---
+----- phase-h4 exit=0 -----
+
+本批失败阶段：0
+===== phase-e =====
+PASS | E1 当天 1800 秒已用完时拒绝签发 | status=403 error=TIME_LIMIT_REACHED
+PASS | E2 额度用尽时进场被拒绝且原因是时间用完 | {"api":"r5_status","allowed":false,"reason":"TIME_LIMIT_REACHED","active":false,"remaining_seconds":0,"used_seconds":1800,"parent_override":false}
+PASS | E3 额度用尽时无法开始游戏 | {"api":"r5_status","allowed":false,"reason":"TIME_LIMIT_REACHED","active":false,"remaining_seconds":0,"used_seconds":1800,"parent_override":false,"override_consumed":false}
+
+phase-e: 3 passed / 0 failed
+----- phase-e exit=0 -----
+
+===== phase-h5 =====
+PASS | H38 额度用尽时家长授权被拒绝（TIME_LIMIT_REACHED） | status=403 {"session_id":null,"session_origin":null,"error":"TIME_LIMIT_REACHED"}
+PASS | H39 额度用尽时 start 被拒绝 | {"api":"r5_status","allowed":false,"reason":"TIME_LIMIT_REACHED","active":false,"used_seconds":1800,"remaining_seconds":0,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":0}
+PASS | H40 额度用尽时心跳被拒绝 | {"api":"r5_status","allowed":false,"reason":"TIME_LIMIT_REACHED","active":false,"used_seconds":1800,"remaining_seconds":0,"parent_override":false,"override_consumed":false,"session_id":null,"session_origin":null,"session_resumed":false,"session_bound":false,"active_devices":0}
+--- phase-h5: 3 passed / 0 failed ---
+----- phase-h5 exit=0 -----
+
+本批失败阶段：0

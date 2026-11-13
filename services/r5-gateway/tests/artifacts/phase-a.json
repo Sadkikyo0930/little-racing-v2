@@ -1,0 +1,56 @@
+{
+  "phase": "phase-a",
+  "family": "r5-selftest-family",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T03:52:13.028Z",
+  "finished_at": "2026-11-13T03:52:18.160Z",
+  "passed": 9,
+  "failed": 0,
+  "results": [
+    {
+      "name": "A:dad 正确密码可授权（角色 parent）",
+      "ok": true,
+      "detail": "status=200 {\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1657,\"used_seconds\":143,\"ttl_seconds\":120,\"member_role\":\"parent\"}"
+    },
+    {
+      "name": "A:dad 密码错误被拒绝",
+      "ok": true,
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
+    },
+    {
+      "name": "A:mom 正确密码可授权（角色 owner）",
+      "ok": true,
+      "detail": "status=200 {\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1657,\"used_seconds\":143,\"ttl_seconds\":120,\"member_role\":\"owner\"}"
+    },
+    {
+      "name": "A:mom 密码错误被拒绝",
+      "ok": true,
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
+    },
+    {
+      "name": "A:grandma 正确密码可授权（角色 grandparent）",
+      "ok": true,
+      "detail": "status=200 {\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1657,\"used_seconds\":143,\"ttl_seconds\":120,\"member_role\":\"grandparent\"}"
+    },
+    {
+      "name": "A:grandma 密码错误被拒绝",
+      "ok": true,
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
+    },
+    {
+      "name": "A:冒用 用别的账号密码登录爸爸账号被拒绝",
+      "ok": true,
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
+    },
+    {
+      "name": "A:冒用 不存在的账号被拒绝",
+      "ok": true,
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
+    },
+    {
+      "name": "A:旧口令路径已下线（410，不再接受 x-r5-parent）",
+      "ok": true,
+      "detail": "status=410 error=R5_PARENT_SECRET_RETIRED"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "phase": "phase-h3",
+  "family": "r5-selftest-family",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T03:53:33.041Z",
+  "finished_at": "2026-11-13T03:53:35.661Z",
+  "passed": 9,
+  "failed": 0,
+  "results": [
+    {
+      "name": "H25 设备A 授权并开始会话",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":151,\"remaining_seconds\":1649,\"parent_override\":true,\"override_consumed\":true,\"session_id\":\"0032566e580441c2a426d22ab5a4c67d\",\"session_origin\":\"parent_override\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H26 设备B 没有票据时 start 被拒绝（不能搭便车）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":true,\"used_seconds\":152,\"remaining_seconds\":1648,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":1}"
+    },
+    {
+      "name": "H27 设备B 拿设备A 的会话标识也无法续接（标识绑定设备）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":true,\"used_seconds\":152,\"remaining_seconds\":1648,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":1}"
+    },
+    {
+      "name": "H28 设备B 自己授权后可开始自己的会话，标识与A 不同",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":152,\"remaining_seconds\":1648,\"parent_override\":true,\"override_consumed\":true,\"session_id\":\"c07310b768484cb499b2fe548a259179\",\"session_origin\":\"parent_override\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":2}"
+    },
+    {
+      "name": "H29 设备A 用设备B 的标识被拒绝",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":true,\"used_seconds\":153,\"remaining_seconds\":1647,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":2}"
+    },
+    {
+      "name": "H30 两台设备各自心跳都放行",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":153,\"remaining_seconds\":1647,\"parent_override\":true,\"override_consumed\":false,\"session_id\":\"0032566e580441c2a426d22ab5a4c67d\",\"session_origin\":\"parent_override\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":2} | {\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":153,\"remaining_seconds\":1647,\"parent_override\":true,\"override_consumed\":false,\"session_id\":\"c07310b768484cb499b2fe548a259179\",\"session_origin\":\"parent_override\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":2}"
+    },
+    {
+      "name": "H31 服务端同时看到两个活跃会话",
+      "ok": true,
+      "detail": "active_devices=2"
+    },
+    {
+      "name": "H32 A 结束后 A 被拒，B 不受影响",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":true,\"used_seconds\":153,\"remaining_seconds\":1647,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":1} | {\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":153,\"remaining_seconds\":1647,\"parent_override\":true,\"override_consumed\":false,\"session_id\":\"c07310b768484cb499b2fe548a259179\",\"session_origin\":\"parent_override\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H33 B 结束后两台都无活跃会话",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"used_seconds\":153,\"remaining_seconds\":1647,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":0}"
+    }
+  ]
+}

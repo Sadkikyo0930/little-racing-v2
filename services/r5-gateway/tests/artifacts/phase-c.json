@@ -1,0 +1,66 @@
+{
+  "phase": "phase-c",
+  "family": "r5-selftest-family",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T03:52:20.725Z",
+  "finished_at": "2026-11-13T03:52:25.479Z",
+  "passed": 11,
+  "failed": 0,
+  "results": [
+    {
+      "name": "C1 家长授权成功",
+      "ok": true,
+      "detail": "{\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1657,\"used_seconds\":143,\"ttl_seconds\":120,\"member_role\":\"grandparent\"}"
+    },
+    {
+      "name": "C2 授权后可以进场（仅跳过学习条件）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"remaining_seconds\":1657,\"used_seconds\":143,\"parent_override\":true}"
+    },
+    {
+      "name": "C3 启动会话时一次性票据被原子消费，并下发服务端会话标识",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1657,\"used_seconds\":143,\"parent_override\":true,\"override_consumed\":true}"
+    },
+    {
+      "name": "C4 票据已消费，再次进场被拒绝（刷新/重进需要密码）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":true,\"remaining_seconds\":1657,\"used_seconds\":143,\"parent_override\":false}"
+    },
+    {
+      "name": "C5 重复 start 被拒绝：一次授权只能创建一个游戏会话",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":true,\"remaining_seconds\":1657,\"used_seconds\":143,\"parent_override\":false,\"override_consumed\":false}"
+    },
+    {
+      "name": "C5b 带会话标识只能续接同一个会话（session_id 不变）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1657,\"used_seconds\":143,\"parent_override\":true,\"override_consumed\":false}"
+    },
+    {
+      "name": "C6 已启动的会话按原规则继续（带标识心跳放行且照常扣秒）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1654,\"used_seconds\":146,\"parent_override\":true,\"override_consumed\":false}"
+    },
+    {
+      "name": "C6b 心跳不带会话标识被拒绝，且不误杀已有会话",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":true,\"remaining_seconds\":1654,\"used_seconds\":146,\"parent_override\":false,\"override_consumed\":false}"
+    },
+    {
+      "name": "C7 主动结束会话",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1654,\"used_seconds\":146,\"parent_override\":false,\"override_consumed\":false}"
+    },
+    {
+      "name": "C8 退出后重新进入必须重新验证家长",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1654,\"used_seconds\":146,\"parent_override\":false}"
+    },
+    {
+      "name": "C9 退出后不能凭旧授权开始新会话",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":false,\"remaining_seconds\":1654,\"used_seconds\":146,\"parent_override\":false,\"override_consumed\":false}"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "phase": "phase-h2",
+  "family": "r5-selftest-family",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T03:52:36.894Z",
+  "finished_at": "2026-11-13T03:53:32.702Z",
+  "passed": 7,
+  "failed": 0,
+  "results": [
+    {
+      "name": "H18 重新授权后可创建新会话（旧授权已作废）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_parent_session\",\"used_seconds\":148,\"remaining_seconds\":1652,\"session_id\":null,\"session_origin\":null,\"authorized\":true} | {\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":148,\"remaining_seconds\":1652,\"parent_override\":true,\"override_consumed\":true,\"session_id\":\"4646a7caaeb44a83bc8603bd0d469a63\",\"session_origin\":\"parent_override\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H19 短暂断线（3 秒无心跳）后带标识可原地恢复",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":151,\"remaining_seconds\":1649,\"parent_override\":true,\"override_consumed\":false,\"session_id\":\"4646a7caaeb44a83bc8603bd0d469a63\",\"session_origin\":\"parent_override\",\"session_resumed\":true,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H20 断线超过空闲上限后心跳被拒绝",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":false,\"used_seconds\":151,\"remaining_seconds\":1649,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":0}"
+    },
+    {
+      "name": "H21 断线超时后旧标识无法恢复会话（不会长期免密重进）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":false,\"used_seconds\":151,\"remaining_seconds\":1649,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":0}"
+    },
+    {
+      "name": "H22 断线超时后再进场需要家长重新验证",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"used_seconds\":151,\"remaining_seconds\":1649,\"parent_override\":false,\"session_id\":null,\"session_origin\":null,\"session_bound\":true}"
+    },
+    {
+      "name": "H23 超时后重新验证家长可以重新开始，并拿到全新会话标识",
+      "ok": true,
+      "detail": "{\"api\":\"r5_parent_session\",\"used_seconds\":151,\"remaining_seconds\":1649,\"session_id\":null,\"session_origin\":null,\"authorized\":true} | {\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":151,\"remaining_seconds\":1649,\"parent_override\":true,\"override_consumed\":true,\"session_id\":\"cc248863a316463e9ae93e2f8d5da822\",\"session_origin\":\"parent_override\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H24 旧会话标识在新会话开始后仍然无效",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":true,\"used_seconds\":151,\"remaining_seconds\":1649,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":1}"
+    }
+  ]
+}

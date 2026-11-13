@@ -1,0 +1,26 @@
+{
+  "phase": "phase-e",
+  "family": "r5-selftest-family",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T03:54:53.221Z",
+  "finished_at": "2026-11-13T03:54:54.189Z",
+  "passed": 3,
+  "failed": 0,
+  "results": [
+    {
+      "name": "E1 当天 1800 秒已用完时拒绝签发",
+      "ok": true,
+      "detail": "status=403 error=TIME_LIMIT_REACHED"
+    },
+    {
+      "name": "E2 额度用尽时进场被拒绝且原因是时间用完",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"TIME_LIMIT_REACHED\",\"active\":false,\"remaining_seconds\":0,\"used_seconds\":1800,\"parent_override\":false}"
+    },
+    {
+      "name": "E3 额度用尽时无法开始游戏",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"TIME_LIMIT_REACHED\",\"active\":false,\"remaining_seconds\":0,\"used_seconds\":1800,\"parent_override\":false,\"override_consumed\":false}"
+    }
+  ]
+}

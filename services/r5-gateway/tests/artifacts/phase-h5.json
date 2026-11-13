@@ -1,0 +1,26 @@
+{
+  "phase": "phase-h5",
+  "family": "r5-selftest-family",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T03:54:54.550Z",
+  "finished_at": "2026-11-13T03:54:55.566Z",
+  "passed": 3,
+  "failed": 0,
+  "results": [
+    {
+      "name": "H38 额度用尽时家长授权被拒绝（TIME_LIMIT_REACHED）",
+      "ok": true,
+      "detail": "status=403 {\"session_id\":null,\"session_origin\":null,\"error\":\"TIME_LIMIT_REACHED\"}"
+    },
+    {
+      "name": "H39 额度用尽时 start 被拒绝",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"TIME_LIMIT_REACHED\",\"active\":false,\"used_seconds\":1800,\"remaining_seconds\":0,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":0}"
+    },
+    {
+      "name": "H40 额度用尽时心跳被拒绝",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"TIME_LIMIT_REACHED\",\"active\":false,\"used_seconds\":1800,\"remaining_seconds\":0,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":0}"
+    }
+  ]
+}

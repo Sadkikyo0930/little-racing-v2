@@ -1,18 +1,19 @@
 /**
- * r5/r5-online.mjs — R5 学习闸门 · 浏览器端 SDK（零依赖、零密钥）· v1.8.0-rc2
+ * r5/r5-online.mjs — R5 学习闸门 · 浏览器端 SDK（零依赖、零密钥）· v1.9.0-session-bound
  *
  * 唯一真相在服务端：
  *   /v1/child/entry      → r5_child_entry()  → r5_status()   （只读确认资格）
- *   /v1/game/action start→ r5_game_action()  → 云端开始计时
- *   /v1/game/action tick → r5_game_action()  → 云端按 DB 时钟累计
- *   /v1/game/action stop → r5_game_action()  → 云端结束计时
+ *   /v1/game/action start→ r5_game_action_v2() → 云端开始计时并下发 session_id
+ *   /v1/game/action tick → r5_game_action_v2() → 云端按 DB 时钟累计（必须带 session_id）
+ *   /v1/game/action stop → r5_game_action_v2() → 云端结束计时并作废 session_id
  * 前端不计算经过时间、不缓存 allowed、不缓存 remaining、不做每日重置。
  *
- * v1.8.0-rc2 相对测试站版本的关键修复：
- *   1. R5Session 会被真正 begin()（测试站只创建了实例却没启动心跳，30 分钟永远走不完）；
- *   2. 切到后台暂停后，回到前台会重新 begin()，避免「切一下后台就白玩」；
- *   3. 心跳间隔可由服务端 heartbeat_seconds 下发；
- *   4. 任何网络/解析异常都抛 R5Error，由守卫 fail-closed。
+ * v1.9.0-session-bound（相对 v1.8.0-rc2）：
+ *   1. start 返回的服务端 session_id 只存内存，tick/stop 原样带回；
+ *      刷新、换标签页、重放请求都没有它，家长免学习会话只能开一次。
+ *   2. 切后台不再发 stop（那会把会话彻底作废），只停心跳：
+ *      45 秒内回前台用同一标识原地续接，超时由服务端判失效、回家长验证。
+ *   3. 页面缓存 / 真正离开时仍然 stop，让云端立刻停止计时。
  */
 
 export const R5_DEFAULT_BASE = 'https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5';
@@ -38,6 +39,9 @@ export const R5_MESSAGES = {
   R5_BAD_RESPONSE: '服务回应看不懂，等一下再试试。',
   R5_TIMEOUT: '等太久了，再试一次吧。',
   R5_SYNC_PENDING: '学习记录还在上传，等一下再来～',
+  // 会话绑定：家长免学习通行只够开一次，过期或被回收后必须重新验证
+  SESSION_REQUIRED: '这次家长通行已经用掉了，请让爸爸妈妈再帮你验证一次。',
+  R5_INVALID_SESSION_ID: '这次通行已经失效了，请重新打开一次。',
 };
 
 export function messageFor(reason) {
@@ -59,6 +63,9 @@ export function createR5Gate(options = {}) {
   const device = options.device || '';
   const fetchImpl = options.fetch || globalThis.fetch.bind(globalThis);
   const timeoutMs = options.timeoutMs || 15000;
+  // 服务端会话标识：只在内存里，不进 localStorage / sessionStorage / URL。
+  // 刷新或换标签页就拿不到它，家长免学习会话因此只能被开一次。
+  let sessionId = '';
 
   async function post(path, body, expectedApi = 'r5_status') {
     if (!device) throw new R5Error('R5_DEVICE_REQUIRED', 0, null);
@@ -69,7 +76,11 @@ export function createR5Gate(options = {}) {
       res = await fetchImpl(base + path, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-r5-device': device },
-        body: JSON.stringify({ family_id: familyId, ...body }),
+        body: JSON.stringify({
+          family_id: familyId,
+          ...body,
+          ...(sessionId ? { session_id: sessionId } : {}),
+        }),
         signal: ctrl.signal,
         keepalive: body.action === 'stop',
       });
@@ -91,10 +102,24 @@ export function createR5Gate(options = {}) {
 
   return {
     base, familyId, device,
+    currentSessionId: () => sessionId,
     status: () => post('/v1/child/entry', {}),
-    start: () => post('/v1/game/action', { action: 'start' }),
+    start: async () => {
+      const st = await post('/v1/game/action', { action: 'start' });
+      if (st && st.allowed === true && typeof st.session_id === 'string'
+        && /^[a-f0-9]{32}$/.test(st.session_id)) {
+        sessionId = st.session_id;
+      } else if (st && st.allowed !== true) {
+        sessionId = '';   // 服务端拒绝即作废，避免拿死标识反复续接
+      }
+      return st;
+    },
     tick: () => post('/v1/game/action', { action: 'tick' }),
-    stop: () => post('/v1/game/action', { action: 'stop' }),
+    stop: async () => {
+      const st = await post('/v1/game/action', { action: 'stop' });
+      sessionId = '';
+      return st;
+    },
     claimBirthday: () => post('/v1/birthday/claim', {}, 'r5_birthday'),
     messageFor,
   };
@@ -235,10 +260,13 @@ export class R5Session {
     if (typeof document === 'undefined') return;
     const hidden = document.visibilityState === 'hidden';
     this._visibilityQueue = this._visibilityQueue.then(async () => {
-      if (hidden && this.active) {
+      if (hidden && this.active && !this._pausedByVisibility) {
+        // 只停心跳，不调 stop：会话标识留在内存里，45 秒内回前台可原地续接；
+        // 超过 45 秒服务端判会话失效，回来必须重新家长验证（不会长期免密）。
         this._pausedByVisibility = true;
-        const st = await this.end('PAUSED');
-        this.onPaused(st);
+        clearInterval(this._timer);
+        this._timer = null;
+        this.onPaused(this.state);
       } else if (!hidden && this._pausedByVisibility) {
         this._pausedByVisibility = false;
         const st = await this.begin();

@@ -1,0 +1,36 @@
+{
+  "phase": "phase-d",
+  "family": "r5-selftest-family",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T03:52:25.850Z",
+  "finished_at": "2026-11-13T03:52:27.450Z",
+  "passed": 5,
+  "failed": 0,
+  "results": [
+    {
+      "name": "D1 重放测试前置授权",
+      "ok": true,
+      "detail": "{\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1654,\"used_seconds\":146,\"ttl_seconds\":120,\"member_role\":\"grandparent\"}"
+    },
+    {
+      "name": "D2 不带密码的请求被拒绝",
+      "ok": true,
+      "detail": "status=401 error=R5_PARENT_CREDENTIALS_REQUIRED"
+    },
+    {
+      "name": "D3 请求体里伪造 authorized/remaining 无效",
+      "ok": true,
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
+    },
+    {
+      "name": "D4 伪造 x-r5-parent 头无效（旧口令通道已关闭）",
+      "ok": true,
+      "detail": "status=401 error=R5_PARENT_CREDENTIALS_REQUIRED"
+    },
+    {
+      "name": "D5 仍可用 D1 的票据进场（票据是服务端状态，不是请求内容）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"remaining_seconds\":1654,\"used_seconds\":146,\"parent_override\":true}"
+    }
+  ]
+}
