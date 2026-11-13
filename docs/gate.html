@@ -4,8 +4,18 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#0a1c33" />
+<!-- PWA 声明必须与 index.html 完全一致。
+     iOS 11.3+ 依据 manifest 的 scope 判断「一次跨文档导航是否留在已安装的
+     主屏幕 Web App 内」。gate.html 是「家长入口 → 进入游戏」这次导航的发起
+     文档，之前缺少 manifest 引用与完整 iOS meta，iOS 无法确认应用 scope，
+     于是把 location.replace 转交 Safari 打开 → 退出全屏、出现地址栏工具栏。
+     manifest 的 id / start_url / scope 本身不变，旧桌面图标无需重装。 -->
+<meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="小小赛车" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon-180.png" />
 <title>小小赛车 · 学习通行证</title>
 <style>
   :root{
