@@ -35,7 +35,9 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
   const frame=page.frameLocator('iframe[title="生日开箱"]');
   assert.equal(await frame.locator('#progress').getAttribute('max'),'40');
   assert.equal(await frame.locator('#play').count(),1);
-  ok('birthday claim, dialog, 40 second timeline and playback control');
+  await frame.locator('#stage canvas').waitFor({state:'attached',timeout:90000});
+  assert(await frame.locator('#stage canvas').evaluate(c=>!!c.getContext('webgl2')));
+  ok('birthday claim, dialog, 40 second timeline, playback control and loaded 3D model');
   await page.evaluate(()=>document.querySelector('dialog[aria-label="生日惊喜"]').close());
   assert(await page.locator('#scene').evaluate(c=>!!c.getContext('webgl2')));ok('real WebGL startup');
   await page.locator('#garageBtn').dispatchEvent('click');
