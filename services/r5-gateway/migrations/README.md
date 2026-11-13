@@ -6,6 +6,12 @@
 | --- | --- |
 | `20261113093000_parent_game_override.sql` | 授权表 `r5_game_override` + 签发 / 绑定 / 失败审计三个函数 |
 | `20261113093500_parent_game_override_status.sql` | 升级 `r5_status`、`r5_game_action`、`r5_game_action_md`，让它们认这份授权 |
+| `20261113101500_parent_override_single_use.sql` | 一次性票据（120 秒）+ 授权函数权限收紧 |
+| `20261113110500_session_binding.sql` | 会话绑定：`session_id` 列 / 会话工具函数 / `_v2` 计时引擎 / 老函数 fail-closed 委托 |
+| `20261113111500_session_binding_guard.sql` | 会话绑定细化：无标识的 `start`/`tick` 只拒绝不误杀，且不回传未证明的标识 |
+
+`20261113110500` 与 `20261113111500` 都不含 `DROP`：只做 `ADD COLUMN IF NOT EXISTS`
+与 `CREATE OR REPLACE FUNCTION`，旧网关回滚时数据库仍可用。
 
 两个文件里的函数体与线上库 `pg_proc.prosrc` **逐字节一致**（可用
 `tests/verify-migration.mjs` 复核：它把本地定义去掉注释与空白后取 md5，

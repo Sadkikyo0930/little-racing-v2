@@ -2,15 +2,15 @@
   "phase": "phase-d",
   "family": "r5-selftest-family",
   "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
-  "started_at": "2026-11-13T02:24:47.043Z",
-  "finished_at": "2026-11-13T02:24:48.396Z",
+  "started_at": "2026-11-13T02:49:34.493Z",
+  "finished_at": "2026-11-13T02:49:36.014Z",
   "passed": 5,
   "failed": 0,
   "results": [
     {
       "name": "D1 重放测试前置授权",
       "ok": true,
-      "detail": "{\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1746,\"used_seconds\":54,\"ttl_seconds\":120,\"member_role\":\"grandparent\"}"
+      "detail": "{\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1706,\"used_seconds\":94,\"ttl_seconds\":120,\"member_role\":\"grandparent\"}"
     },
     {
       "name": "D2 不带密码的请求被拒绝",
@@ -30,7 +30,7 @@
     {
       "name": "D5 仍可用 D1 的票据进场（票据是服务端状态，不是请求内容）",
       "ok": true,
-      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"remaining_seconds\":1746,\"used_seconds\":54,\"parent_override\":true}"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"remaining_seconds\":1706,\"used_seconds\":94,\"parent_override\":true}"
     }
   ]
 }

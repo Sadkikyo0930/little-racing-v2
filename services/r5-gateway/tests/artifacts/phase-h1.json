@@ -1,0 +1,96 @@
+{
+  "phase": "phase-h1",
+  "family": "r5-selftest-family",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T02:46:39.090Z",
+  "finished_at": "2026-11-13T02:46:42.307Z",
+  "passed": 17,
+  "failed": 0,
+  "results": [
+    {
+      "name": "H1 家长账号授权成功（票据未消费）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_parent_session\",\"used_seconds\":60,\"remaining_seconds\":1740,\"session_id\":null,\"session_origin\":null,\"authorized\":true}"
+    },
+    {
+      "name": "H2 持票据时进场放行（仅跳过学习条件）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"used_seconds\":60,\"remaining_seconds\":1740,\"parent_override\":true,\"session_id\":null,\"session_origin\":null,\"session_bound\":true}"
+    },
+    {
+      "name": "H3 首次 start 返回服务端会话标识，且票据被原子消费",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":60,\"remaining_seconds\":1740,\"parent_override\":true,\"override_consumed\":true,\"session_id\":\"40a0f33a662940128d4c59485d03896e\",\"session_origin\":\"parent_override\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H4 重复 start（不带标识）被拒绝——本轮修复的核心",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":true,\"used_seconds\":61,\"remaining_seconds\":1739,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":1}"
+    },
+    {
+      "name": "H5 被拒绝的重复 start 不会回传会话标识",
+      "ok": true,
+      "detail": "session_id=null"
+    },
+    {
+      "name": "H6 刷新页面（新客户端无标识）仍进不去，且票据无法二次消费",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":true,\"used_seconds\":61,\"remaining_seconds\":1739,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":1} | {\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":true,\"used_seconds\":61,\"remaining_seconds\":1739,\"parent_override\":false,\"session_id\":null,\"session_origin\":null,\"session_bound\":true}"
+    },
+    {
+      "name": "H7 带原会话标识可以续接同一个会话（不是新会话）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":61,\"remaining_seconds\":1739,\"parent_override\":true,\"override_consumed\":false,\"session_id\":\"40a0f33a662940128d4c59485d03896e\",\"session_origin\":\"parent_override\",\"session_resumed\":true,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H8 心跳带标识放行并照常计费",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":61,\"remaining_seconds\":1739,\"parent_override\":true,\"override_consumed\":false,\"session_id\":\"40a0f33a662940128d4c59485d03896e\",\"session_origin\":\"parent_override\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H9 心跳不带标识被拒绝，且不泄漏标识",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":true,\"used_seconds\":62,\"remaining_seconds\":1738,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":1}"
+    },
+    {
+      "name": "H10 伪造会话标识被拒绝",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":true,\"used_seconds\":62,\"remaining_seconds\":1738,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":1}"
+    },
+    {
+      "name": "H11 上述拒绝没有误杀正在进行的会话（原标识仍可心跳）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":62,\"remaining_seconds\":1738,\"parent_override\":true,\"override_consumed\":false,\"session_id\":\"40a0f33a662940128d4c59485d03896e\",\"session_origin\":\"parent_override\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H12 会话标识也可以通过 x-r5-session 请求头传递",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"used_seconds\":62,\"remaining_seconds\":1738,\"parent_override\":true,\"override_consumed\":false,\"session_id\":\"40a0f33a662940128d4c59485d03896e\",\"session_origin\":\"parent_override\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H13 累计时长单调不减（1800 秒上限只减不增）",
+      "ok": true,
+      "detail": "used 61 -> 62"
+    },
+    {
+      "name": "H14 结束会话后 active=false",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"used_seconds\":62,\"remaining_seconds\":1738,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":0}"
+    },
+    {
+      "name": "H15 会话重放：结束后用旧标识 start 被拒绝",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":false,\"used_seconds\":62,\"remaining_seconds\":1738,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":0}"
+    },
+    {
+      "name": "H16 结束后不带标识 start 同样被拒绝（已消费票据不能开第二次）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":false,\"used_seconds\":62,\"remaining_seconds\":1738,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":0}"
+    },
+    {
+      "name": "H17 结束后再进场需要重新家长验证",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"used_seconds\":62,\"remaining_seconds\":1738,\"parent_override\":false,\"session_id\":null,\"session_origin\":null,\"session_bound\":true}"
+    }
+  ]
+}

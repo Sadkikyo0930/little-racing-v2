@@ -2,8 +2,8 @@
   "phase": "phase-b",
   "family": "r5-selftest-family",
   "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
-  "started_at": "2026-11-13T02:24:39.151Z",
-  "finished_at": "2026-11-13T02:24:41.070Z",
+  "started_at": "2026-11-13T02:49:27.269Z",
+  "finished_at": "2026-11-13T02:49:29.460Z",
   "passed": 4,
   "failed": 0,
   "results": [

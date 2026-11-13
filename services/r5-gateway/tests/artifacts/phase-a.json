@@ -2,15 +2,15 @@
   "phase": "phase-a",
   "family": "r5-selftest-family",
   "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
-  "started_at": "2026-11-13T02:24:35.560Z",
-  "finished_at": "2026-11-13T02:24:38.880Z",
+  "started_at": "2026-11-13T02:49:23.111Z",
+  "finished_at": "2026-11-13T02:49:27.164Z",
   "passed": 9,
   "failed": 0,
   "results": [
     {
       "name": "A:dad 正确密码可授权（角色 parent）",
       "ok": true,
-      "detail": "status=200 {\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1750,\"used_seconds\":50,\"ttl_seconds\":120,\"member_role\":\"parent\"}"
+      "detail": "status=200 {\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1710,\"used_seconds\":90,\"ttl_seconds\":120,\"member_role\":\"parent\"}"
     },
     {
       "name": "A:dad 密码错误被拒绝",
@@ -20,7 +20,7 @@
     {
       "name": "A:mom 正确密码可授权（角色 owner）",
       "ok": true,
-      "detail": "status=200 {\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1750,\"used_seconds\":50,\"ttl_seconds\":120,\"member_role\":\"owner\"}"
+      "detail": "status=200 {\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1710,\"used_seconds\":90,\"ttl_seconds\":120,\"member_role\":\"owner\"}"
     },
     {
       "name": "A:mom 密码错误被拒绝",
@@ -30,7 +30,7 @@
     {
       "name": "A:grandma 正确密码可授权（角色 grandparent）",
       "ok": true,
-      "detail": "status=200 {\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1750,\"used_seconds\":50,\"ttl_seconds\":120,\"member_role\":\"grandparent\"}"
+      "detail": "status=200 {\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1710,\"used_seconds\":90,\"ttl_seconds\":120,\"member_role\":\"grandparent\"}"
     },
     {
       "name": "A:grandma 密码错误被拒绝",

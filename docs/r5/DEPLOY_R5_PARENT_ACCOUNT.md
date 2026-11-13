@@ -187,3 +187,124 @@ POST /rest/rpc/r5_override_bind         → 403 DATABASE_42501 permission denied
 - 家长账号：`growth_mom` / `growth_dad` / `growth_grandma`（密码为各自原有密码，任何人不可见）
 - 当前该家庭当天学习计划设为**未发布**，因此孩子端只能通过「🔒 家长入口」进场——
   这正是本轮要验收的行为；正常学习解锁路径由 `phase-f` 覆盖
+
+---
+
+# 第二轮修复：会话绑定（网关 `1.5.0-session-bound`）
+
+## 9. 上一版遗留的漏洞
+
+验收时发现 C5 用例的实测返回里出现了 `allowed:true, active:true`：票据已被消费，
+再调一次 `game/action start` 仍然放行。根因不在票据，而在"会话"这一层：
+
+```sql
+-- 旧 r5_override_active(p_entry => false)
+AND ((o.consumed_at IS NULL AND o.expires_at > now())
+  OR (o.consumed_at IS NOT NULL AND o.session_until IS NOT NULL
+      AND o.session_until > now()))
+```
+
+`session_until` 是**被每次 tick 滑动续期**的 150 秒窗口。于是只要不停心跳，
+`r5_override_active` 就一直为真；而 `r5_game_action_md` 的 `allowed` 直接取
+`r5_gate_status(family,false).allowed`，`start` 又从不校验"这次 start 是不是
+同一个会话"。结果：**已消费票据 + 同一台设备 = 永久免密**。刷新、换标签页、
+直接打 API 都能拿到 `allowed:true`。
+
+## 10. 修复模型：服务端会话标识
+
+一次家长授权 → 一个会话；会话由服务端生成标识，客户端不能自己声明。
+
+| 概念 | 存放 | 生命周期 |
+| --- | --- | --- |
+| 一次性票据 | `r5_game_override`（`consumed_at`） | 签发后 120 秒内可消费一次 |
+| 会话标识 `session_id` | `r5_usage_session.session_id`（32 位十六进制，服务端 `gen_random_uuid()`） | 建立会话时生成；`stop`、超额、空闲 45 秒、重新授权都会作废 |
+| 票据与会话的绑定 | `r5_game_override.session_id` | 消费票据时由 `r5_override_bind_session()` 写入 |
+
+`start` 的三条路径（`r5_game_action_v2` / `r5_game_action_md_v2`）：
+
+1. **有未消费票据** → 原子消费 → 新会话 → 返回新的 `session_id`
+2. **无票据，但带了本设备当天的有效 `session_id`** → 续接同一会话（`session_resumed:true`），标识不变
+3. **都没有** → 拒绝（`SESSION_REQUIRED`），不新建会话；若已有非活跃残留则顺手清理
+
+`r5_override_active(p_entry => false)` 改成必须存在**绑定且仍在心跳的会话**：
+
+```sql
+JOIN public.r5_usage_session s
+  ON s.family_id = o.family_id AND s.play_date = o.play_date
+ AND s.actor_key = md5(o.device_uid)
+WHERE o.consumed_at IS NOT NULL
+  AND o.session_until > now()
+  AND o.session_id IS NOT NULL AND s.session_id = o.session_id
+  AND s.last_beat > now() - interval '45 seconds'
+```
+
+因此"窗口还在但没人心跳"不再等于"有资格玩"。
+
+### 两个刻意的细节
+
+- **拒绝但不打断**：不带标识的 `start/tick` 只被拒绝，不会删掉正在进行的会话。
+  否则一次并发重复请求（双击、React 双调用）就能把玩家自己的会话打掉。
+- **不回传别人的标识**：只有"刚创建"或"带对了标识"的调用才会拿到 `session_id`；
+  被拒绝的响应里该字段恒为 `null`。
+
+## 11. 断线 / 关页的处理
+
+| 场景 | 服务端行为 | 结果 |
+| --- | --- | --- |
+| 短暂断网（< 45 秒） | `last_beat` 仍在窗口内 | 带标识 `start`/`tick` 原地续接 |
+| 断网 / 关页 > 45 秒 | `last_beat` 过期；`md` 引擎直接删行，`v1` 引擎在下次调用时清理 | 旧标识失效，必须重新家长验证 |
+| 主动 `stop` | 删除会话行 + `session_until := NULL` | 立即失效，重放无效 |
+| 重新家长验证 | 新票据 + 新 `session_id`，旧会话被覆盖 | 旧标识永久失效 |
+
+前端 `r5/r5-online.mjs` 同步调整：`session_id` 只存内存（不进 localStorage /
+sessionStorage / URL），切后台只停心跳不 `stop`，真正离开页面才 `stop`。
+所以"刷新页面"必然拿不到标识，也就必然回到家长验证。
+
+## 12. 数据库变更（迁移 `20261113110500_session_binding` + `20261113111500_session_binding_guard`）
+
+新增列（`ADD COLUMN IF NOT EXISTS`，不动已有数据）：
+
+```
+r5_usage_session   + session_id text / origin text / device_uid text
+r5_game_override   + session_id text / session_started_at timestamptz
+唯一索引 r5_usage_session_sid_uk (family_id, session_id) WHERE session_id IS NOT NULL
+```
+
+新增函数（全部 `SECURITY DEFINER`，`REVOKE ALL FROM PUBLIC, anon, authenticated`，
+只 `GRANT EXECUTE TO service_role`）：
+
+```
+r5_session_live(family, device, session_id)          -- 会话是否仍在 45 秒心跳窗口内
+r5_session_open(family, device, origin)              -- 生成并写入新的 session_id
+r5_session_beat(family, device, session_id)          -- 仅当标识匹配且未过期时续期
+r5_session_close(family, device, session_id)         -- 删除会话行
+r5_override_bind_session(family, device, session_id) -- 把票据绑到会话
+r5_gate_status_core(family, entry, ignore_override)  -- 拆出"只看学习条件"的判定
+r5_game_action_v2(family, action, session_id)        -- 单设备计时 + 会话绑定
+r5_game_action_md_v2(family, action, session_id)     -- 多设备计时 + 会话绑定
+```
+
+保留但改写的老函数：`r5_gate_status` 转调 core；`r5_game_action` / `r5_game_action_md`
+保留原签名，改为以 `NULL` 标识委托 `_v2`——**旧客户端在学习路径下照常工作，
+在家长免学习路径下必然被拒**（fail-closed，不需要 DROP 函数）。
+
+## 13. 本轮实测
+
+- 用例总数 **102**，通过 **102**，失败 **0**（`tests/RESULTS.md`，由 artifacts 直接渲染）
+- 其中会话绑定专项 **40** 项：`phase-h1` 17 / `phase-h2` 7 / `phase-h3` 9 / `phase-h4` 4 / `phase-h5` 3
+- 关键实测：
+  - `start` 首次 `allowed:true, override_consumed:true`，随即第二次 `start` → `allowed:false, reason:SESSION_REQUIRED`
+  - 带原标识 → `allowed:true, session_resumed:true`，`session_id` 不变
+  - 真实静默 50 秒后再带标识 → `allowed:false`，`active_devices:0`
+  - 两台设备各自会话互不干扰（`active_devices:2`），交叉使用标识被拒
+  - 客户端直接用 `authenticated` token 调 `r5_session_open/close/beat`、
+    `r5_gate_status_core`、`r5_override_bind_session` 全部 `403 DATABASE_42501`
+- 迁移任务：`task-d0260a073aee4b97`（`session_binding`）、`task-c37f51adf6e645ea`（`session_binding_guard`），均 `Succeed`
+
+## 14. 本轮回滚
+
+| 场景 | 回滚动作 |
+| --- | --- |
+| 只想回到"不校验会话标识" | `CREATE OR REPLACE FUNCTION public.r5_game_action_md_v2(...) ` 回填旧函数体（`gitrepo/services/r5-gateway/migrations/20261113101500_*.sql` 中有 1.4.0 版本实现） |
+| 网关回滚 | `updateFunctionCode` 回退到 `1.4.0-parent-account` 代码包；数据库新增列与函数向后兼容，不会阻断旧网关 |
+| 彻底回退 | 两个迁移都只做 `ADD COLUMN` / `CREATE OR REPLACE`，没有 `DROP`；删列会丢会话历史，不建议 |

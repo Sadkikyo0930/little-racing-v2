@@ -5,8 +5,8 @@
   "device": "r5dev_parent_accept_01",
   "account": "r5_selftest",
   "prepared_state": "当天学习尚未完成（plan published=false），用于验证\"只有家长授权能进场\"",
-  "started_at": "2026-11-13T02:25:41.636Z",
-  "passed": 13,
+  "started_at": "2026-11-13T02:51:27.330Z",
+  "passed": 15,
   "failed": 0,
   "steps": [
     {
@@ -22,7 +22,7 @@
     {
       "name": "未验证家长时进不去（学习未达标）",
       "ok": true,
-      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":false}"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1700,\"used_seconds\":100,\"parent_override\":false,\"session_id\":null,\"session_origin\":null}"
     },
     {
       "name": "密码错误被拒绝",
@@ -32,47 +32,57 @@
     {
       "name": "选择账号 + 正确密码 → 拿到一次性授权",
       "ok": true,
-      "detail": "{\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1745,\"used_seconds\":55}"
+      "detail": "{\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1700,\"used_seconds\":100,\"session_id\":null,\"session_origin\":null}"
     },
     {
       "name": "授权后进场成功（只跳过学习条件）",
       "ok": true,
-      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":true}"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"remaining_seconds\":1700,\"used_seconds\":100,\"parent_override\":true,\"session_id\":null,\"session_origin\":null}"
     },
     {
-      "name": "开始游戏时票据被消费",
+      "name": "开始游戏时票据被消费，并拿到服务端会话标识",
       "ok": true,
-      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":true,\"override_consumed\":true}"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1700,\"used_seconds\":100,\"parent_override\":true,\"override_consumed\":true,\"session_id\":\"45e38c605f17400fbab2deec3120be2f\",\"session_origin\":\"parent_override\",\"session_resumed\":false}"
     },
     {
       "name": "刷新页面后进场被拒绝（不再免密）",
       "ok": true,
-      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":true,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":false}"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":true,\"remaining_seconds\":1700,\"used_seconds\":100,\"parent_override\":false,\"session_id\":null,\"session_origin\":null}"
     },
     {
-      "name": "重放旧授权不会产生第二次授权消费（start 只是续上同一个会话）",
+      "name": "刷新后再次 start 被拒绝（已消费票据 + 设备身份不再足够）",
       "ok": true,
-      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":true,\"override_consumed\":false}"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":true,\"remaining_seconds\":1699,\"used_seconds\":101,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false}"
+    },
+    {
+      "name": "带原会话标识可以续接同一个会话，标识不变",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1699,\"used_seconds\":101,\"parent_override\":true,\"override_consumed\":false,\"session_id\":\"45e38c605f17400fbab2deec3120be2f\",\"session_origin\":\"parent_override\",\"session_resumed\":true}"
     },
     {
       "name": "结束游戏",
       "ok": true,
-      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":false,\"override_consumed\":false}"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1699,\"used_seconds\":101,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false}"
     },
     {
       "name": "退出后重新进入必须再次输入家长密码",
       "ok": true,
-      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":false}"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1699,\"used_seconds\":101,\"parent_override\":false,\"session_id\":null,\"session_origin\":null}"
     },
     {
       "name": "退出后凭旧授权无法开始游戏",
       "ok": true,
-      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":false,\"override_consumed\":false}"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"SESSION_REQUIRED\",\"active\":false,\"remaining_seconds\":1699,\"used_seconds\":101,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false}"
     },
     {
       "name": "重新输入密码后可再次进场（额度继续累计，不清零）",
       "ok": true,
-      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":true} | session={\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1745,\"used_seconds\":55}"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"remaining_seconds\":1699,\"used_seconds\":101,\"parent_override\":true,\"session_id\":null,\"session_origin\":null} | session={\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1699,\"used_seconds\":101,\"session_id\":null,\"session_origin\":null}"
+    },
+    {
+      "name": "重新验证后可以创建全新会话（新标识与上一次不同）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1699,\"used_seconds\":101,\"parent_override\":true,\"override_consumed\":true,\"session_id\":\"49ec61e9cf024d669903c2e7f1919e57\",\"session_origin\":\"parent_override\",\"session_resumed\":false}"
     }
   ]
 }

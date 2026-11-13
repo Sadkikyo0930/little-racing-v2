@@ -46,9 +46,10 @@
 
 | 条件 | 状态 |
 | --- | --- |
-| CloudBase 端点实际部署 | ✅ `r5-gateway` 1.3.1-parent-override（09:23:14）→ 1.4.0-parent-account（10:04:08） |
+| CloudBase 端点实际部署 | ✅ `r5-gateway` 1.3.1-parent-override → 1.4.0-parent-account → **1.5.0-session-bound**（10:44 部署） |
 | 家长身份改复用 V6 账号密码 | ✅ 三个账号各自密码均可授权，账号名不能冒用（phase-a 9 项） |
-| 一次性授权 | ✅ start 原子消费，刷新/重进/重放均失效（phase-c、phase-d、走查 13 项） |
-| 数据库授权函数不可被客户端直接调用 | ✅ 三个 RPC 均 `permission denied (42501)`（phase-g） |
+| 一次性授权 | ✅ start 原子消费，刷新/重进/重放均失效（phase-c、phase-d、走查 15 项） |
+| 一次授权一个会话（会话绑定） | ✅ 重复 start / 刷新 / 重放 / 断线超时 / 多设备交叉全部拒绝（phase-h1~h3，40 项） |
+| 数据库授权函数不可被客户端直接调用 | ✅ 八个 RPC（含新增会话函数）均 `permission denied (42501)`（phase-g） |
 | child/entry + game/action 对家长授权生效、限时仍严格扣减 | ✅ phase-c、phase-e |
 | iPhone 验证 | ⏳ 待家人验收，隔离地址见 DEPLOY_R5_PARENT_ACCOUNT.md §8 |

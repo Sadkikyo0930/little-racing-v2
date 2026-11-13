@@ -1,0 +1,31 @@
+{
+  "phase": "phase-h4",
+  "family": "r5-selftest-family",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T02:48:12.631Z",
+  "finished_at": "2026-11-13T02:48:13.535Z",
+  "passed": 4,
+  "failed": 0,
+  "results": [
+    {
+      "name": "H34 学习达标时不需要票据也能开始（session_origin=study）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED\",\"active\":true,\"used_seconds\":69,\"remaining_seconds\":1731,\"parent_override\":false,\"override_consumed\":false,\"session_id\":\"c7ab974a7a454ea29ac0cd96b53de33e\",\"session_origin\":\"study\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H35 学习路径带标识心跳正常",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED\",\"active\":true,\"used_seconds\":70,\"remaining_seconds\":1730,\"parent_override\":false,\"override_consumed\":false,\"session_id\":\"c7ab974a7a454ea29ac0cd96b53de33e\",\"session_origin\":\"study\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H36 旧前端（心跳不带标识）在学习路径下仍可用",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED\",\"active\":true,\"used_seconds\":70,\"remaining_seconds\":1730,\"parent_override\":false,\"override_consumed\":false,\"session_id\":\"f09e2cd14b8145339c1f61012931bda9\",\"session_origin\":\"study\",\"session_resumed\":false,\"session_bound\":true,\"active_devices\":1}"
+    },
+    {
+      "name": "H37 学习路径结束会话正常",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"STUDY_PASSED\",\"active\":false,\"used_seconds\":70,\"remaining_seconds\":1730,\"parent_override\":false,\"override_consumed\":false,\"session_id\":null,\"session_origin\":null,\"session_resumed\":false,\"session_bound\":false,\"active_devices\":0}"
+    }
+  ]
+}

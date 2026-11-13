@@ -2,9 +2,9 @@
   "phase": "phase-g",
   "family": "r5-selftest-family",
   "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
-  "started_at": "2026-11-13T02:24:41.356Z",
-  "finished_at": "2026-11-13T02:24:42.048Z",
-  "passed": 4,
+  "started_at": "2026-11-13T02:50:16.759Z",
+  "finished_at": "2026-11-13T02:50:17.468Z",
+  "passed": 9,
   "failed": 0,
   "results": [
     {
@@ -15,17 +15,42 @@
     {
       "name": "G:客户端直接调用 r5_override_consume 被拒绝",
       "ok": true,
-      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_override_consume\",\"requestId\":\"1aa83777-3356-42dc-"
+      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_override_consume\",\"requestId\":\"e24bf523-0f82-432b-"
     },
     {
       "name": "G:客户端直接调用 r5_parent_override_issue 被拒绝",
       "ok": true,
-      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_parent_override_issue\",\"requestId\":\"b26e3400-f548-"
+      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_parent_override_issue\",\"requestId\":\"32d4bde0-998e-"
     },
     {
       "name": "G:客户端直接调用 r5_override_bind 被拒绝",
       "ok": true,
-      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_override_bind\",\"requestId\":\"7c3c69c2-83d8-47f7-a10"
+      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_override_bind\",\"requestId\":\"910fb6d9-ac2e-4ff7-bb3"
+    },
+    {
+      "name": "G:客户端直接调用 r5_session_open 被拒绝",
+      "ok": true,
+      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_session_open\",\"requestId\":\"d6dc1251-2b34-48f1-8b9a"
+    },
+    {
+      "name": "G:客户端直接调用 r5_session_close 被拒绝",
+      "ok": true,
+      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_session_close\",\"requestId\":\"219ed197-d6a3-4b41-984"
+    },
+    {
+      "name": "G:客户端直接调用 r5_session_beat 被拒绝",
+      "ok": true,
+      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_session_beat\",\"requestId\":\"db46d2ac-bdc9-42b8-9c12"
+    },
+    {
+      "name": "G:客户端直接调用 r5_gate_status_core 被拒绝",
+      "ok": true,
+      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_gate_status_core\",\"requestId\":\"0a8c7d51-c40f-42e9-"
+    },
+    {
+      "name": "G:客户端直接调用 r5_override_bind_session 被拒绝",
+      "ok": true,
+      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_override_bind_session\",\"requestId\":\"bfd18889-ef56-"
     }
   ]
 }

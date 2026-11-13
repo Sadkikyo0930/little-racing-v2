@@ -11,12 +11,18 @@
  *           网关调用 CloudBase Auth 校验 → 用真实 uid 换 claims 签发一次性票据。
  *           旧版 x-r5-parent 口令路径已下线（410），不再作为任何入口。
  *
+ * 会话绑定（1.5.0）
+ *   一次家长授权只能创建一次游戏会话：start 消费票据的同时由数据库生成
+ *   session_id 并返回；后续 tick / stop / 续接都必须带上它。没有票据又没有
+ *   未过期的会话标识时，start 一律拒绝（SESSION_REQUIRED），因此刷新、退出、
+ *   重开、重放请求都换不到第二次免学习资格。
+ *
  * 数据集
  *   函数内不持有任何数据库密钥：凭证由运行时注入（环境变量 tmpSecret / 默认凭证链），
  *   通过云 API ExecutePGSql 执行 SQL，只在本函数进程内出现。
  *
  * 允许的动作（硬编码白名单）
- *   孩子：r5_child_entry / r5_game_action
+ *   孩子：r5_child_entry / r5_game_action_v2 / r5_game_action_md_v2
  *   家长：r5_bind_device / r5_revoke_device / r5_list_devices / r5_status
  *   其它一律 403。
  */
@@ -50,11 +56,13 @@ const MD_FAMILIES = new Set(
 const FAMILY_RE = /^[A-Za-z0-9_-]{3,80}$/;
 const DEVICE_RE = /^[A-Za-z0-9_-]{8,80}$/;
 const ACTIONS = new Set(['start', 'tick', 'stop', 'status']);
+// 服务端生成的游戏会话标识：32 位小写十六进制（r5_session_open 生成）。
+const SESSION_RE = /^[a-f0-9]{32}$/;
 
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET,POST,OPTIONS',
-  'access-control-allow-headers': 'content-type,x-r5-device,x-r5-parent',
+  'access-control-allow-headers': 'content-type,x-r5-device,x-r5-parent,x-r5-session',
   'access-control-max-age': '86400',
   'cache-control': 'no-store',
 };
@@ -84,6 +92,8 @@ function getClient() {
 }
 
 const lit = s => `'${String(s).replace(/'/g, "''")}'`;
+/** NULL 感知的字面量：会话标识允许缺省，缺省时必须写 SQL NULL 而不是字符串 'null'。 */
+const litOrNull = s => (s == null || s === '' ? 'NULL' : lit(s));
 
 /**
  * 单条 SQL 内注入身份并调用数据库函数。
@@ -369,7 +379,7 @@ function health() {
   return {
     ok: true,
     service: 'r5-gateway',
-    version: '1.4.0-parent-account',
+    version: '1.5.0-session-bound',
     fragment_endpoints: true,
     parent_override_endpoint: true,
     parent_override_endpoint_path: '/v1/parent/session',
@@ -377,11 +387,20 @@ function health() {
     parent_auth: 'cloudbase-account-password',
     parent_override_single_use: true,
     parent_secret_retired: true,
+    session_binding: true,
+    session_idle_seconds: 45,
+    session_required_for_override: true,
     env: CFG.envId,
     region: CFG.region,
     families: [...CFG.allowedFamilies],
     parentEndpointReady: Boolean(CFG.parentSecret && CFG.parentUid),
-    game_engines: { v1: 'r5_game_action', md: 'r5_game_action_md', md_families: [...MD_FAMILIES] },
+    game_engines: {
+      v1: 'r5_game_action_v2',
+      md: 'r5_game_action_md_v2',
+      legacy_v1: 'r5_game_action',
+      legacy_md: 'r5_game_action_md',
+      md_families: [...MD_FAMILIES],
+    },
     server_time: new Date().toISOString(),
   };
 }
@@ -425,18 +444,44 @@ async function childEntry({ headers, body }) {
   return { ...out, device, family_id: family };
 }
 
+/**
+ * 取服务端会话标识。
+ *
+ * 这里是「一次家长授权只能开一次游戏会话」的入口约束：start 拿不到新票据时，
+ * 只有带上上一次 start 返回的 session_id 才能续接同一个会话；刷新、换标签页、
+ * 重放旧请求都没有这个标识，只能回到家长验证。缺省返回 null（学习路径允许无标识）。
+ */
+function sessionOf(src, headers) {
+  const raw = headers['x-r5-session'] || pick(src, 'session_id', 'sessionId', 'sid');
+  if (raw == null || raw === '') return null;
+  const s = String(raw).trim().toLowerCase();
+  if (!SESSION_RE.test(s)) throw httpErr(400, 'R5_INVALID_SESSION_ID');
+  return s;
+}
+
 async function gameAction({ headers, body, path }) {
   const family = familyOf(body);
   const device = deviceOf(body, headers);
+  const sessionId = sessionOf(body, headers);
   let action = pick(body, 'action', 'p_action');
   if (!action) action = /\/game\/tick$|\/game\/beat$/.test(path) ? 'tick' : '';
   action = String(action || '').toLowerCase();
   if (!ACTIONS.has(action)) throw httpErr(400, 'R5_INVALID_ACTION');
-  const fn = MD_FAMILIES.has(family) ? 'r5_game_action_md' : 'r5_game_action';
+  // 会话绑定版引擎：_v2 函数在数据库侧强制校验 session_id，
+  // 旧的无标识函数只是 fail-closed 委托，客户端不能再绕过。
+  const fn = MD_FAMILIES.has(family) ? 'r5_game_action_md_v2' : 'r5_game_action_v2';
   const out = await runSql(sqlAs({ sub: device, role: 'authenticated' },
-    `public.${fn}(${lit(family)}, ${lit(action)})`));
-  return { ...out, action, device, family_id: family,
-    engine: fn === 'r5_game_action_md' ? 'md-1' : 'v1' };
+    `public.${fn}(${lit(family)}, ${lit(action)}, ${litOrNull(sessionId)})`));
+  const engine = MD_FAMILIES.has(family) ? 'bound-md-1' : 'bound-1';
+  return {
+    ...out,
+    action,
+    device,
+    family_id: family,
+    engine,
+    session_id: out && out.session_id ? out.session_id : null,
+    session_required: out && out.session_origin === 'parent_override',
+  };
 }
 
 async function parentBind({ headers, body }) {
@@ -712,4 +757,4 @@ exports.main = async function main(event, context) {
 };
 
 // 供本地单测使用（不影响云端运行）
-exports.__internals = { sqlAs, lit, parseCtx, CFG, MD_FAMILIES, ROUTES, health, CORS, deviceWhoami, parentSession, verifyAccountPassword };
+exports.__internals = { sqlAs, lit, litOrNull, parseCtx, CFG, MD_FAMILIES, ROUTES, health, CORS, deviceWhoami, parentSession, verifyAccountPassword, sessionOf, gameAction };

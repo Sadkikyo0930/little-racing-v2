@@ -92,7 +92,7 @@ async function post(pathname, body, headers = {}, timeoutMs = 20000) {
 const session = (device, account, password) =>
   post('/v1/parent/session', { family_id: FAMILY, device, account, password });
 const entry = device => post('/v1/child/entry', { family_id: FAMILY }, { 'x-r5-device': device });
-const action = (device, act) => post('/v1/game/action', { family_id: FAMILY, action: act }, { 'x-r5-device': device });
+const action = (device, act, extra = {}) => post('/v1/game/action', { family_id: FAMILY, action: act, ...extra }, { 'x-r5-device': device });
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const brief = j => (j ? JSON.stringify({
@@ -197,8 +197,10 @@ async function phaseC() {
     brief(e1.json));
 
   const st = await action(DEV.dad, 'start');
-  check('C3 启动会话时一次性票据被原子消费',
-    st.json?.allowed === true && st.json?.active === true && st.json?.override_consumed === true,
+  const sid = st.json?.session_id;
+  check('C3 启动会话时一次性票据被原子消费，并下发服务端会话标识',
+    st.json?.allowed === true && st.json?.active === true && st.json?.override_consumed === true
+    && typeof sid === 'string' && /^[a-f0-9]{32}$/.test(sid),
     brief(st.json));
 
   const e2 = await entry(DEV.dad);
@@ -206,19 +208,30 @@ async function phaseC() {
     e2.json?.allowed === false && e2.json?.parent_override === false,
     brief(e2.json));
 
+  // 本轮修复点：票据已消费后，光靠设备身份不能再次 start
   const st2 = await action(DEV.dad, 'start');
-  check('C5 同一张票据不会被二次消费（已运行的会话只续期，override_consumed=false）',
-    st2.json?.active === true && st2.json?.override_consumed === false
-    && Number(st2.json?.used_seconds) >= 1,
+  check('C5 重复 start 被拒绝：一次授权只能创建一个游戏会话',
+    st2.json?.allowed === false && st2.json?.reason === 'SESSION_REQUIRED'
+    && st2.json?.override_consumed === false && st2.json?.session_id == null,
     brief(st2.json));
 
+  const st2b = await action(DEV.dad, 'start', { session_id: sid });
+  check('C5b 带会话标识只能续接同一个会话（session_id 不变）',
+    st2b.json?.allowed === true && st2b.json?.session_resumed === true
+    && st2b.json?.session_id === sid, brief(st2b.json));
+
   await sleep(2500);
-  const tick = await action(DEV.dad, 'tick');
-  check('C6 已启动的会话按原规则继续（心跳放行且照常扣秒）',
+  const tick = await action(DEV.dad, 'tick', { session_id: sid });
+  check('C6 已启动的会话按原规则继续（带标识心跳放行且照常扣秒）',
     tick.json?.allowed === true && tick.json?.active === true && Number(tick.json?.used_seconds) > 0,
     brief(tick.json));
 
-  const stop = await action(DEV.dad, 'stop');
+  const tickNoId = await action(DEV.dad, 'tick');
+  check('C6b 心跳不带会话标识被拒绝，且不误杀已有会话',
+    tickNoId.json?.allowed === false && tickNoId.json?.reason === 'SESSION_REQUIRED'
+    && tickNoId.json?.session_id == null, brief(tickNoId.json));
+
+  const stop = await action(DEV.dad, 'stop', { session_id: sid });
   check('C7 主动结束会话', stop.json?.active === false, brief(stop.json));
 
   const e3 = await entry(DEV.dad);
@@ -327,15 +340,23 @@ async function phaseG() {
   check('G1 家长账号能拿到 CloudBase 会话 token（用于模拟真实客户端）',
     Boolean(token), `status=${signin.status}`);
 
-  for (const rpc of ['r5_override_consume', 'r5_parent_override_issue', 'r5_override_bind']) {
+  // 新增的会话函数同样只允许 service_role 调用
+  const rpcArgs = {
+    r5_parent_override_issue: { p_family_id: FAMILY, p_device: DEV.dad, p_account: 'x', p_ttl_seconds: 120 },
+    r5_override_bind: { p_family_id: FAMILY, p_device: DEV.dad, p_remaining_seconds: 600 },
+    r5_session_open: { p_family_id: FAMILY, p_device: DEV.dad, p_origin: 'study' },
+    r5_session_close: { p_family_id: FAMILY, p_device: DEV.dad, p_session_id: null },
+    r5_session_beat: { p_family_id: FAMILY, p_device: DEV.dad, p_session_id: '0123456789abcdef0123456789abcdef' },
+    r5_gate_status_core: { p_family_id: FAMILY, p_entry: false, p_ignore_override: true },
+    r5_override_bind_session: { p_family_id: FAMILY, p_device: DEV.dad, p_session_id: 'x' },
+  };
+  for (const rpc of ['r5_override_consume', 'r5_parent_override_issue', 'r5_override_bind',
+    'r5_session_open', 'r5_session_close', 'r5_session_beat',
+    'r5_gate_status_core', 'r5_override_bind_session']) {
     const rsp = await fetch(`${REST}/rpc/${rpc}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-      body: JSON.stringify(rpc === 'r5_parent_override_issue'
-        ? { p_family_id: FAMILY, p_device: DEV.dad, p_account: 'x', p_ttl_seconds: 120 }
-        : rpc === 'r5_override_bind'
-          ? { p_family_id: FAMILY, p_device: DEV.dad, p_remaining_seconds: 600 }
-          : { p_family_id: FAMILY, p_device: DEV.dad }),
+      body: JSON.stringify(rpcArgs[rpc] || { p_family_id: FAMILY, p_device: DEV.dad }),
     });
     const text = await rsp.text();
     const denied = /permission denied|42501|not find the function|does not exist/i.test(text) || rsp.status >= 400;
