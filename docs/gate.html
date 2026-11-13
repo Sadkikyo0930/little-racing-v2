@@ -264,6 +264,10 @@ $('parent-entry-form').addEventListener('submit',async event=>{
       $('parent-entry-status').textContent=response.status===404?'云端尚未开通家长快速入口，请继续使用学习通行证。':response.status===401?'家长口令不正确。':payload?.error==='TIME_LIMIT_REACHED'?'今天的赛车时间已用完。':'暂时无法完成家长授权，请稍后再试。';
       return;
     }
+    if(!Number.isFinite(Number(payload.remaining_seconds))||Number(payload.remaining_seconds)<=0){
+      $('parent-entry-status').textContent='今天的赛车时间已用完，不能进入游戏。';
+      return;
+    }
     // 只签发防深链凭证。实际免学习资格及剩余时长必须由服务器在 child/entry 和 game/action 再验证。
     issueGrant(device,R5_CONFIG.grantTtlSeconds,{remaining:Math.max(0,Number(payload.remaining_seconds)||0)});
     closeParentDialog();
