@@ -1,11 +1,24 @@
 name: R5 parent entry (isolated)
+
+# 只做静态契约检查，不碰 CloudBase、不读任何凭据。
+# 触发范围覆盖家长入口真正会改到的文件：页面、账号清单、前端 SDK、网关、迁移、检查脚本。
 on:
   push:
     branches: [feature/r5-parent-quick-entry-20261113]
   pull_request:
-    paths: ['docs/gate.html', 'tools/check-parent-entry.mjs', 'docs/r5/PARENT_QUICK_ENTRY_BACKEND.md']
+    paths:
+      - 'docs/gate.html'
+      - 'docs/r5/parent-accounts.mjs'
+      - 'docs/r5/r5-online.mjs'
+      - 'docs/r5/PARENT_QUICK_ENTRY_BACKEND.md'
+      - 'services/r5-gateway/index.js'
+      - 'services/r5-gateway/migrations/**'
+      - 'tools/check-parent-entry.mjs'
+      - '.github/workflows/r5-parent-entry-check.yml'
+
 permissions:
   contents: read
+
 jobs:
   static:
     runs-on: ubuntu-latest
@@ -14,4 +27,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node tools/check-parent-entry.mjs
+      - name: Parent entry contract (3 accounts / session binding / fail-closed)
+        run: node tools/check-parent-entry.mjs
