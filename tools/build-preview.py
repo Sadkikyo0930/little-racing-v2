@@ -14,7 +14,7 @@ text=re.sub(r"base: 'https://[^']+'", "base: new URL('./demo-r5', location.href)
 text=text.replace("learnUrl: 'https://sadkikyo0930.github.io/little-growth-workbench/v6/'", "learnUrl: new URL('./gate.html', location.href).href")
 p.write_text(text)
 # Block all CloudBase connections, including unanticipated fetch/XHR in future modules.
-csp="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; frame-src 'self' about: blob:; worker-src 'self' blob:"
+csp="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' blob: data:; frame-src 'self' about: blob:; worker-src 'self' blob:"
 for p in out.glob('*.html'):
  text=p.read_text().replace('<head>', '<head><meta http-equiv="Content-Security-Policy" content="'+csp+'">',1);p.write_text(text)
 new={p.relative_to(out).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in out.rglob('*') if p.is_file() and p.name not in ['production-sha256.json','.nojekyll']}
