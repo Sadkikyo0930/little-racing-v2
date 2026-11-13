@@ -2,12 +2,12 @@ const {chromium,request}=require(process.env.PLAYWRIGHT_PATH||'playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const crypto=require('node:crypto');
-const url='https://little-racing-v2-cam3-preview-20261112.sadkikyo.chatgpt.site/';
+const url=process.env.CAM3_PREVIEW_URL||'https://little-racing-v2-cam3-preview-20261112.sadkikyo.chatgpt.site/';
 const report={url,checks:[],errors:[],badResources:[],cloudRequests:[]};
 const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log('PASS',name,JSON.stringify(data??''));};
 (async()=>{
  fs.mkdirSync('/tmp/cam3-evidence',{recursive:true});
- const api=await request.newContext();
+ const api=await request.newContext(process.env.HTTPS_PROXY ? {proxy:{server:process.env.HTTPS_PROXY}} : {});
  const mr=await api.get(url+'production-sha256.json');assert.equal(mr.status(),200);
  const manifest=await mr.json(),entries=Object.entries(manifest);
  for(let i=0;i<entries.length;i+=8)await Promise.all(entries.slice(i,i+8).map(async([path,hash])=>{
@@ -17,13 +17,15 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
   assert.equal(crypto.createHash('sha256').update(checked).digest('hex'),hash,path);
 
  }));ok('deployed resource SHA256',entries.length);
- const browser=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']});
+ const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),...(process.env.HTTPS_PROXY?{proxy:{server:process.env.HTTPS_PROXY}}:{}),args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']});
  const context=await browser.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true,deviceScaleFactor:0.5});
- const page=await context.newPage();
- page.on('pageerror',e=>{report.errors.push(String(e));console.log('PAGE ERROR',String(e));});
+ let page=await context.newPage();
+ function observe(page) { page.on('pageerror',e=>{report.errors.push(String(e));console.log('PAGE ERROR',String(e));});
  page.on('request',r=>{if(r.url().includes('tcloudbase.com'))report.cloudRequests.push(r.url());});
  page.on('response',r=>{if(r.url().startsWith(url)&&r.status()>=400)report.badResources.push([r.status(),r.url()]);});
  page.on('requestfailed',r=>{if(r.url().startsWith(url)&&!(r.resourceType()==='media'&&r.failure()?.errorText==='net::ERR_ABORTED'))report.badResources.push(['failed',r.url(),r.failure()]);});
+ }
+ observe(page);
  try {
   await page.goto(url,{waitUntil:'domcontentloaded'});
   await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important}'});
@@ -52,7 +54,8 @@ const ok=(name,data)=>{report.checks.push({name,result:'PASS',data});console.log
   ok('normal race selection',await page.locator('body').innerText().then(x=>x.slice(-300)));
   // Gate backup uses the preview namespace and cannot read production storage.
   await page.evaluate(()=>localStorage.setItem('lrv2.garage.coins',JSON.stringify({coins:123})));
-  await page.goto(url+'gate.html?scenario=denied',{waitUntil:'commit'});
+  await page.close(); page=await context.newPage(); observe(page);
+  await page.goto(url+'gate.html?scenario=denied',{waitUntil:'domcontentloaded',timeout:60000});
   await page.locator('#parent-backup-link').dispatchEvent('click');
   await page.waitForFunction(()=>!document.getElementById('parent-backup-export').disabled);
   ok('parent backup reads nonempty isolated save');

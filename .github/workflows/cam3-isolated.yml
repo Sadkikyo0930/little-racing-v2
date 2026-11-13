@@ -14,7 +14,9 @@ jobs:
         with:
           node-version: '22'
       - name: Verify complete candidate
-        run: node tools/verify-cam3.mjs
+        run: |
+          node tools/verify-cam3.mjs
+          node tools/test-family-sync.mjs
       - name: Upload isolated deployment artifact
         uses: actions/upload-artifact@v4
         with:
@@ -22,7 +24,6 @@ jobs:
           path: docs/
           include-hidden-files: true
   deployed-check:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
