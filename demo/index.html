@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-ae86-demo="1">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0a1c33" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content="小小赛车 · AE86「秋名疾影」独立试玩。不需要登录、不需要绑定设备、不影响正式家庭存档。" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="AE86 试玩" />
+    <title>小小赛车 · AE86 试玩</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon-180.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png" />
+
+    <link rel="stylesheet" href="./assets/index-kD1WGGM6.css" />
+    <link rel="stylesheet" href="./assets/story-mode.css" />
+
+    <style>
+      #ae86Lobby {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+        background: radial-gradient(1200px 700px at 50% -10%, #1d3f6b 0%, #0a1c33 58%, #050c16 100%);
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        transition: opacity 0.32s ease, visibility 0.32s ease;
+      }
+      #ae86Lobby.hide {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      #ae86Lobby .ldCard {
+        width: 100%;
+        max-width: 430px;
+        background: linear-gradient(180deg, #ffffff 0%, #f2f6fc 100%);
+        border-radius: 26px;
+        padding: 28px 22px 20px;
+        box-shadow: 0 26px 70px rgba(0, 0, 0, 0.5);
+        text-align: center;
+        color: #12243d;
+      }
+      #ae86Lobby .ldKicker {
+        margin: 0 0 6px;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        color: #e23b2e;
+        text-transform: uppercase;
+      }
+      #ae86Lobby h1 {
+        margin: 0 0 10px;
+        font-size: 26px;
+        line-height: 1.2;
+        letter-spacing: 0.02em;
+      }
+      #ae86Lobby .ldSub {
+        margin: 0 0 20px;
+        font-size: 14px;
+        line-height: 1.7;
+        color: #5b7290;
+      }
+      #ae86Lobby .ldBtn {
+        display: block;
+        width: 100%;
+        border: 0;
+        border-radius: 16px;
+        padding: 16px 14px;
+        font-size: 17px;
+        font-weight: 800;
+        font-family: inherit;
+        cursor: pointer;
+        margin-bottom: 10px;
+        -webkit-appearance: none;
+      }
+      #ae86Lobby .ldBtn.primary {
+        background: #e23b2e;
+        color: #fff;
+        box-shadow: 0 10px 24px rgba(226, 59, 46, 0.34);
+      }
+      #ae86Lobby .ldBtn.ghost {
+        background: #e7eef8;
+        color: #12243d;
+      }
+      #ae86Lobby .ldBtn:active {
+        transform: scale(0.985);
+      }
+      #ae86Lobby .ldHint {
+        margin: 12px 0 0;
+        font-size: 12.5px;
+        color: #8aa0ba;
+        min-height: 18px;
+      }
+      #ae86Lobby .ldHint.ready {
+        color: #2fae6a;
+        font-weight: 700;
+      }
+      #ae86DemoTag {
+        position: fixed;
+        left: 10px;
+        top: calc(env(safe-area-inset-top, 0px) + 8px);
+        z-index: 2147482999;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: rgba(8, 20, 38, 0.72);
+        color: #cfe1f6;
+        font: 700 11px/1 -apple-system, "PingFang SC", sans-serif;
+        letter-spacing: 0.04em;
+        pointer-events: none;
+      }
+      #ae86DemoTag.hide {
+        display: none;
+      }
+    </style>
+
+    <!--
+      AE86 独立试玩版入口（只在隔离测试部署里存在，绝不进 docs/，不进正式站点）。
+
+      与正式 index.html 的区别只有一件事：这里不加载 r5/race-guard.mjs，
+      所以没有设备绑定、没有家长三账号、没有 V6 学习通行证、没有 1800 秒额度。
+      存档被整体改名到 ae86demo:: 前缀下，与正式家庭存档（lrv2.*）互不可见，
+      而且本页加载的 index-ae86demo.js 里 family sync / birthday claim 都被换成空实现，
+      不会向 CloudBase 发送任何请求。
+    -->
+    <script>
+      (function () {
+        'use strict';
+
+        /* ---------- 1. 独立存档命名空间 ---------- */
+        var NS = 'ae86demo::';
+        var nativeStore = null;
+        try { nativeStore = window.localStorage; } catch (e) { nativeStore = null; }
+        var mem = Object.create(null);
+
+        function namespacedKeys() {
+          var out = [], i, k;
+          if (!nativeStore) { for (k in mem) out.push(k); return out; }
+          try {
+            for (i = 0; i < nativeStore.length; i++) {
+              k = nativeStore.key(i);
+              if (k && k.indexOf(NS) === 0) out.push(k.slice(NS.length));
+            }
+          } catch (e) { /* 隐私模式下读不到就退回内存 */ }
+          return out;
+        }
+
+        var Store = {
+          getItem: function (k) {
+            k = String(k);
+            if (!nativeStore) return k in mem ? mem[k] : null;
+            try { return nativeStore.getItem(NS + k); } catch (e) { return k in mem ? mem[k] : null; }
+          },
+          setItem: function (k, v) {
+            k = String(k); v = String(v);
+            if (nativeStore) { try { nativeStore.setItem(NS + k, v); return; } catch (e) { /* 配额满就落内存 */ } }
+            mem[k] = v;
+          },
+          removeItem: function (k) {
+            k = String(k);
+            if (nativeStore) { try { nativeStore.removeItem(NS + k); } catch (e) {} }
+            delete mem[k];
+          },
+          clear: function () {
+            namespacedKeys().forEach(function (k) { Store.removeItem(k); });
+            for (var k in mem) delete mem[k];
+          },
+          key: function (i) {
+            var a = namespacedKeys();
+            return i >= 0 && i < a.length ? a[i] : null;
+          }
+        };
+        try {
+          Object.defineProperty(Store, 'length', { get: function () { return namespacedKeys().length; }, configurable: true });
+        } catch (e) { Store.length = 0; }
+
+        window.__AE86_DEMO_STORAGE__ = Store;
+        // 只读暴露原始存储，供验收脚本核对「本域里没有任何 lrv2.* 正式键」。
+        window.__AE86_DEMO_RAW__ = nativeStore;
+        window.__AE86_DEMO_RAW_LRV2_KEYS__ = function () {
+          var out = [];
+          if (!nativeStore) return out;
+          try {
+            for (var i = 0; i < nativeStore.length; i++) {
+              var k = nativeStore.key(i);
+              if (k && k.indexOf('lrv2.') === 0) out.push(k);
+            }
+          } catch (e) { /* ignore */ }
+          return out;
+        };
+
+        // 让游戏里那些直接写 globalThis.localStorage 的零散开关（音量、语音、章节状态）
+        // 也落到同一命名空间，不在本域留下任何 lrv2.* 正式键。
+        var storageIsolated = false;
+        try {
+          Object.defineProperty(window, 'localStorage', {
+            configurable: true,
+            enumerable: true,
+            get: function () { return Store; }
+          });
+          storageIsolated = window.localStorage === Store;
+        } catch (e) { storageIsolated = false; }
+
+        /* ---------- 2. 预置试玩存档：AE86 直接解锁 ---------- */
+        var now = Date.now();
+        var OWNED = { red: true, turtle: true, moto: true, frag_common: true, frag_rare: true, scholar: true };
+
+        function seed(key, value) {
+          if (Store.getItem(key) === null) Store.setItem(key, JSON.stringify(value));
+        }
+
+        seed('lrv2.garage.meta', { version: 4, createdAt: now, migratedAt: now });
+        seed('lrv2.garage.coins', { coins: 99999, appliedRewards: [], updatedAt: now });
+        seed('lrv2.garage.tx', []);
+        seed('lrv2.garage.owned', OWNED);
+        seed('lrv2.garage.current', { vehicle: 'frag_rare', updatedAt: now });
+        seed('lrv2.garage.story', {
+          chapter1: { granted: true, at: now, vehicleId: 'turtle', migrated: true }
+        });
+        seed('lrv2.garage.study', {});
+        seed('lrv2.garage.claims', []);
+        seed('lrv2.garage.achievements', {});
+        seed('lrv2.vehicle', 'frag_rare');
+
+        // 无论上一次试玩怎么改，AE86 在试玩里永远可用。
+        try {
+          var owned = JSON.parse(Store.getItem('lrv2.garage.owned') || '{}');
+          if (!owned || typeof owned !== 'object') owned = {};
+          owned.frag_rare = true;
+          Store.setItem('lrv2.garage.owned', JSON.stringify(owned));
+        } catch (e) { /* ignore */ }
+
+        /* ---------- 3. 大厅 ---------- */
+        var demo = {
+          version: '1.0.0',
+          namespace: NS,
+          storageIsolated: storageIsolated,
+          seeded: true,
+          lobby: 'visible',
+          action: null,
+          menuReady: false,
+          garageOpened: false,
+          raceStarted: false
+        };
+        window.__AE86_DEMO__ = demo;
+
+        function waitFor(selector, timeoutMs) {
+          return new Promise(function (resolve) {
+            var started = Date.now();
+            (function tick() {
+              var el = document.querySelector(selector);
+              if (el) return resolve(el);
+              if (Date.now() - started > timeoutMs) return resolve(null);
+              setTimeout(tick, 150);
+            })();
+          });
+        }
+
+        window.__AE86_DEMO_WAIT__ = waitFor;
+
+        document.addEventListener('DOMContentLoaded', function () {
+          var lobby = document.getElementById('ae86Lobby');
+          var tag = document.getElementById('ae86DemoTag');
+          var hint = document.getElementById('ldHint');
+
+          function hideLobby() {
+            lobby.classList.add('hide');
+            demo.lobby = 'hidden';
+            if (tag) tag.classList.remove('hide');
+          }
+
+          function enterGarage() {
+            demo.action = 'garage';
+            hideLobby();
+            waitFor('#garageBtn', 60000).then(function (btn) {
+              if (btn) {
+                btn.click();
+                demo.garageOpened = true;
+              } else {
+                var play = document.querySelector('#playBtn');
+                if (play) play.click();
+              }
+            });
+          }
+
+          function startRace() {
+            demo.action = 'race';
+            hideLobby();
+            waitFor('#playBtn', 60000).then(function (btn) {
+              if (btn) {
+                btn.click();
+                demo.raceStarted = true;
+              }
+            });
+          }
+
+          var g = document.getElementById('ldGarage');
+          var r = document.getElementById('ldRace');
+          if (g) g.addEventListener('click', enterGarage);
+          if (r) r.addEventListener('click', startRace);
+
+          // 菜单一出现就告诉用户可以点，避免「点了没反应」的错觉
+          waitFor('#playBtn', 90000).then(function (btn) {
+            if (!btn) {
+              if (hint) hint.textContent = '赛道加载有点慢，请再点一次按钮试试';
+              return;
+            }
+            demo.menuReady = true;
+            if (hint && demo.lobby === 'visible') {
+              hint.textContent = '赛道已就绪，点上面按钮出发';
+              hint.classList.add('ready');
+            }
+          });
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+      <div id="ui"></div>
+    </div>
+
+    <div id="boot">
+      <div class="bootBg" aria-hidden="true"></div>
+      <div class="bootArt">
+        <img class="bootImg" src="./assets/boot-a6bVA9dg.jpg" alt="小小赛车" />
+        <div class="bootBar" role="progressbar" aria-label="加载进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <i id="bootFill"></i>
+        </div>
+      </div>
+    </div>
+
+    <div id="ae86Lobby" role="dialog" aria-label="AE86 试玩入口">
+      <div class="ldCard">
+        <p class="ldKicker">AE86 · 秋名疾影</p>
+        <h1>独立试玩版</h1>
+        <p class="ldSub">
+          不用登录 · 不用绑定设备 · 不联网<br />
+          试玩存档单独存放，不会碰正式家庭的数据<br />
+          <span style="color: #e23b2e; font-weight: 700">建议横屏玩（竖屏会提示请横屏）</span>
+        </p>
+        <button id="ldGarage" class="ldBtn primary" type="button">进入车库看 AE86</button>
+        <button id="ldRace" class="ldBtn ghost" type="button">直接开始比赛</button>
+        <p class="ldHint" id="ldHint">正在准备赛道……</p>
+      </div>
+    </div>
+
+    <div id="ae86DemoTag" class="hide">AE86 试玩 · 独立存档</div>
+
+    <!-- 试玩构建：由 tools/build-demo.mjs 从正式主包生成，
+         唯一区别是 r5 守卫 / 家庭同步 / 生日云端领取被换成不放行的空实现。 -->
+    <script type="module" src="./assets/index-ae86demo.js"></script>
+    <script src="./assets/story-mode.js" defer></script>
+  </body>
+</html>
