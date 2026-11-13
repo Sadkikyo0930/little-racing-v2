@@ -1,0 +1,22 @@
+{
+  "phase": "phase-b",
+  "base": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "family": "r5-selftest-family",
+  "started_at": "2026-11-13T01:23:58.787Z",
+  "duration_ms": 459,
+  "passed": 2,
+  "failed": 0,
+  "results": [
+    {
+      "name": "B1 授权过期后 child/entry 拒绝放行",
+      "ok": true,
+      "detail": "allowed=false reason=PLAN_UNPUBLISHED parent_override=false"
+    },
+    {
+      "name": "B2 授权过期后无法开始游戏",
+      "ok": true,
+      "detail": "allowed=false active=false reason=PLAN_UNPUBLISHED"
+    }
+  ],
+  "extra": null
+}

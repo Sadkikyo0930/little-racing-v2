@@ -1,0 +1,100 @@
+{
+  "phase": "phase-a",
+  "base": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "family": "r5-selftest-family",
+  "started_at": "2026-11-13T01:23:33.696Z",
+  "duration_ms": 11407,
+  "passed": 17,
+  "failed": 0,
+  "results": [
+    {
+      "name": "A0 网关版本含家长快捷授权",
+      "ok": true,
+      "detail": "version=1.3.1-parent-override md_families=[\"little-growth-family-001\",\"r5-selftest-family\"]"
+    },
+    {
+      "name": "A1 复用现有家长口令可通过服务端验证",
+      "ok": true,
+      "detail": "status=200 devices=18"
+    },
+    {
+      "name": "A2 正确口令签发家长授权",
+      "ok": true,
+      "detail": "status=200 authorized=true remaining=1800 expires_at=2026-11-13T01:28:36Z ttl=300"
+    },
+    {
+      "name": "A3 授权有效期不超过 5 分钟",
+      "ok": true,
+      "detail": "剩余约 300 秒"
+    },
+    {
+      "name": "A4 被授权设备 child/entry 放行且标注家长授权",
+      "ok": true,
+      "detail": "allowed=true reason=STUDY_PASSED_WITH_WAIVER remaining=1800"
+    },
+    {
+      "name": "A5 未被授权设备仍按学习规则拒绝",
+      "ok": true,
+      "detail": "allowed=false reason=PLAN_UNPUBLISHED"
+    },
+    {
+      "name": "A6 请求体伪造 authorized/allowed 无效（fail-closed）",
+      "ok": true,
+      "detail": "allowed=false reason=PLAN_UNPUBLISHED"
+    },
+    {
+      "name": "A7 错误口令被拒绝（401）",
+      "ok": true,
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
+    },
+    {
+      "name": "A8 缺少家长口令被拒绝（401）",
+      "ok": true,
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
+    },
+    {
+      "name": "A9 未绑定设备被拒绝（403）",
+      "ok": true,
+      "detail": "status=403 error=R5_DEVICE_NOT_BOUND"
+    },
+    {
+      "name": "A10 已撤销设备被拒绝（403）",
+      "ok": true,
+      "detail": "revoke=200 grant=403 error=R5_DEVICE_REVOKED"
+    },
+    {
+      "name": "A11 非白名单家庭被拒绝",
+      "ok": true,
+      "detail": "status=403 error=R5_FAMILY_NOT_ALLOWED"
+    },
+    {
+      "name": "A12 授权设备 start 成功并开始计时",
+      "ok": true,
+      "detail": "active=true engine=md-1 remaining=1800"
+    },
+    {
+      "name": "A13 心跳照旧扣减每日 1800 秒",
+      "ok": true,
+      "detail": "used 0->7 remaining 1800->1793 charged_ms=6244"
+    },
+    {
+      "name": "A14 重复 start（模拟刷新/重放）不会恢复额度",
+      "ok": true,
+      "detail": "remaining=1793"
+    },
+    {
+      "name": "A15 stop 正常结束会话",
+      "ok": true,
+      "detail": "status=200 active=false used=7"
+    },
+    {
+      "name": "A16 授权不跨设备（另一台设备仍被拒绝）",
+      "ok": true,
+      "detail": "allowed=false reason=PLAN_UNPUBLISHED"
+    }
+  ],
+  "extra": {
+    "secret_sha256_prefix": "536228ee816ab8db",
+    "family": "r5-selftest-family"
+  }
+}

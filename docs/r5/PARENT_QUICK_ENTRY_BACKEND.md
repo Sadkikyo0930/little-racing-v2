@@ -1,4 +1,12 @@
-# R5 家长快速入口：云端对接说明（待完成，不能直接上线）
+# R5 家长快速入口：云端对接说明
+
+> 状态（2026-11-13）：服务端**已部署**到 `normal-goose-d5g4qyzr8bb389a4a`，
+> 已在隔离家庭 `r5-selftest-family` 完成 45 项安全测试（全通过）并与前端联调成功。
+> 部署清单、接口契约、实测日志、验收地址与回滚方案见
+> [`DEPLOY_R5_PARENT_OVERRIDE.md`](./DEPLOY_R5_PARENT_OVERRIDE.md)。
+> 正式家庭 `little-growth-family-001` 尚未启用该功能，等待家人 iPhone 验收后再切换。
+>
+> 下方第 3 节保留的是**设计阶段的实现要求原文**，实际实现与其逐条对应，已由测试逐项覆盖。
 
 ## 用户规则
 - 学习通行证页面左上角小按钮“🔒 家长入口”；打开后输入**现有**家长口令。
@@ -11,7 +19,7 @@
 只有返回 HTTP 200、`api === "r5_parent_game_override"`、`authorized === true` 且 `remaining_seconds > 0` 时签发前端防深链凭证并跳转。
 前端不会持久化家长口令。此凭证**不是服务端授权**，游戏守卫会重新向云端确认。
 
-## 服务端必须实现（尚未部署）
+## 服务端必须实现（设计原文，已按此实现并部署）
 1. 在 R5 CloudBase 网关增加 `POST /v1/parent/game-override`，复用 `/v1/parent/bind` 的家长身份验证和家庭权限校验，严禁信任客户端提交的家长 UID。
 2. 严格确认 `family_id` 属于认证家长、`device` 是该家庭已授权且未撤销的设备，且父母未关闭游戏总开关。
 3. 原子地查询**服务端**当天剩余游戏秒数，已达到 1800 秒时拒绝；**不要重置已用游戏秒数**。成功时只在服务端记录一次短时授权：family_id+device_id+parent_uid+expires_at+scope=skip_learning_only。建议有效期不超过 5 分钟，且一次性消费或只能用于当前游戏会话。
@@ -27,3 +35,11 @@
 - `child/entry` + `game/action` 对家长授权生效，限时仍严格扣减，不得仅凭前端返回放行。
 - iPhone 验证家长一次授权可以入场、孩子无密码无法绕过、额度已满禁止进入。
 - 才能将此分支合并到 main。当前主站不得切换到这份未完成的功能分支。
+
+### 当前进展（2026-11-13）
+
+| 条件 | 状态 |
+| --- | --- |
+| CloudBase 端点实际部署 | ✅ `r5-gateway` 1.3.1-parent-override（09:23:14） |
+| child/entry + game/action 对家长授权生效、限时仍严格扣减 | ✅ phase-a/A4、A13、A14、phase-d/D0 |
+| iPhone 验证 | ⏳ 待家人验收，隔离地址见 DEPLOY 文档 §5 |

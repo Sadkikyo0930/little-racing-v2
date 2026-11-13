@@ -1,0 +1,97 @@
+{
+  "suite": "parent-override-link",
+  "base": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "site": "https://normal-goose-d5g4qyzr8bb389a4a-1526110019.tcloudbaseapp.com/r5-accept",
+  "family": "r5-selftest-family",
+  "device": "r5dev_parent_accept_01",
+  "ran_at": "2026-11-13T01:34:04.131Z",
+  "passed": 15,
+  "failed": 0,
+  "request_log": [
+    "OPTIONS /v1/parent/game-override -> 204 (136ms)",
+    "POST grant -> 200 api=r5_parent_game_override authorized=true remaining=1800 ttl=300",
+    "POST /v1/child/entry -> 200 allowed=true reason=STUDY_PASSED_WITH_WAIVER parent_override=true",
+    "POST grant(bad secret) -> 401 error=R5_PARENT_AUTH_FAILED",
+    "GET https://normal-goose-d5g4qyzr8bb389a4a-1526110019.tcloudbaseapp.com/r5-accept/gate.html -> 200",
+    "GET https://normal-goose-d5g4qyzr8bb389a4a-1526110019.tcloudbaseapp.com/r5-accept/index.html -> 200",
+    "GET https://normal-goose-d5g4qyzr8bb389a4a-1526110019.tcloudbaseapp.com/r5-accept/r5/config.mjs -> 200",
+    "GET https://normal-goose-d5g4qyzr8bb389a4a-1526110019.tcloudbaseapp.com/r5-accept/r5/grant.mjs -> 200"
+  ],
+  "results": [
+    {
+      "name": "L0 家长口令已就绪（不打印内容）",
+      "ok": true,
+      "detail": "已从本地安全文件加载"
+    },
+    {
+      "name": "L1 跨域预检放行",
+      "ok": true,
+      "detail": "status=204"
+    },
+    {
+      "name": "L2 前端同款请求返回 200 且 api=r5_parent_game_override",
+      "ok": true,
+      "detail": "status=200 api=r5_parent_game_override"
+    },
+    {
+      "name": "L3 authorized=true（前端据此才放行）",
+      "ok": true,
+      "detail": "authorized=true"
+    },
+    {
+      "name": "L4 remaining_seconds>0（前端第二道校验）",
+      "ok": true,
+      "detail": "remaining=1800"
+    },
+    {
+      "name": "L5 授权有效期 <= 300 秒",
+      "ok": true,
+      "detail": "ttl=300"
+    },
+    {
+      "name": "L6 响应带跨域头，浏览器可读",
+      "ok": true,
+      "detail": "acao=*"
+    },
+    {
+      "name": "L7 child/entry 放行被授权设备",
+      "ok": true,
+      "detail": "allowed=true reason=STUDY_PASSED_WITH_WAIVER"
+    },
+    {
+      "name": "L8 放行原因标注为家长授权",
+      "ok": true,
+      "detail": "parent_override=true reason=STUDY_PASSED_WITH_WAIVER"
+    },
+    {
+      "name": "L9 错误口令被拒绝",
+      "ok": true,
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
+    },
+    {
+      "name": "L10 验收站点 gate.html 可访问",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "L10 验收站点 index.html 可访问",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "L10 验收站点 r5/config.mjs 可访问",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "L10 验收站点 r5/grant.mjs 可访问",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "L11 验收站点家庭为 r5-selftest-family",
+      "ok": true,
+      "detail": "config 已隔离"
+    }
+  ]
+}

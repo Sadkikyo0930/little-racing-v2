@@ -1,0 +1,27 @@
+{
+  "phase": "phase-c",
+  "base": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "family": "r5-selftest-family",
+  "started_at": "2026-11-13T01:24:09.472Z",
+  "duration_ms": 841,
+  "passed": 3,
+  "failed": 0,
+  "results": [
+    {
+      "name": "C1 每日 1800 秒用完后拒绝签发授权",
+      "ok": true,
+      "detail": "status=403 error=TIME_LIMIT_REACHED"
+    },
+    {
+      "name": "C2 额度用尽时 child/entry 返回 TIME_LIMIT_REACHED",
+      "ok": true,
+      "detail": "allowed=false reason=TIME_LIMIT_REACHED remaining=0"
+    },
+    {
+      "name": "C3 额度用尽时无法开始游戏",
+      "ok": true,
+      "detail": "allowed=false active=false"
+    }
+  ],
+  "extra": null
+}

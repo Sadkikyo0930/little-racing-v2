@@ -1,0 +1,32 @@
+{
+  "phase": "phase-e",
+  "base": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "family": "r5-selftest-family",
+  "started_at": "2026-11-13T01:25:03.024Z",
+  "duration_ms": 1038,
+  "passed": 4,
+  "failed": 0,
+  "results": [
+    {
+      "name": "E1 端点不存在时前端拒绝进入（404 且无 api 标记）",
+      "ok": true,
+      "detail": "status=404 error=R5_NOT_FOUND accept=false"
+    },
+    {
+      "name": "E2 域名/路径错误时前端拒绝进入（非 200 或非 JSON）",
+      "ok": true,
+      "detail": "status=404 accept=false"
+    },
+    {
+      "name": "E3 请求超时/中断时前端抛错且不进入游戏",
+      "ok": true,
+      "detail": "aborted=true"
+    },
+    {
+      "name": "E4 非法请求体不会产生授权",
+      "ok": true,
+      "detail": "status=401 authorized=undefined"
+    }
+  ],
+  "extra": null
+}

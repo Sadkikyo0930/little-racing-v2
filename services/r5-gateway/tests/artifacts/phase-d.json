@@ -1,0 +1,32 @@
+{
+  "phase": "phase-d",
+  "base": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "family": "r5-selftest-family",
+  "started_at": "2026-11-13T01:24:45.218Z",
+  "duration_ms": 1572,
+  "passed": 4,
+  "failed": 0,
+  "results": [
+    {
+      "name": "D0 授权消费后已开始的会话仍可继续（额度不恢复）",
+      "ok": true,
+      "detail": "parent_override=true remaining=1800"
+    },
+    {
+      "name": "D1 未授权设备仍走原学习通行证判定（未被削弱）",
+      "ok": true,
+      "detail": "allowed=false reason=PLAN_UNPUBLISHED modules=[]"
+    },
+    {
+      "name": "D2 家庭存档接口正常（测试家庭）",
+      "ok": true,
+      "detail": "status=200 api=r5_racing_save state=OK"
+    },
+    {
+      "name": "D3 正式站点可访问（未改动主站）",
+      "ok": true,
+      "detail": "status=200 bytes=8719 markers=[]"
+    }
+  ],
+  "extra": null
+}
