@@ -1,32 +1,26 @@
 {
   "phase": "phase-e",
-  "base": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
   "family": "r5-selftest-family",
-  "started_at": "2026-11-13T01:25:03.024Z",
-  "duration_ms": 1038,
-  "passed": 4,
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T02:25:15.463Z",
+  "finished_at": "2026-11-13T02:25:16.635Z",
+  "passed": 3,
   "failed": 0,
   "results": [
     {
-      "name": "E1 端点不存在时前端拒绝进入（404 且无 api 标记）",
+      "name": "E1 当天 1800 秒已用完时拒绝签发",
       "ok": true,
-      "detail": "status=404 error=R5_NOT_FOUND accept=false"
+      "detail": "status=403 error=TIME_LIMIT_REACHED"
     },
     {
-      "name": "E2 域名/路径错误时前端拒绝进入（非 200 或非 JSON）",
+      "name": "E2 额度用尽时进场被拒绝且原因是时间用完",
       "ok": true,
-      "detail": "status=404 accept=false"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"TIME_LIMIT_REACHED\",\"active\":false,\"remaining_seconds\":0,\"used_seconds\":1800,\"parent_override\":false}"
     },
     {
-      "name": "E3 请求超时/中断时前端抛错且不进入游戏",
+      "name": "E3 额度用尽时无法开始游戏",
       "ok": true,
-      "detail": "aborted=true"
-    },
-    {
-      "name": "E4 非法请求体不会产生授权",
-      "ok": true,
-      "detail": "status=401 authorized=undefined"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"TIME_LIMIT_REACHED\",\"active\":false,\"remaining_seconds\":0,\"used_seconds\":1800,\"parent_override\":false,\"override_consumed\":false}"
     }
-  ],
-  "extra": null
+  ]
 }

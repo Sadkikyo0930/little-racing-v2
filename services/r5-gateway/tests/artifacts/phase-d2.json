@@ -1,0 +1,21 @@
+{
+  "phase": "phase-d2",
+  "family": "r5-selftest-family",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T02:25:01.713Z",
+  "finished_at": "2026-11-13T02:25:04.393Z",
+  "passed": 2,
+  "failed": 0,
+  "results": [
+    {
+      "name": "D6 超过有效期的票据不能进场",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1746,\"used_seconds\":54,\"parent_override\":false}"
+    },
+    {
+      "name": "D7 超过有效期的票据也不能开始会话",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1746,\"used_seconds\":54,\"parent_override\":false,\"override_consumed\":false}"
+    }
+  ]
+}

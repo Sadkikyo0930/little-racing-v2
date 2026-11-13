@@ -1,0 +1,31 @@
+{
+  "phase": "phase-g",
+  "family": "r5-selftest-family",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T02:24:41.356Z",
+  "finished_at": "2026-11-13T02:24:42.048Z",
+  "passed": 4,
+  "failed": 0,
+  "results": [
+    {
+      "name": "G1 家长账号能拿到 CloudBase 会话 token（用于模拟真实客户端）",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "G:客户端直接调用 r5_override_consume 被拒绝",
+      "ok": true,
+      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_override_consume\",\"requestId\":\"1aa83777-3356-42dc-"
+    },
+    {
+      "name": "G:客户端直接调用 r5_parent_override_issue 被拒绝",
+      "ok": true,
+      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_parent_override_issue\",\"requestId\":\"b26e3400-f548-"
+    },
+    {
+      "name": "G:客户端直接调用 r5_override_bind 被拒绝",
+      "ok": true,
+      "detail": "status=403 body={\"code\":\"DATABASE_42501\",\"message\":\"permission denied for function r5_override_bind\",\"requestId\":\"7c3c69c2-83d8-47f7-a10"
+    }
+  ]
+}

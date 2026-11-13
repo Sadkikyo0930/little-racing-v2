@@ -1,86 +1,162 @@
-# R5 家长免学习快捷授权 —— 隔离测试实际结果
+# R5 家长入口（账号密码版）· 逐项实测结果
 
-家庭：`r5-selftest-family`（正式家庭 `little-growth-family-001` 零写入）
+> 本文件由 `tools/render-results.mjs` 从 `tests/artifacts/*.json` 直接渲染，
+> 每一行的 `实测返回` 都是接口真实响应的关键字段，不是人工描述。
+> 全部用例只访问隔离家庭 `r5-selftest-family`；正式家庭 `little-growth-family-001` 零写入。
 
-网关：`https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5`
+| 项 | 值 |
+| --- | --- |
+| 网关 | `https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5` |
+| 网关版本 | `1.4.0-parent-account` |
+| 隔离家庭 | `r5-selftest-family` |
+| 验收站点 | `https://normal-goose-d5g4qyzr8bb389a4a-1526110019.tcloudbaseapp.com/r5-accept/` |
 
-> 下表由 `tests/artifacts/*.json` 自动生成，`detail` 是接口真实返回，非人工描述。
+## A · 三个家长账号的密码校验与冒用拒绝
 
-## phase A — 17/17
+运行时间：2026-11-13T02:24:35.560Z　|　9/9 通过
 
-| 结果 | 用例 | 接口实际返回 |
-| --- | --- | --- |
-| PASS | A0 网关版本含家长快捷授权 | `version=1.3.1-parent-override md_families=["little-growth-family-001","r5-selftest-family"]` |
-| PASS | A1 复用现有家长口令可通过服务端验证 | `status=200 devices=18` |
-| PASS | A2 正确口令签发家长授权 | `status=200 authorized=true remaining=1800 expires_at=2026-11-13T01:28:36Z ttl=300` |
-| PASS | A3 授权有效期不超过 5 分钟 | `剩余约 300 秒` |
-| PASS | A4 被授权设备 child/entry 放行且标注家长授权 | `allowed=true reason=STUDY_PASSED_WITH_WAIVER remaining=1800` |
-| PASS | A5 未被授权设备仍按学习规则拒绝 | `allowed=false reason=PLAN_UNPUBLISHED` |
-| PASS | A6 请求体伪造 authorized/allowed 无效（fail-closed） | `allowed=false reason=PLAN_UNPUBLISHED` |
-| PASS | A7 错误口令被拒绝（401） | `status=401 error=R5_PARENT_AUTH_FAILED` |
-| PASS | A8 缺少家长口令被拒绝（401） | `status=401 error=R5_PARENT_AUTH_FAILED` |
-| PASS | A9 未绑定设备被拒绝（403） | `status=403 error=R5_DEVICE_NOT_BOUND` |
-| PASS | A10 已撤销设备被拒绝（403） | `revoke=200 grant=403 error=R5_DEVICE_REVOKED` |
-| PASS | A11 非白名单家庭被拒绝 | `status=403 error=R5_FAMILY_NOT_ALLOWED` |
-| PASS | A12 授权设备 start 成功并开始计时 | `active=true engine=md-1 remaining=1800` |
-| PASS | A13 心跳照旧扣减每日 1800 秒 | `used 0->7 remaining 1800->1793 charged_ms=6244` |
-| PASS | A14 重复 start（模拟刷新/重放）不会恢复额度 | `remaining=1793` |
-| PASS | A15 stop 正常结束会话 | `status=200 active=false used=7` |
-| PASS | A16 授权不跨设备（另一台设备仍被拒绝） | `allowed=false reason=PLAN_UNPUBLISHED` |
+| # | 用例 | 结果 | 实测返回 |
+| --- | --- | --- | --- |
+| 1 | A:dad 正确密码可授权（角色 parent） | 通过 | `status=200 {"api":"r5_parent_session","authorized":true,"remaining_seconds":1750,"used_seconds":50,"ttl_seconds":120,"member_role":"parent"}` |
+| 2 | A:dad 密码错误被拒绝 | 通过 | `status=401 error=R5_PARENT_AUTH_FAILED` |
+| 3 | A:mom 正确密码可授权（角色 owner） | 通过 | `status=200 {"api":"r5_parent_session","authorized":true,"remaining_seconds":1750,"used_seconds":50,"ttl_seconds":120,"member_role":"owner"}` |
+| 4 | A:mom 密码错误被拒绝 | 通过 | `status=401 error=R5_PARENT_AUTH_FAILED` |
+| 5 | A:grandma 正确密码可授权（角色 grandparent） | 通过 | `status=200 {"api":"r5_parent_session","authorized":true,"remaining_seconds":1750,"used_seconds":50,"ttl_seconds":120,"member_role":"grandparent"}` |
+| 6 | A:grandma 密码错误被拒绝 | 通过 | `status=401 error=R5_PARENT_AUTH_FAILED` |
+| 7 | A:冒用 用别的账号密码登录爸爸账号被拒绝 | 通过 | `status=401 error=R5_PARENT_AUTH_FAILED` |
+| 8 | A:冒用 不存在的账号被拒绝 | 通过 | `status=401 error=R5_PARENT_AUTH_FAILED` |
+| 9 | A:旧口令路径已下线（410，不再接受 x-r5-parent） | 通过 | `status=410 error=R5_PARENT_SECRET_RETIRED` |
 
-## phase B — 2/2
+## B · 设备状态：未绑定 / 已撤销 / 跨家庭
 
-| 结果 | 用例 | 接口实际返回 |
-| --- | --- | --- |
-| PASS | B1 授权过期后 child/entry 拒绝放行 | `allowed=false reason=PLAN_UNPUBLISHED parent_override=false` |
-| PASS | B2 授权过期后无法开始游戏 | `allowed=false active=false reason=PLAN_UNPUBLISHED` |
+运行时间：2026-11-13T02:24:39.151Z　|　4/4 通过
 
-## phase C — 3/3
+| # | 用例 | 结果 | 实测返回 |
+| --- | --- | --- | --- |
+| 1 | B1 未绑定设备被拒绝 | 通过 | `status=403 error=R5_DEVICE_NOT_BOUND` |
+| 2 | B2 已撤销设备被拒绝 | 通过 | `status=403 error=R5_DEVICE_REVOKED` |
+| 3 | B3 跨家庭设备被拒绝 | 通过 | `status=403 error=R5_DEVICE_FAMILY_MISMATCH` |
+| 4 | B4 跨家庭设备连进场都拒绝 | 通过 | `status=200 {"error":"R5_MEMBER_DENIED"}` |
 
-| 结果 | 用例 | 接口实际返回 |
-| --- | --- | --- |
-| PASS | C1 每日 1800 秒用完后拒绝签发授权 | `status=403 error=TIME_LIMIT_REACHED` |
-| PASS | C2 额度用尽时 child/entry 返回 TIME_LIMIT_REACHED | `allowed=false reason=TIME_LIMIT_REACHED remaining=0` |
-| PASS | C3 额度用尽时无法开始游戏 | `allowed=false active=false` |
+## C · 一次性票据全链路（进场 → 开始 → 刷新被拒 → 退出 → 再进被拒）
 
-## phase D — 4/4
+运行时间：2026-11-13T02:24:42.334Z　|　9/9 通过
 
-| 结果 | 用例 | 接口实际返回 |
-| --- | --- | --- |
-| PASS | D0 授权消费后已开始的会话仍可继续（额度不恢复） | `parent_override=true remaining=1800` |
-| PASS | D1 未授权设备仍走原学习通行证判定（未被削弱） | `allowed=false reason=PLAN_UNPUBLISHED modules=[]` |
-| PASS | D2 家庭存档接口正常（测试家庭） | `status=200 api=r5_racing_save state=OK` |
-| PASS | D3 正式站点可访问（未改动主站） | `status=200 bytes=8719 markers=[]` |
+| # | 用例 | 结果 | 实测返回 |
+| --- | --- | --- | --- |
+| 1 | C1 家长授权成功 | 通过 | `{"api":"r5_parent_session","authorized":true,"remaining_seconds":1750,"used_seconds":50,"ttl_seconds":120,"member_role":"grandparent"}` |
+| 2 | C2 授权后可以进场（仅跳过学习条件） | 通过 | `{"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":false,"remaining_seconds":1750,"used_seconds":50,"parent_override":true}` |
+| 3 | C3 启动会话时一次性票据被原子消费 | 通过 | `{"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"remaining_seconds":1750,"used_seconds":50,"parent_override":true,"override_consumed":true}` |
+| 4 | C4 票据已消费，再次进场被拒绝（刷新/重进需要密码） | 通过 | `{"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":true,"remaining_seconds":1750,"used_seconds":50,"parent_override":false}` |
+| 5 | C5 同一张票据不会被二次消费（已运行的会话只续期，override_consumed=false） | 通过 | `{"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"remaining_seconds":1749,"used_seconds":51,"parent_override":true,"override_consumed":false}` |
+| 6 | C6 已启动的会话按原规则继续（心跳放行且照常扣秒） | 通过 | `{"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"remaining_seconds":1747,"used_seconds":53,"parent_override":true,"override_consumed":false}` |
+| 7 | C7 主动结束会话 | 通过 | `{"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1746,"used_seconds":54,"parent_override":false,"override_consumed":false}` |
+| 8 | C8 退出后重新进入必须重新验证家长 | 通过 | `{"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1746,"used_seconds":54,"parent_override":false}` |
+| 9 | C9 退出后不能凭旧授权开始新会话 | 通过 | `{"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1746,"used_seconds":54,"parent_override":false,"override_consumed":false}` |
 
-## phase E — 4/4
+## D · 重放、缺密码、伪造字段、旧口令头
 
-| 结果 | 用例 | 接口实际返回 |
-| --- | --- | --- |
-| PASS | E1 端点不存在时前端拒绝进入（404 且无 api 标记） | `status=404 error=R5_NOT_FOUND accept=false` |
-| PASS | E2 域名/路径错误时前端拒绝进入（非 200 或非 JSON） | `status=404 accept=false` |
-| PASS | E3 请求超时/中断时前端抛错且不进入游戏 | `aborted=true` |
-| PASS | E4 非法请求体不会产生授权 | `status=401 authorized=undefined` |
+运行时间：2026-11-13T02:24:47.043Z　|　5/5 通过
 
-## link 联调 — 15/15
+| # | 用例 | 结果 | 实测返回 |
+| --- | --- | --- | --- |
+| 1 | D1 重放测试前置授权 | 通过 | `{"api":"r5_parent_session","authorized":true,"remaining_seconds":1746,"used_seconds":54,"ttl_seconds":120,"member_role":"grandparent"}` |
+| 2 | D2 不带密码的请求被拒绝 | 通过 | `status=401 error=R5_PARENT_CREDENTIALS_REQUIRED` |
+| 3 | D3 请求体里伪造 authorized/remaining 无效 | 通过 | `status=401 error=R5_PARENT_AUTH_FAILED` |
+| 4 | D4 伪造 x-r5-parent 头无效（旧口令通道已关闭） | 通过 | `status=401 error=R5_PARENT_CREDENTIALS_REQUIRED` |
+| 5 | D5 仍可用 D1 的票据进场（票据是服务端状态，不是请求内容） | 通过 | `{"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":false,"remaining_seconds":1746,"used_seconds":54,"parent_override":true}` |
 
-| 结果 | 用例 | 接口实际返回 |
-| --- | --- | --- |
-| PASS | L0 家长口令已就绪（不打印内容） | `已从本地安全文件加载` |
-| PASS | L1 跨域预检放行 | `status=204` |
-| PASS | L2 前端同款请求返回 200 且 api=r5_parent_game_override | `status=200 api=r5_parent_game_override` |
-| PASS | L3 authorized=true（前端据此才放行） | `authorized=true` |
-| PASS | L4 remaining_seconds>0（前端第二道校验） | `remaining=1800` |
-| PASS | L5 授权有效期 <= 300 秒 | `ttl=300` |
-| PASS | L6 响应带跨域头，浏览器可读 | `acao=*` |
-| PASS | L7 child/entry 放行被授权设备 | `allowed=true reason=STUDY_PASSED_WITH_WAIVER` |
-| PASS | L8 放行原因标注为家长授权 | `parent_override=true reason=STUDY_PASSED_WITH_WAIVER` |
-| PASS | L9 错误口令被拒绝 | `status=401 error=R5_PARENT_AUTH_FAILED` |
-| PASS | L10 验收站点 gate.html 可访问 | `status=200` |
-| PASS | L10 验收站点 index.html 可访问 | `status=200` |
-| PASS | L10 验收站点 r5/config.mjs 可访问 | `status=200` |
-| PASS | L10 验收站点 r5/grant.mjs 可访问 | `status=200` |
-| PASS | L11 验收站点家庭为 r5-selftest-family | `config 已隔离` |
+## D2 · 票据过期
+
+运行时间：2026-11-13T02:25:01.713Z　|　2/2 通过
+
+| # | 用例 | 结果 | 实测返回 |
+| --- | --- | --- | --- |
+| 1 | D6 超过有效期的票据不能进场 | 通过 | `{"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1746,"used_seconds":54,"parent_override":false}` |
+| 2 | D7 超过有效期的票据也不能开始会话 | 通过 | `{"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1746,"used_seconds":54,"parent_override":false,"override_consumed":false}` |
+
+## E · 当天 1800 秒用尽
+
+运行时间：2026-11-13T02:25:15.463Z　|　3/3 通过
+
+| # | 用例 | 结果 | 实测返回 |
+| --- | --- | --- | --- |
+| 1 | E1 当天 1800 秒已用完时拒绝签发 | 通过 | `status=403 error=TIME_LIMIT_REACHED` |
+| 2 | E2 额度用尽时进场被拒绝且原因是时间用完 | 通过 | `{"api":"r5_status","allowed":false,"reason":"TIME_LIMIT_REACHED","active":false,"remaining_seconds":0,"used_seconds":1800,"parent_override":false}` |
+| 3 | E3 额度用尽时无法开始游戏 | 通过 | `{"api":"r5_status","allowed":false,"reason":"TIME_LIMIT_REACHED","active":false,"remaining_seconds":0,"used_seconds":1800,"parent_override":false,"override_consumed":false}` |
+
+## F · 正常学习路径与周边功能不受影响
+
+运行时间：2026-11-13T02:25:22.955Z　|　4/4 通过
+
+| # | 用例 | 结果 | 实测返回 |
+| --- | --- | --- | --- |
+| 1 | F1 正常学习达标后可进场（不依赖家长授权） | 通过 | `{"api":"r5_status","allowed":true,"reason":"STUDY_PASSED","active":false,"remaining_seconds":1746,"used_seconds":54,"parent_override":false}` |
+| 2 | F2 学习路径可以开始会话，且没有消耗家长票据 | 通过 | `{"api":"r5_status","allowed":true,"reason":"STUDY_PASSED","active":true,"remaining_seconds":1746,"used_seconds":54,"parent_override":false,"override_consumed":false}` |
+| 3 | F3 家庭存档接口正常（六星闪耀 / 雷霆 Cam3 所在存档链） | 通过 | `status=200 keys=api,action,status,gateway,family_id,sync_enabled,save,birthday_owned,tx_audit,event_count,backup_count,fragment,fragment_program` |
+| 4 | F4 生日/六星闪耀接口在线且未 5xx | 通过 | `status=200 {"api":"r5_birthday"}` |
+
+## G · 客户端直接调用数据库授权函数必须被拒
+
+运行时间：2026-11-13T02:24:41.356Z　|　4/4 通过
+
+| # | 用例 | 结果 | 实测返回 |
+| --- | --- | --- | --- |
+| 1 | G1 家长账号能拿到 CloudBase 会话 token（用于模拟真实客户端） | 通过 | `status=200` |
+| 2 | G:客户端直接调用 r5_override_consume 被拒绝 | 通过 | `status=403 body={"code":"DATABASE_42501","message":"permission denied for function r5_override_consume","requestId":"1aa83777-3356-42dc-` |
+| 3 | G:客户端直接调用 r5_parent_override_issue 被拒绝 | 通过 | `status=403 body={"code":"DATABASE_42501","message":"permission denied for function r5_parent_override_issue","requestId":"b26e3400-f548-` |
+| 4 | G:客户端直接调用 r5_override_bind 被拒绝 | 通过 | `status=403 body={"code":"DATABASE_42501","message":"permission denied for function r5_override_bind","requestId":"7c3c69c2-83d8-47f7-a10` |
+
+## W · 验收站点协议级"真实退出重进"走查
+
+运行时间：2026-11-13T02:25:41.636Z　|　13/13 通过
+
+| # | 用例 | 结果 | 实测返回 |
+| --- | --- | --- | --- |
+| 1 | 页面可打开且已是账号密码版（无 x-r5-parent 旧通道） | 通过 | `gate.html=200 bytes=21425` |
+| 2 | 家长账号清单模块可加载（不含任何密码） | 通过 | `parent-accounts.mjs=200 bytes=510` |
+| 3 | 未验证家长时进不去（学习未达标） | 通过 | `{"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1745,"used_seconds":55,"parent_override":false}` |
+| 4 | 密码错误被拒绝 | 通过 | `status=401 error=R5_PARENT_AUTH_FAILED` |
+| 5 | 选择账号 + 正确密码 → 拿到一次性授权 | 通过 | `{"api":"r5_parent_session","authorized":true,"remaining_seconds":1745,"used_seconds":55}` |
+| 6 | 授权后进场成功（只跳过学习条件） | 通过 | `{"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":false,"remaining_seconds":1745,"used_seconds":55,"parent_override":true}` |
+| 7 | 开始游戏时票据被消费 | 通过 | `{"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"remaining_seconds":1745,"used_seconds":55,"parent_override":true,"override_consumed":true}` |
+| 8 | 刷新页面后进场被拒绝（不再免密） | 通过 | `{"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":true,"remaining_seconds":1745,"used_seconds":55,"parent_override":false}` |
+| 9 | 重放旧授权不会产生第二次授权消费（start 只是续上同一个会话） | 通过 | `{"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":true,"remaining_seconds":1745,"used_seconds":55,"parent_override":true,"override_consumed":false}` |
+| 10 | 结束游戏 | 通过 | `{"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1745,"used_seconds":55,"parent_override":false,"override_consumed":false}` |
+| 11 | 退出后重新进入必须再次输入家长密码 | 通过 | `{"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1745,"used_seconds":55,"parent_override":false}` |
+| 12 | 退出后凭旧授权无法开始游戏 | 通过 | `{"api":"r5_status","allowed":false,"reason":"PLAN_UNPUBLISHED","active":false,"remaining_seconds":1745,"used_seconds":55,"parent_override":false,"override_consumed":false}` |
+| 13 | 重新输入密码后可再次进场（额度继续累计，不清零） | 通过 | `{"api":"r5_status","allowed":true,"reason":"STUDY_PASSED_WITH_WAIVER","active":false,"remaining_seconds":1745,"used_seconds":55,"parent_override":true} \| session={"api":"r5_parent_session","authorized":true,"remaining_seconds":1745,"used_seconds":55}` |
 
 ## 合计
 
-**45 项通过 / 0 项失败**
+- 用例总数：**53**
+- 通过：**53**
+- 失败：**0**
+
+## 测试数据准备（两个用例需要构造数据库状态）
+
+`phase-d2`（票据过期）——先正常签发一张票据，再把时间窗整体前移，
+既满足表上 `r5_game_override_window_chk`（`granted_at < expires_at <= granted_at + 5min`），
+又让票据落在过期区间：
+
+```sql
+UPDATE public.r5_game_override
+   SET granted_at = clock_timestamp() - interval '10 minutes',
+       expires_at = clock_timestamp() - interval '8 minutes'
+ WHERE family_id = 'r5-selftest-family'
+   AND device_uid = 'r5dev_acc_ttl_01' AND consumed_at IS NULL;
+```
+
+`phase-e`（额度用尽）——把当天已用时长置为 1800 秒，用例跑完立刻恢复原值：
+
+```sql
+UPDATE public.r5_daily_usage SET used_ms = 1800000, active = false
+ WHERE family_id = 'r5-selftest-family' AND play_date = CURRENT_DATE;
+-- 用例结束后恢复为测试前的真实值，不清零、不额外加时间
+UPDATE public.r5_daily_usage SET used_ms = 54000, active = false
+ WHERE family_id = 'r5-selftest-family' AND play_date = CURRENT_DATE;
+```
+
+`phase-f`（正常学习路径）需要当天学习计划为已发布状态，
+其余用例（含走查）需要"学习未完成"这一前提，因此计划在 `published = true / false` 之间切换，
+切换只发生在隔离家庭。

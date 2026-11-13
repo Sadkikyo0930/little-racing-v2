@@ -1,0 +1,78 @@
+{
+  "site": "https://normal-goose-d5g4qyzr8bb389a4a-1526110019.tcloudbaseapp.com/r5-accept",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "family": "r5-selftest-family",
+  "device": "r5dev_parent_accept_01",
+  "account": "r5_selftest",
+  "prepared_state": "当天学习尚未完成（plan published=false），用于验证\"只有家长授权能进场\"",
+  "started_at": "2026-11-13T02:25:41.636Z",
+  "passed": 13,
+  "failed": 0,
+  "steps": [
+    {
+      "name": "页面可打开且已是账号密码版（无 x-r5-parent 旧通道）",
+      "ok": true,
+      "detail": "gate.html=200 bytes=21425"
+    },
+    {
+      "name": "家长账号清单模块可加载（不含任何密码）",
+      "ok": true,
+      "detail": "parent-accounts.mjs=200 bytes=510"
+    },
+    {
+      "name": "未验证家长时进不去（学习未达标）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":false}"
+    },
+    {
+      "name": "密码错误被拒绝",
+      "ok": true,
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
+    },
+    {
+      "name": "选择账号 + 正确密码 → 拿到一次性授权",
+      "ok": true,
+      "detail": "{\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1745,\"used_seconds\":55}"
+    },
+    {
+      "name": "授权后进场成功（只跳过学习条件）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":true}"
+    },
+    {
+      "name": "开始游戏时票据被消费",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":true,\"override_consumed\":true}"
+    },
+    {
+      "name": "刷新页面后进场被拒绝（不再免密）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":true,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":false}"
+    },
+    {
+      "name": "重放旧授权不会产生第二次授权消费（start 只是续上同一个会话）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":true,\"override_consumed\":false}"
+    },
+    {
+      "name": "结束游戏",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":false,\"override_consumed\":false}"
+    },
+    {
+      "name": "退出后重新进入必须再次输入家长密码",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":false}"
+    },
+    {
+      "name": "退出后凭旧授权无法开始游戏",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":false,\"override_consumed\":false}"
+    },
+    {
+      "name": "重新输入密码后可再次进场（额度继续累计，不清零）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"remaining_seconds\":1745,\"used_seconds\":55,\"parent_override\":true} | session={\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1745,\"used_seconds\":55}"
+    }
+  ]
+}

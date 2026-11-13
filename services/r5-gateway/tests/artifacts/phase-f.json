@@ -1,0 +1,31 @@
+{
+  "phase": "phase-f",
+  "family": "r5-selftest-family",
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T02:25:22.955Z",
+  "finished_at": "2026-11-13T02:25:27.692Z",
+  "passed": 4,
+  "failed": 0,
+  "results": [
+    {
+      "name": "F1 正常学习达标后可进场（不依赖家长授权）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED\",\"active\":false,\"remaining_seconds\":1746,\"used_seconds\":54,\"parent_override\":false}"
+    },
+    {
+      "name": "F2 学习路径可以开始会话，且没有消耗家长票据",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED\",\"active\":true,\"remaining_seconds\":1746,\"used_seconds\":54,\"parent_override\":false,\"override_consumed\":false}"
+    },
+    {
+      "name": "F3 家庭存档接口正常（六星闪耀 / 雷霆 Cam3 所在存档链）",
+      "ok": true,
+      "detail": "status=200 keys=api,action,status,gateway,family_id,sync_enabled,save,birthday_owned,tx_audit,event_count,backup_count,fragment,fragment_program"
+    },
+    {
+      "name": "F4 生日/六星闪耀接口在线且未 5xx",
+      "ok": true,
+      "detail": "status=200 {\"api\":\"r5_birthday\"}"
+    }
+  ]
+}

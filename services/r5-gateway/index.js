@@ -7,7 +7,9 @@
  * 身份模型
  *   孩子端：设备令牌（device_uid，家长绑定时生成的随机串）→ 只换算出 sub=设备 uid 的 claims，
  *           再调 r5_child_entry / r5_game_action。数据库侧 r5_assert_member 决定放行与否。
- *   家长端：请求头 x-r5-parent 必须等于函数环境变量 R5_PARENT_SECRET；服务端用固定的家长 uid 换 claims。
+ *   家长端：家长在通行证页选择账号（爸爸 / 妈妈 / 外婆）并输入自己的密码 →
+ *           网关调用 CloudBase Auth 校验 → 用真实 uid 换 claims 签发一次性票据。
+ *           旧版 x-r5-parent 口令路径已下线（410），不再作为任何入口。
  *
  * 数据集
  *   函数内不持有任何数据库密钥：凭证由运行时注入（环境变量 tmpSecret / 默认凭证链），
@@ -27,6 +29,10 @@ const CFG = {
   internalSecret: process.env.R5_INTERNAL_SECRET || '',
   parentUid: process.env.R5_PARENT_UID || '',
   parentSecret: process.env.R5_PARENT_SECRET || '',
+  // 家长账号认证：复用 V6 已有的 CloudBase Auth 用户名密码登录（三个家庭账号），
+  // 网关在服务端调用该接口校验密码，浏览器永远拿不到也不需要任何密码哈希。
+  authBase: process.env.R5_AUTH_BASE
+    || `https://${process.env.R5_ENV_ID || 'normal-goose-d5g4qyzr8bb389a4a'}.api.tcloudbasegateway.com`,
   allowedFamilies: new Set(
     (process.env.R5_ALLOWED_FAMILIES || 'little-growth-family-001,r5-selftest-family')
       .split(',').map(s => s.trim()).filter(Boolean)
@@ -346,7 +352,8 @@ const ROUTES = [
   { method: 'POST', re: /\/parent\/revoke$/, fn: parentRevoke },
   { method: 'POST', re: /\/parent\/devices$/, fn: parentDevices },
   { method: 'POST', re: /\/parent\/status$/, fn: parentStatus },
-  { method: 'POST', re: /\/parent\/game-override$/, fn: parentGameOverride },
+  { method: 'POST', re: /\/parent\/session$/, fn: parentSession },
+  { method: 'POST', re: /\/parent\/game-override$/, fn: parentGameOverrideDeprecated },
   { method: 'POST', re: /\/device\/whoami$/, fn: deviceWhoami },
   { method: 'POST', re: /\/birthday\/claim$/, fn: birthdayClaim },
   { method: 'POST', re: /\/racing\/save\/get$/, fn: racingGet },
@@ -362,10 +369,14 @@ function health() {
   return {
     ok: true,
     service: 'r5-gateway',
-    version: '1.3.1-parent-override',
+    version: '1.4.0-parent-account',
     fragment_endpoints: true,
     parent_override_endpoint: true,
+    parent_override_endpoint_path: '/v1/parent/session',
     parent_override_ttl_seconds: OVERRIDE_TTL_SECONDS,
+    parent_auth: 'cloudbase-account-password',
+    parent_override_single_use: true,
+    parent_secret_retired: true,
     env: CFG.envId,
     region: CFG.region,
     families: [...CFG.allowedFamilies],
@@ -473,9 +484,10 @@ async function parentStatus({ headers, body }) {
  * 返回的是服务端一次性短时授权（默认 300 秒），前端 localStorage / URL 一律不作数。
  * 本函数不新增任何依赖、不改动其它路由。
  */
-const OVERRIDE_TTL_SECONDS = 300;
+const OVERRIDE_TTL_SECONDS = 120;   // 一次性票据存活时间，只够从通行证走到赛车页
 const OVERRIDE_WINDOW_MS = 10 * 60 * 1000;
 const OVERRIDE_MAX_FAILS = 5;
+const ACCOUNT_RE = /^[A-Za-z0-9_.-]{3,40}$/;
 const overrideAttempts = new Map(); // key -> { fails: number[], last: number }
 
 function clientIp(headers) {
@@ -509,55 +521,131 @@ async function overrideAudit(family, action, detail) {
   }
 }
 
-async function parentGameOverride({ headers, body }) {
+/* 家长账号认证 + 一次性免学习授权（v2，2026-11-13）
+ *
+ * 与 v1 的差别：不再使用独立的 R5_PARENT_SECRET 口令，而是复用 V6 已有的三个家庭账号
+ * （growth_mom / growth_dad / growth_grandma 等，密码各自原有，不新增、不重置）。
+ *
+ * 身份链（每一步都在服务端）：
+ *   1. 浏览器只提交 {family_id, device, account, password}；
+ *   2. 网关带着账号密码调用 CloudBase Auth 的 /auth/v1/signin 校验密码
+ *      —— 密码只在这一次 HTTPS 请求里出现，不落盘、不写日志、不进审计；
+ *   3. 校验通过后从 CloudBase 签发的 access_token 里取 sub（真实 uid），
+ *      客户端提交的 account 只作展示与审计，永远不作为身份；
+ *   4. 用 sub 换 claims 调 r5_parent_override_issue()：数据库再校验
+ *      「该 uid 是本家庭 owner/parent/grandparent 成员」「设备已绑定且未撤销」
+ *      「家长总开关开启」「当天剩余额度 > 0」，任何一条不满足即拒绝；
+ *   5. 签发的是一张服务端一次性票据（默认 120 秒），不下发给浏览器。
+ *      首次 start 时被 r5_override_consume() 原子消费，退出/结束即失效，
+ *      刷新、回放、复制 URL、重放请求都换不到第二次免学习资格。
+ */
+
+function decodeJwtPayload(token) {
+  try {
+    const part = String(token).split('.')[1];
+    if (!part) return null;
+    return JSON.parse(Buffer.from(part, 'base64url').toString('utf8'));
+  } catch {
+    return null;
+  }
+}
+
+/** 用 CloudBase Auth 校验账号密码。成功返回 { uid }，凭证错误返回 null，服务异常抛错（fail-closed）。 */
+async function verifyAccountPassword(account, password) {
+  const url = `${CFG.authBase}/auth/v1/signin`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  let status = 0;
+  let text = '';
+  try {
+    const rsp = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ username: account, password }),
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+    status = rsp.status;
+    text = await rsp.text();
+  } catch (e) {
+    // 网络异常 / 超时：绝不当作「密码正确」或「密码错误」，直接拒绝且不消耗重试额度
+    console.error('[r5-gateway] auth unavailable', (e && e.message) || 'unknown');
+    throw httpErr(503, 'R5_AUTH_UNAVAILABLE');
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (status === 200) {
+    let body = null;
+    try { body = JSON.parse(text); } catch { body = null; }
+    const payload = body && body.access_token ? decodeJwtPayload(body.access_token) : null;
+    if (!payload || !payload.sub) throw httpErr(502, 'R5_AUTH_BAD_RESPONSE');
+    return { uid: String(payload.sub) };
+  }
+  // CloudBase Auth 对「账号不存在 / 密码错误」统一返回 400 INVALID_USERNAME_OR_PASSWORD
+  if (status === 400 || status === 401 || status === 403) return null;
+  console.error('[r5-gateway] auth status', status);
+  throw httpErr(503, 'R5_AUTH_UNAVAILABLE');
+}
+
+/** 旧口令路径已下线：任何旧前端打到这里都拒绝，绝不静默降级为可用。 */
+function parentGameOverrideDeprecated() {
+  throw httpErr(410, 'R5_PARENT_SECRET_RETIRED');
+}
+
+async function parentSession({ headers, body }) {
   const family = familyOf(body);
   const device = deviceOf(body, headers);
-  const action = String(pick(body, 'action') || 'grant').toLowerCase();
-  if (action !== 'grant') throw httpErr(400, 'R5_INVALID_ACTION');
-
+  const account = String(pick(body, 'account', 'username') || '').trim().toLowerCase();
+  const password = String(pick(body, 'password') || '');
   const ip = clientIp(headers);
-  const key = family + '|' + ip;
+
+  if (!ACCOUNT_RE.test(account) || !password) {
+    await overrideAudit(family, 'game_override_denied', {
+      ip, device, account: account.slice(0, 40), reason: 'missing_credentials',
+    });
+    throw httpErr(401, 'R5_PARENT_CREDENTIALS_REQUIRED');
+  }
+  if (password.length > 200) throw httpErr(400, 'R5_PARENT_CREDENTIALS_INVALID');
+
+  // 防爆破：家庭 + 账号 + 来源 三重维度
+  const key = `${family}|${account}|${ip}`;
   const { st, blocked } = overrideThrottle(key);
   if (blocked) {
-    await overrideAudit(family, 'game_override_throttled', { ip, device });
+    await overrideAudit(family, 'game_override_throttled', { ip, device, account });
     throw httpErr(429, 'R5_TOO_MANY_ATTEMPTS');
   }
 
-  // 跨实例锁：同一家庭最近 10 分钟的口令失败次数（多实例共用同一份审计表）
+  // 跨实例锁：同一家庭近 10 分钟的失败次数（审计表，多实例共享）
   let recentFails = 0;
   try {
     recentFails = Number(await runSql(
       `SELECT count(*)::int FROM public.r5_parent_audit WHERE family_id = ${lit(family)} ` +
       `AND action = 'game_override_failed_auth' ` +
+      `AND detail->>'account' = ${lit(account)} ` +
       `AND created_at > clock_timestamp() - interval '10 minutes'`)) || 0;
   } catch (e) {
-    recentFails = 0; // 读不到就不额外加锁，口令校验仍然照常执行
+    recentFails = 0; // 读不到不额外加锁，密码校验照常执行
   }
   if (recentFails >= OVERRIDE_MAX_FAILS) {
-    await overrideAudit(family, 'game_override_throttled', { ip, device, reason: 'db_window' });
+    await overrideAudit(family, 'game_override_throttled', { ip, device, account, reason: 'db_window' });
     throw httpErr(429, 'R5_TOO_MANY_ATTEMPTS');
   }
 
   st.last = Date.now();
-  const supplied = String(headers['x-r5-parent'] || pick(body, 'parent_secret', 'parentSecret') || '');
-  if (!supplied) {
-    // 根本没带口令不算「猜错」，不占用重试额度；仍然审计并拒绝
-    await overrideAudit(family, 'game_override_denied', { ip, device, reason: 'missing_secret' });
-    throw httpErr(401, 'R5_PARENT_AUTH_FAILED');
-  }
-  try {
-    requireParent(headers, body);
-  } catch (e) {
+  const verified = await verifyAccountPassword(account, password);
+  if (!verified) {
     st.fails.push(Date.now());
-    await overrideAudit(family, 'game_override_failed_auth', { ip, device, code: e.code });
-    throw e;
+    await overrideAudit(family, 'game_override_failed_auth', { ip, device, account });
+    throw httpErr(401, 'R5_PARENT_AUTH_FAILED');
   }
   st.fails = [];
 
   let out;
   try {
-    out = await runSql(sqlAs({ sub: CFG.parentUid, role: 'authenticated' },
-      `public.r5_parent_game_override(${lit(family)}, ${lit(device)}, ${OVERRIDE_TTL_SECONDS})`));
+    out = await runSql(sqlAs({ sub: verified.uid, role: 'authenticated' },
+      `public.r5_parent_override_issue(${lit(family)}, ${lit(device)}, ${lit(account)}, ` +
+      `${OVERRIDE_TTL_SECONDS})`));
   } catch (e) {
     const raw = String((e && e.message) || e);
     const code = (/R5_[A-Z_]+/.exec(raw) || [])[0] || '';
@@ -568,17 +656,25 @@ async function parentGameOverride({ headers, body }) {
       || code === 'R5_DEVICE_REVOKED' || code === 'R5_PARENT_CONTROL_DISABLED'
       || code === 'R5_MEMBER_DENIED' || code === 'R5_FAMILY_NOT_ALLOWED'
       || code === 'R5_DEVICE_REQUIRED' || code === 'R5_INVALID_DEVICE') {
+      await overrideAudit(family, 'game_override_denied', { ip, device, account, code });
       throw httpErr(403, code);
     }
-    console.error('[r5-gateway] override failure', raw.slice(0, 300));
+    console.error('[r5-gateway] parent session failure', raw.slice(0, 300));
     throw httpErr(502, 'R5_GATEWAY_ERROR');
   }
   if (!out || out.authorized !== true || !(Number(out.remaining_seconds) > 0)) {
-    // 服务端没给出可用额度就绝不放行
+    // 服务端没有给出可用额度就绝不放行
     throw httpErr(403, 'R5_TIME_LIMIT_REACHED');
   }
-  return { ...out, api: 'r5_parent_game_override', authorized: true,
-    family_id: family, device };
+  return {
+    ...out,
+    api: 'r5_parent_session',
+    authorized: true,
+    account,
+    family_id: family,
+    device,
+    one_time: true,
+  };
 }
 
 /* ---------- 入口 ---------- */
@@ -616,4 +712,4 @@ exports.main = async function main(event, context) {
 };
 
 // 供本地单测使用（不影响云端运行）
-exports.__internals = { sqlAs, lit, parseCtx, CFG, MD_FAMILIES, ROUTES, health, CORS, deviceWhoami, parentGameOverride };
+exports.__internals = { sqlAs, lit, parseCtx, CFG, MD_FAMILIES, ROUTES, health, CORS, deviceWhoami, parentSession, verifyAccountPassword };

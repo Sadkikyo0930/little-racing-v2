@@ -1,100 +1,56 @@
 {
   "phase": "phase-a",
-  "base": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
   "family": "r5-selftest-family",
-  "started_at": "2026-11-13T01:23:33.696Z",
-  "duration_ms": 11407,
-  "passed": 17,
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T02:24:35.560Z",
+  "finished_at": "2026-11-13T02:24:38.880Z",
+  "passed": 9,
   "failed": 0,
   "results": [
     {
-      "name": "A0 网关版本含家长快捷授权",
+      "name": "A:dad 正确密码可授权（角色 parent）",
       "ok": true,
-      "detail": "version=1.3.1-parent-override md_families=[\"little-growth-family-001\",\"r5-selftest-family\"]"
+      "detail": "status=200 {\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1750,\"used_seconds\":50,\"ttl_seconds\":120,\"member_role\":\"parent\"}"
     },
     {
-      "name": "A1 复用现有家长口令可通过服务端验证",
-      "ok": true,
-      "detail": "status=200 devices=18"
-    },
-    {
-      "name": "A2 正确口令签发家长授权",
-      "ok": true,
-      "detail": "status=200 authorized=true remaining=1800 expires_at=2026-11-13T01:28:36Z ttl=300"
-    },
-    {
-      "name": "A3 授权有效期不超过 5 分钟",
-      "ok": true,
-      "detail": "剩余约 300 秒"
-    },
-    {
-      "name": "A4 被授权设备 child/entry 放行且标注家长授权",
-      "ok": true,
-      "detail": "allowed=true reason=STUDY_PASSED_WITH_WAIVER remaining=1800"
-    },
-    {
-      "name": "A5 未被授权设备仍按学习规则拒绝",
-      "ok": true,
-      "detail": "allowed=false reason=PLAN_UNPUBLISHED"
-    },
-    {
-      "name": "A6 请求体伪造 authorized/allowed 无效（fail-closed）",
-      "ok": true,
-      "detail": "allowed=false reason=PLAN_UNPUBLISHED"
-    },
-    {
-      "name": "A7 错误口令被拒绝（401）",
+      "name": "A:dad 密码错误被拒绝",
       "ok": true,
       "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
     },
     {
-      "name": "A8 缺少家长口令被拒绝（401）",
+      "name": "A:mom 正确密码可授权（角色 owner）",
+      "ok": true,
+      "detail": "status=200 {\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1750,\"used_seconds\":50,\"ttl_seconds\":120,\"member_role\":\"owner\"}"
+    },
+    {
+      "name": "A:mom 密码错误被拒绝",
       "ok": true,
       "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
     },
     {
-      "name": "A9 未绑定设备被拒绝（403）",
+      "name": "A:grandma 正确密码可授权（角色 grandparent）",
       "ok": true,
-      "detail": "status=403 error=R5_DEVICE_NOT_BOUND"
+      "detail": "status=200 {\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1750,\"used_seconds\":50,\"ttl_seconds\":120,\"member_role\":\"grandparent\"}"
     },
     {
-      "name": "A10 已撤销设备被拒绝（403）",
+      "name": "A:grandma 密码错误被拒绝",
       "ok": true,
-      "detail": "revoke=200 grant=403 error=R5_DEVICE_REVOKED"
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
     },
     {
-      "name": "A11 非白名单家庭被拒绝",
+      "name": "A:冒用 用别的账号密码登录爸爸账号被拒绝",
       "ok": true,
-      "detail": "status=403 error=R5_FAMILY_NOT_ALLOWED"
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
     },
     {
-      "name": "A12 授权设备 start 成功并开始计时",
+      "name": "A:冒用 不存在的账号被拒绝",
       "ok": true,
-      "detail": "active=true engine=md-1 remaining=1800"
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
     },
     {
-      "name": "A13 心跳照旧扣减每日 1800 秒",
+      "name": "A:旧口令路径已下线（410，不再接受 x-r5-parent）",
       "ok": true,
-      "detail": "used 0->7 remaining 1800->1793 charged_ms=6244"
-    },
-    {
-      "name": "A14 重复 start（模拟刷新/重放）不会恢复额度",
-      "ok": true,
-      "detail": "remaining=1793"
-    },
-    {
-      "name": "A15 stop 正常结束会话",
-      "ok": true,
-      "detail": "status=200 active=false used=7"
-    },
-    {
-      "name": "A16 授权不跨设备（另一台设备仍被拒绝）",
-      "ok": true,
-      "detail": "allowed=false reason=PLAN_UNPUBLISHED"
+      "detail": "status=410 error=R5_PARENT_SECRET_RETIRED"
     }
-  ],
-  "extra": {
-    "secret_sha256_prefix": "536228ee816ab8db",
-    "family": "r5-selftest-family"
-  }
+  ]
 }

@@ -1,22 +1,31 @@
 {
   "phase": "phase-b",
-  "base": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
   "family": "r5-selftest-family",
-  "started_at": "2026-11-13T01:23:58.787Z",
-  "duration_ms": 459,
-  "passed": 2,
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T02:24:39.151Z",
+  "finished_at": "2026-11-13T02:24:41.070Z",
+  "passed": 4,
   "failed": 0,
   "results": [
     {
-      "name": "B1 授权过期后 child/entry 拒绝放行",
+      "name": "B1 未绑定设备被拒绝",
       "ok": true,
-      "detail": "allowed=false reason=PLAN_UNPUBLISHED parent_override=false"
+      "detail": "status=403 error=R5_DEVICE_NOT_BOUND"
     },
     {
-      "name": "B2 授权过期后无法开始游戏",
+      "name": "B2 已撤销设备被拒绝",
       "ok": true,
-      "detail": "allowed=false active=false reason=PLAN_UNPUBLISHED"
+      "detail": "status=403 error=R5_DEVICE_REVOKED"
+    },
+    {
+      "name": "B3 跨家庭设备被拒绝",
+      "ok": true,
+      "detail": "status=403 error=R5_DEVICE_FAMILY_MISMATCH"
+    },
+    {
+      "name": "B4 跨家庭设备连进场都拒绝",
+      "ok": true,
+      "detail": "status=200 {\"error\":\"R5_MEMBER_DENIED\"}"
     }
-  ],
-  "extra": null
+  ]
 }

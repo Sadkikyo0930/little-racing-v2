@@ -1,32 +1,36 @@
 {
   "phase": "phase-d",
-  "base": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
   "family": "r5-selftest-family",
-  "started_at": "2026-11-13T01:24:45.218Z",
-  "duration_ms": 1572,
-  "passed": 4,
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T02:24:47.043Z",
+  "finished_at": "2026-11-13T02:24:48.396Z",
+  "passed": 5,
   "failed": 0,
   "results": [
     {
-      "name": "D0 授权消费后已开始的会话仍可继续（额度不恢复）",
+      "name": "D1 重放测试前置授权",
       "ok": true,
-      "detail": "parent_override=true remaining=1800"
+      "detail": "{\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1746,\"used_seconds\":54,\"ttl_seconds\":120,\"member_role\":\"grandparent\"}"
     },
     {
-      "name": "D1 未授权设备仍走原学习通行证判定（未被削弱）",
+      "name": "D2 不带密码的请求被拒绝",
       "ok": true,
-      "detail": "allowed=false reason=PLAN_UNPUBLISHED modules=[]"
+      "detail": "status=401 error=R5_PARENT_CREDENTIALS_REQUIRED"
     },
     {
-      "name": "D2 家庭存档接口正常（测试家庭）",
+      "name": "D3 请求体里伪造 authorized/remaining 无效",
       "ok": true,
-      "detail": "status=200 api=r5_racing_save state=OK"
+      "detail": "status=401 error=R5_PARENT_AUTH_FAILED"
     },
     {
-      "name": "D3 正式站点可访问（未改动主站）",
+      "name": "D4 伪造 x-r5-parent 头无效（旧口令通道已关闭）",
       "ok": true,
-      "detail": "status=200 bytes=8719 markers=[]"
+      "detail": "status=401 error=R5_PARENT_CREDENTIALS_REQUIRED"
+    },
+    {
+      "name": "D5 仍可用 D1 的票据进场（票据是服务端状态，不是请求内容）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"remaining_seconds\":1746,\"used_seconds\":54,\"parent_override\":true}"
     }
-  ],
-  "extra": null
+  ]
 }

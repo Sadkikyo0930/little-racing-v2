@@ -1,27 +1,56 @@
 {
   "phase": "phase-c",
-  "base": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
   "family": "r5-selftest-family",
-  "started_at": "2026-11-13T01:24:09.472Z",
-  "duration_ms": 841,
-  "passed": 3,
+  "gateway": "https://normal-goose-d5g4qyzr8bb389a4a.service.tcloudbase.com/r5",
+  "started_at": "2026-11-13T02:24:42.334Z",
+  "finished_at": "2026-11-13T02:24:46.760Z",
+  "passed": 9,
   "failed": 0,
   "results": [
     {
-      "name": "C1 每日 1800 秒用完后拒绝签发授权",
+      "name": "C1 家长授权成功",
       "ok": true,
-      "detail": "status=403 error=TIME_LIMIT_REACHED"
+      "detail": "{\"api\":\"r5_parent_session\",\"authorized\":true,\"remaining_seconds\":1750,\"used_seconds\":50,\"ttl_seconds\":120,\"member_role\":\"grandparent\"}"
     },
     {
-      "name": "C2 额度用尽时 child/entry 返回 TIME_LIMIT_REACHED",
+      "name": "C2 授权后可以进场（仅跳过学习条件）",
       "ok": true,
-      "detail": "allowed=false reason=TIME_LIMIT_REACHED remaining=0"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":false,\"remaining_seconds\":1750,\"used_seconds\":50,\"parent_override\":true}"
     },
     {
-      "name": "C3 额度用尽时无法开始游戏",
+      "name": "C3 启动会话时一次性票据被原子消费",
       "ok": true,
-      "detail": "allowed=false active=false"
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1750,\"used_seconds\":50,\"parent_override\":true,\"override_consumed\":true}"
+    },
+    {
+      "name": "C4 票据已消费，再次进场被拒绝（刷新/重进需要密码）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":true,\"remaining_seconds\":1750,\"used_seconds\":50,\"parent_override\":false}"
+    },
+    {
+      "name": "C5 同一张票据不会被二次消费（已运行的会话只续期，override_consumed=false）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1749,\"used_seconds\":51,\"parent_override\":true,\"override_consumed\":false}"
+    },
+    {
+      "name": "C6 已启动的会话按原规则继续（心跳放行且照常扣秒）",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":true,\"reason\":\"STUDY_PASSED_WITH_WAIVER\",\"active\":true,\"remaining_seconds\":1747,\"used_seconds\":53,\"parent_override\":true,\"override_consumed\":false}"
+    },
+    {
+      "name": "C7 主动结束会话",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1746,\"used_seconds\":54,\"parent_override\":false,\"override_consumed\":false}"
+    },
+    {
+      "name": "C8 退出后重新进入必须重新验证家长",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1746,\"used_seconds\":54,\"parent_override\":false}"
+    },
+    {
+      "name": "C9 退出后不能凭旧授权开始新会话",
+      "ok": true,
+      "detail": "{\"api\":\"r5_status\",\"allowed\":false,\"reason\":\"PLAN_UNPUBLISHED\",\"active\":false,\"remaining_seconds\":1746,\"used_seconds\":54,\"parent_override\":false,\"override_consumed\":false}"
     }
-  ],
-  "extra": null
+  ]
 }
