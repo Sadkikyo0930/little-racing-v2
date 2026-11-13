@@ -1,0 +1,43 @@
+name: Cam3 isolated candidate
+on:
+  push:
+    branches: [feature/thunder-cam3-integration-20261112]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify complete candidate
+        run: |
+          node tools/verify-cam3.mjs
+          node tools/test-family-sync.mjs
+      - name: Upload isolated deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thunder-cam3-complete-static
+          path: docs/
+          include-hidden-files: true
+  deployed-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --prefix /tmp/cam3-qa playwright
+      - run: /tmp/cam3-qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Test published isolated preview
+        run: node tools/live-cam3.cjs
+        env:
+          PLAYWRIGHT_PATH: /tmp/cam3-qa/node_modules/playwright
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cam3-live-evidence
+          path: /tmp/cam3-evidence/

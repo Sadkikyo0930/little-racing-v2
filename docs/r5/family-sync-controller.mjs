@@ -1,7 +1,9 @@
 import {createFamilySync, readLocalSave, writeLocalSave, eventsFromTx, buildPatch,
   SYNC_KEYS, QUEUE_KEY} from './r5-family-sync.mjs';
 
-export const TEST_FAMILY = 'little-growth-family-001';
+// The production family's ID is not a test fixture. Tests must inject the isolated family.
+export const PRODUCTION_FAMILY = 'little-growth-family-001';
+export const TEST_FAMILY = 'r5-selftest-family';
 export const JOURNAL = 'lrv2.sync.journal.v1';
 const parse = (s, fallback) => { try { return JSON.parse(s) ?? fallback; } catch { return fallback; } };
 const copy = x => JSON.parse(JSON.stringify(x));
@@ -23,7 +25,7 @@ export function hasOldProgress(storage) {
 // observation and a frozen storage snapshot so an in-flight response cannot erase
 // newer gameplay. No migration, backup upload or production-family write exists here.
 export function createSyncController({storage, fetchImpl = globalThis.fetch.bind(globalThis),
-  baseUrl, deviceToken, onStatus = () => {}, onRestore = () => {}}) {
+  baseUrl, deviceToken, expectedFamily = PRODUCTION_FAMILY, onStatus = () => {}, onRestore = () => {}}) {
   let journal = parse(storage.getItem(JOURNAL), {joined: false, seen: [], pending: [], current: 'red', currentDirty: false});
   journal.quarantined ||= [];
   let flight, rerun = false, lastStatus;
@@ -41,7 +43,7 @@ export function createSyncController({storage, fetchImpl = globalThis.fetch.bind
       let body; try { body = JSON.parse(text); } catch { throw new Error('BAD_RESPONSE'); }
       if (!res.ok) { const error = new Error(body.error || `HTTP_${res.status}`); error.status = res.status; throw error; }
       if (body.status === 'OK' || body.save) {
-        if (body.api !== 'r5_racing_save' || body.save?.family_id !== TEST_FAMILY) throw new Error('ISOLATION_FAMILY_DENIED');
+        if (body.api !== 'r5_racing_save' || body.save?.family_id !== expectedFamily) throw new Error('ISOLATION_FAMILY_DENIED');
         if (!Number.isSafeInteger(Number(body.save.coins_balance)) || Number(body.save.coins_balance) < 0) throw new Error('INVALID_CLOUD_BALANCE');
       }
       return {ok: true, status: res.status, text: async () => text};

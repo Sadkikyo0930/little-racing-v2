@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {createSyncController, TEST_FAMILY} from '../docs/r5/family-sync-controller.mjs';
+const memory = () => {
+  const m = new Map();
+  return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k)};
+};
+const save = {family_id:TEST_FAMILY,revision:1,coins_balance:123,current_vehicle:'frag_common',owned:{frag_common:{}},chapter1_state:'done',chapter2_state:'idle'};
+let calls=0;
+const mock=async(url,init)=>{
+  assert(url.startsWith('https://selftest.invalid/'));
+  calls++;
+  return Response.json({api:'r5_racing_save',status:url.endsWith('/sync')?'APPLIED':'OK',save,revision:1,applied_events:[],duplicate_events:[]});
+};
+const options=storage=>({storage,expectedFamily:TEST_FAMILY,baseUrl:'https://selftest.invalid',deviceToken:'selftest-only',fetchImpl:mock});
+const a=memory(),c=createSyncController(options(a));
+assert.equal((await c.join()).status,'RESTORED');
+assert.equal(JSON.parse(a.getItem('lrv2.garage.coins')).coins,123);
+assert.equal(JSON.parse(a.getItem('littleRacingV2.story.chapter1')).state,'done');
+assert.equal((await c.sync()).status,'SYNCED');
+const old=memory();old.setItem('lrv2.garage.coins','{"coins":456}');
+const before=calls;
+assert.equal((await createSyncController(options(old)).join()).status,'LOCAL_SAVE_REVIEW_REQUIRED');
+assert.equal(calls,before);
+assert.equal(JSON.parse(old.getItem('lrv2.garage.coins')).coins,456);
+const denied=memory();
+const wrong=createSyncController({...options(denied),fetchImpl:async()=>Response.json({api:'r5_racing_save',status:'OK',save:{...save,family_id:'wrong-family'}})});
+assert.equal((await wrong.join()).status,'ERROR');
+assert.equal(denied.getItem('lrv2.garage.coins'),null);
+const offline=memory();
+assert.equal((await createSyncController({...options(offline),fetchImpl:async()=>{throw Error('offline')}}).join()).status,'ERROR');
+assert.equal(offline.getItem('lrv2.garage.coins'),null);
+console.log('PASS: test-family restore/sync, chapters, old-save protection, wrong-family rejection, offline protection; zero real cloud calls');
