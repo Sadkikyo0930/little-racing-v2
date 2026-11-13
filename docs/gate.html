@@ -52,9 +52,31 @@
   .count{display:inline-block;min-width:22px;text-align:center;font-weight:800;color:var(--red)}
   .backup-link{text-align:center;text-decoration:none;border:1px solid var(--line)}
   .dev{font-size:11px;color:#a8b8cc;text-align:center;margin-top:8px}
+  .parent-entry{position:fixed;left:calc(env(safe-area-inset-left, 0px) + 10px);top:calc(env(safe-area-inset-top, 0px) + 8px);z-index:30;padding:8px 11px;border:1px solid #8fa6c0;border-radius:999px;background:#173454;color:#fff;font:600 12px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer}
+  .parent-dialog[hidden]{display:none!important}
+  .parent-dialog{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:#07162cbd;padding:18px}
+  .parent-dialog-panel{width:min(100%,370px);border-radius:18px;background:#fff;padding:21px;color:#12243d;box-shadow:0 20px 65px #0006}
+  .parent-dialog-panel h2{margin:0 0 8px;font-size:19px}
+  .parent-dialog-panel p{font-size:13px;line-height:1.6;color:#556880}
+  .parent-dialog-panel input{width:100%;font-size:16px;padding:13px;border:1px solid #b9ccdf;border-radius:10px}
+  .parent-dialog-actions{display:flex;gap:9px}
+  .parent-dialog-actions button{flex:1;padding:12px;border:0;border-radius:10px;font-weight:700}
+  .parent-dialog-actions button[type=submit]{background:#e23b2e;color:#fff}
+  #parent-entry-status{min-height:20px}
 </style>
 </head>
 <body>
+<button class="parent-entry" id="parent-entry-open" type="button" aria-haspopup="dialog">🔒 家长入口</button>
+<div class="parent-dialog" id="parent-entry-dialog" role="dialog" aria-modal="true" aria-labelledby="parent-entry-heading" hidden>
+  <form class="parent-dialog-panel" id="parent-entry-form">
+    <h2 id="parent-entry-heading">家长验证</h2>
+    <p>使用已有家长口令，临时免学习进入游戏；每日游戏时间仍由云端限制。</p>
+    <label for="parent-entry-secret">家长口令</label>
+    <input id="parent-entry-secret" name="secret" type="password" autocomplete="off" maxlength="200" required>
+    <p id="parent-entry-status" role="status" aria-live="polite"></p>
+    <div class="parent-dialog-actions"><button id="parent-entry-cancel" type="button">取消</button><button id="parent-entry-submit" type="submit">验证并进入</button></div>
+  </form>
+</div>
 <main class="card">
   <h1>🏁 小小赛车 · 学习通行证</h1>
   <p class="sub" id="subtitle">先看看今天的学习任务完成了吗～</p>
@@ -213,6 +235,42 @@ $('btn-bind').addEventListener('click', () => { location.href = './bind.html'; }
 
 captureDeviceFromUrl();
 const device = getDevice();
+
+// 家长授权必须由云端完成；页面只收集口令，绝不将口令持久化。
+const parentDialog=$('parent-entry-dialog'),parentSecret=$('parent-entry-secret');
+function closeParentDialog(){parentDialog.hidden=true;parentSecret.value='';$('parent-entry-status').textContent='';}
+$('parent-entry-open').addEventListener('click',()=>{parentDialog.hidden=false;parentSecret.focus();});
+$('parent-entry-cancel').addEventListener('click',closeParentDialog);
+parentDialog.addEventListener('click',event=>{if(event.target===parentDialog)closeParentDialog();});
+window.addEventListener('keydown',event=>{if(event.key==='Escape'&&!parentDialog.hidden)closeParentDialog();});
+$('parent-entry-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const secret=parentSecret.value;
+  const button=$('parent-entry-submit');
+  if(!device){$('parent-entry-status').textContent='请先绑定这台设备。';return;}
+  if(!secret)return;
+  button.disabled=true;
+  $('parent-entry-status').textContent='正在向云端验证家长身份…';
+  try {
+    const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),15000);
+    let response;
+    try {response=await fetch(R5_CONFIG.base+'/v1/parent/game-override',{
+      method:'POST',headers:{'content-type':'application/json','x-r5-parent':secret},
+      body:JSON.stringify({family_id:R5_CONFIG.familyId,device,action:'grant'}),
+      signal:controller.signal,cache:'no-store'
+    });}finally{clearTimeout(timeout);}
+    const payload=await response.json().catch(()=>null);
+    if(!response.ok||payload?.api!=='r5_parent_game_override'||payload?.authorized!==true){
+      $('parent-entry-status').textContent=response.status===404?'云端尚未开通家长快速入口，请继续使用学习通行证。':response.status===401?'家长口令不正确。':payload?.error==='TIME_LIMIT_REACHED'?'今天的赛车时间已用完。':'暂时无法完成家长授权，请稍后再试。';
+      return;
+    }
+    // 只签发防深链凭证。实际免学习资格及剩余时长必须由服务器在 child/entry 和 game/action 再验证。
+    issueGrant(device,R5_CONFIG.grantTtlSeconds,{remaining:Math.max(0,Number(payload.remaining_seconds)||0)});
+    closeParentDialog();
+    location.replace(gameUrl());
+  }catch(error){$('parent-entry-status').textContent='网络异常，未授权进入游戏，请稍后再试。';}
+  finally{parentSecret.value='';button.disabled=false;}
+});
 // 不显示令牌的任何片段，只显示是否已记住
 $('devline').textContent = device ? '本设备已记住（钥匙不会显示在这里）' : '本设备尚未绑定';
 
