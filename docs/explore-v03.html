@@ -56,6 +56,15 @@ function drawRoad(def){
  const n=Math.max(120,Math.ceil(curve.getLength()/16)),vertices=[],indices=[],points=[],edges=[];
  for(let i=0;i<=n;i++){
   const t=i/n,p=curve.getPoint(t),tan=curve.getTangent(Math.min(t,.99999));const nx=-tan.z,nz=tan.x,norm=Math.hypot(nx,nz)||1,half=def.width/2;
+  // Physical earth ramps on the lake gravel. Humps are present in the
+  // sampled road mesh itself, so jumping has real contact geometry.
+  if(def.kind==='gravel'){
+   const meters=t*curve.getLength();
+   for(const center of [150,350,580,790]){
+    const u=Math.abs(meters-center)/32;
+    if(u<1)p.y+=4.2*Math.pow(1-u*u,2);
+   }
+  }
   const a=new T.Vector3(p.x+nx/norm*half,p.y+.11,p.z+nz/norm*half);
   const b=new T.Vector3(p.x-nx/norm*half,p.y+.11,p.z-nz/norm*half);
   vertices.push(a.x,a.y,a.z,b.x,b.y,b.z);
@@ -220,9 +229,9 @@ const wheels=[];for(const x of [-2.25,2.25])for(const z of [-2.1,2.35]){
  const wheel=new T.Mesh(new T.CylinderGeometry(1.12,1.12,.7,14),M('#323a40'));
  wheel.rotation.z=Math.PI/2;wheel.position.set(x,1.15,z);chassis.add(wheel);wheels.push(wheel);
 }
-const state={x:-610,z:-1130,y:1,heading:Math.PI/2,speed:0,steer:0,cam:0,progress:0,driveDistance:0,shake:0,vertical:0,zoom:1};
+const state={x:-610,z:-1130,y:1,heading:Math.PI/2,speed:0,steer:0,cam:0,progress:0,driveDistance:0,shake:0,vertical:0,zoom:1,airborne:false,verticalVelocity:0,previousGravelY:null,wasClimbing:false,landingCompression:0,tunnel:''};
 const buttons={left:false,right:false,gas:false,brake:false};
-function reset(){state.x=-610;state.z=-1130;state.heading=Math.PI/2;state.speed=0;state.steer=0;state.progress=0;state.shake=0;state.driveDistance=0}
+function reset(){state.x=-610;state.z=-1130;state.heading=Math.PI/2;state.speed=0;state.steer=0;state.progress=0;state.shake=0;state.driveDistance=0;state.airborne=false;state.verticalVelocity=0;state.previousGravelY=null;state.wasClimbing=false;state.landingCompression=0;state.tunnel='';state.y=1}
 reset();
 for(const el of document.querySelectorAll('[data-key]')){
  const key=el.dataset.key;
@@ -244,23 +253,48 @@ function drive(dt){
  state.steer=T.MathUtils.damp(state.steer,(buttons.left?1:0)-(buttons.right?1:0),7,dt);
  // Left is left in both touch and keyboard: clockwise heading decreases for left.
  if(Math.abs(state.speed)>.3)state.heading-=state.steer*dt*(.55+Math.min(Math.abs(state.speed),22)*.023)*Math.sign(state.speed);
- const nx=state.x+Math.sin(state.heading)*state.speed*dt,nz=state.z-Math.cos(state.heading)*state.speed*dt;
+ let nx=state.x+Math.sin(state.heading)*state.speed*dt,nz=state.z-Math.cos(state.heading)*state.speed*dt;
+ // Physical guardrails: at altitude the kart cannot drive off an edge.
+ if(before.kind==='mountain'&&before.y>15&&before.distance<15){
+  const next=closestRoad(nx,nz);
+  if(next.distance>8.5){nx=state.x;nz=state.z;state.speed*=.38}
+ }
  if(Math.abs(nx)>=1450||Math.abs(nz)>=1450){state.speed=0}else{state.x=nx;state.z=nz}
  const surface=closestRoad(state.x,state.z);state.driveDistance+=Math.abs(state.speed*dt);
  if(surface.distance>15)state.speed*=Math.pow(.95,dt*60);
  // A visibly elevated 3D road: vehicle follows sampled mountain elevation.
  const targetY=surface.distance<22?surface.y+1.2:Math.max(1.2,surface.y+1.2-(surface.distance-22)*.03);
- state.y=T.MathUtils.damp(state.y,targetY,7,dt);
  const lakeBump=surface.kind==='gravel'&&surface.distance<13;
- const bumpTarget=lakeBump?Math.min(.35,.06+Math.abs(state.speed)*.009)*(
-  .6*Math.sin(state.driveDistance*2.7)+.4*Math.sin(state.driveDistance*4.9)) : 0;
- state.shake=T.MathUtils.damp(state.shake,bumpTarget,13,dt);
- state.vertical=T.MathUtils.damp(state.vertical,bumpTarget*.23,4,dt);
+ const delta=lakeBump&&state.previousGravelY!==null?targetY-state.previousGravelY:0;
+ if(lakeBump&&!state.airborne&&state.wasClimbing&&delta<-.12&&Math.abs(state.speed)>12){
+  // Launch past a crest. Vertical velocity and gravity, not a sine-only shake.
+  state.airborne=true;state.verticalVelocity=4.1+Math.min(6,Math.abs(state.speed)*.25);
+  state.wasClimbing=false;toast('🚙 飞跃土坡！');
+ }
+ if(lakeBump&&delta>.12)state.wasClimbing=true;
+ if(!lakeBump)state.wasClimbing=false;
+ state.previousGravelY=lakeBump?targetY:null;
+ if(state.airborne){
+  state.y+=state.verticalVelocity*dt;
+  state.verticalVelocity-=26*dt;
+  if(state.verticalVelocity<0&&state.y<=targetY){
+   state.y=targetY;state.airborne=false;state.verticalVelocity=0;
+   state.landingCompression=1.1;toast('💥 落地！悬挂压缩回弹');
+  }
+ }else state.y=T.MathUtils.damp(state.y,targetY,lakeBump?18:7,dt);
+ state.landingCompression=T.MathUtils.damp(state.landingCompression,0,8,dt);
+ const bumpTarget=lakeBump&&!state.airborne?Math.min(.19,.045+Math.abs(state.speed)*.005)*Math.sin(state.driveDistance*2.8):0;
+ state.shake=T.MathUtils.damp(state.shake,bumpTarget-state.landingCompression,12,dt);
+ state.vertical=T.MathUtils.damp(state.vertical,Math.abs(state.verticalVelocity)*.018+state.landingCompression*.20,4,dt);
  car.position.set(state.x,state.y,state.z);
  car.rotation.set(0,-state.heading,0);
  chassis.position.y=state.shake;
- chassis.rotation.z=lakeBump?Math.sin(state.driveDistance*2.15)*.018:0;
- chassis.rotation.x=lakeBump?Math.sin(state.driveDistance*3.1)*.014:0;
+ chassis.rotation.z=lakeBump?Math.sin(state.driveDistance*2.15)*.032:0;
+ chassis.rotation.x=lakeBump?Math.sin(state.driveDistance*3.1)*.045+state.landingCompression*.07:0;
+ // Cave interior trigger follows the actual tunnel centreline.
+ const tunnel=tunnelAxis.find(p=>Math.hypot(p.x-state.x,p.z-state.z)<14&&Math.abs(p.y-state.y)<15);
+ state.tunnel=tunnel?.label||'';
+ $('tunnelShade').style.opacity=state.tunnel?'.23':'0';
  wheels.forEach(w=>{w.rotation.x+=state.speed*dt/1.12});
  const cp=checkpoints[state.progress];if(cp&&Math.hypot(state.x-cp.x,state.z-cp.z)<32){
   state.progress++;toast(state.progress===checkpoints.length?'🎉 环游完成！还可以自由探索其他岔路':'⭐ 到达 '+cp.name+'！');
@@ -269,7 +303,7 @@ function drive(dt){
 function cameraUpdate(dt){
  const f=new T.Vector3(Math.sin(state.heading),0,-Math.cos(state.heading)),s=new T.Vector3(Math.cos(state.heading),0,Math.sin(state.heading));
  const pos=new T.Vector3(state.x,state.y,state.z),look=pos.clone();
- if(state.cam===0){pos.addScaledVector(f,-23).y+=15;look.addScaledVector(f,13).y+=3.2}
+ if(state.cam===0){pos.addScaledVector(f,state.tunnel?-9:-23).y+=state.tunnel?6.4:15;look.addScaledVector(f,state.tunnel?8:13).y+=3.2}
  else if(state.cam===1){pos.addScaledVector(f,15).addScaledVector(s,17).y+=10;look.y+=3}
  else {pos.y+=78;look.addScaledVector(f,7)}
  // Camera bump is deliberately much weaker than car suspension to avoid motion sickness.
@@ -293,12 +327,12 @@ const beaconBase=checkpoints.map(p=>closestRoad(p.x,p.z).y+12);function animate(
  if(frame++%7===0){
   const near=closestRoad(state.x,state.z);
   $('telemetry').textContent='速度 '+Math.round(Math.abs(state.speed)*3.6)+' km/h · 海拔 '+Math.round(state.y-1)+' m';
-  $('region').textContent=near.kind==='mountain'?'⛰ '+near.name:near.kind==='gravel'?'🪨 湖畔颠簸碎石路':near.distance<24?'🛣 '+near.name:'🌿 自由越野区域';
+  $('region').textContent=state.tunnel?'🚇 '+state.tunnel:state.airborne?'🚙 越野腾空中':near.kind==='mountain'?'⛰ 贴山公路 · 有护栏':near.kind==='gravel'?'🚙 湖畔飞跃土坡':near.distance<24?'🛣 '+near.name:'🌿 自由越野区域';
   const cp=checkpoints[state.progress];$('task').textContent=cp?'下一站：'+cp.name+' · '+Math.round(Math.hypot(state.x-cp.x,state.z-cp.z))+'m':'✅ 已环游完成，继续兜风';
   mapRender()
  }
  renderer.render(scene,camera);requestAnimationFrame(animate)
 }
 window.addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()});
-state.zoom=1;$('loading').style.display='none';toast('3 × 3 公里大地图 · 跟随导航，也可自由岔路探索');requestAnimationFrame(animate);
+state.zoom=1;$('loading').style.display='none';toast('V0.3 贴山公路、双隧道、湖畔越野起跳落地');requestAnimationFrame(animate);
 </script></body></html>
