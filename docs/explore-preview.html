@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#d7edff"><title>小小赛车 · 自由探索 V0.1 地图白模</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,"PingFang SC",sans-serif}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;touch-action:none;background:#bce6f7;color:#17365a}#scene{position:fixed;inset:0;display:block;width:100%;height:100%}
+#hud{position:fixed;top:env(safe-area-inset-top,0px);left:env(safe-area-inset-left,0px);right:env(safe-area-inset-right,0px);display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:10px;pointer-events:none}
+.panel{background:rgba(255,255,255,.91);border:1px solid #ffffffba;border-radius:15px;box-shadow:0 5px 18px #284b6a25;padding:10px 12px;backdrop-filter:blur(6px)}
+h1{font-size:16px;margin:0 0 4px}#subtitle{font-size:11px;opacity:.82;line-height:1.5}.status{font-size:12px;margin-top:3px;font-weight:700}
+#right{width:162px;display:flex;flex-direction:column;gap:6px;pointer-events:auto}#mini{width:142px;height:120px;display:block;border-radius:8px;background:#e0f4df;margin:auto}#task{font-size:11px;line-height:1.4}#left{max-width:290px;pointer-events:auto}#legend{font-size:11px;line-height:1.6;margin-top:4px}button{border:0;font-weight:800;color:#17365a}
+#controls{position:fixed;bottom:calc(9px + env(safe-area-inset-bottom,0px));left:calc(12px + env(safe-area-inset-left,0px));right:calc(12px + env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none}
+.cluster{display:flex;align-items:flex-end;gap:8px}.ctrl{pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;background:rgba(255,255,255,.86);border:2px solid #97bcda;box-shadow:0 4px 0 #658aa1;height:62px;width:62px;border-radius:17px;font-size:25px;display:grid;place-items:center;cursor:pointer}.ctrl.pressed{background:#ffe287;transform:translateY(2px)}.ctrl.gas{height:78px;width:75px;background:#a2edbd;font-size:15px}.ctrl.brake{background:#ffd1c8;font-size:14px}#tools{position:fixed;top:50%;right:calc(9px + env(safe-area-inset-right,0px));transform:translateY(-50%);display:flex;flex-direction:column;gap:7px;pointer-events:auto}#tools button{font-size:12px;padding:9px 11px;background:#fff;border-radius:12px;box-shadow:0 3px 9px #163d5a20}#notice{position:fixed;top:24%;left:50%;transform:translateX(-50%);background:#ffffffed;border:2px solid #eed271;border-radius:15px;padding:10px 17px;font-weight:800;max-width:80%;text-align:center;display:none;pointer-events:none}#notice.show{display:block}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:#d7edff;z-index:20;font-weight:900}#loading.hidden{display:none}
+@media(max-width:680px){#hud{padding:5px;gap:4px}#left{max-width:180px;padding:7px 8px}h1{font-size:12px}#subtitle,#legend{font-size:9px}#right{width:118px;padding:6px}#mini{width:104px;height:88px}#task{font-size:9px}#tools{top:49%;right:5px}#tools button{font-size:10px;padding:6px}.ctrl{height:51px;width:53px}.ctrl.gas{height:64px;width:64px}.cluster{gap:5px}}@media(orientation:portrait){#loading::after{content:"建议横屏驾驶，转动手机即可继续";display:block;position:absolute;top:58%;font-weight:600;font-size:13px;color:#32536c}}
+</style></head><body>
+<canvas id="scene" aria-label="3D 自由探索白模"></canvas>
+<div id="loading">正在加载自由探索 3D 场景…</div>
+<header id="hud"><section class="panel" id="left"><h1>🏁 自由探索 · V0.1 白模</h1><div id="subtitle">小镇 → 湖边 → 山路 → 回车库<br>独立试玩；不读取或改动正式存档</div><div class="status" id="speed">速度 0 km/h</div><div class="status" id="zone">当前位置：家门口 / 车库</div><div id="legend">方向键 / WASD 也可开车 · 点击视角切换镜头</div></section>
+<section class="panel" id="right"><canvas id="mini" width="240" height="200"></canvas><div id="task">探索目标：前往小镇商店 ★</div></section></header>
+<div id="tools"><button id="view">🎥 切镜头</button><button id="reset">↶ 回车库</button><button id="sound">🔇 静音白模</button></div>
+<div id="notice" role="status"></div>
+<div id="controls"><div class="cluster"><button class="ctrl" data-key="left" aria-label="向左转">◀</button><button class="ctrl" data-key="right" aria-label="向右转">▶</button></div>
+<div class="cluster"><button class="ctrl brake" data-key="brake">刹车</button><button class="ctrl gas" data-key="gas">加速</button></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
+const canvas=document.querySelector('#scene'),renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.6));renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
+const scene=new THREE.Scene();scene.background=new THREE.Color('#a5dcf5');scene.fog=new THREE.Fog('#a5dcf5',220,500);
+const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,650);
+scene.add(new THREE.HemisphereLight(0xffffff,0x7f9a63,2.0));
+const sunlight=new THREE.DirectionalLight(0xffffff,2.3);sunlight.position.set(-90,150,85);sunlight.castShadow=true;
+sunlight.shadow.mapSize.set(1024,1024);sunlight.shadow.camera.left=-195;sunlight.shadow.camera.right=195;sunlight.shadow.camera.top=195;sunlight.shadow.camera.bottom=-195;sunlight.shadow.camera.near=1;sunlight.shadow.camera.far=450;scene.add(sunlight);
+const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness});
+const grass=mat('#8cce72'),lawn=mat('#a4de7d'),stone=mat('#95a6ae'),road=mat('#777f83'),edge=mat('#f9f3de'),water=mat('#59bedf',.3);
+const terrain=new THREE.Mesh(new THREE.PlaneGeometry(430,400),grass);terrain.rotation.x=-Math.PI/2;terrain.receiveShadow=true;scene.add(terrain);
+function mesh(geometry,material,x,y,z){const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
+function box(x,y,z,w,h,d,material){return mesh(new THREE.BoxGeometry(w,h,d),material,x,y,z)}
+function cylinder(x,y,z,r,h,material,n=12){return mesh(new THREE.CylinderGeometry(r,r,h,n),material,x,y,z)}
+function circle(x,z,r,material){const m=mesh(new THREE.CircleGeometry(r,56),material,x,.06,z);m.rotation.x=-Math.PI/2;return m}
+const routeDefs=[
+{name:'主环路',pts:[[-140,-108],[-101,-111],[-58,-73],[-13,-68],[38,-66],[92,-29],[98,17],[52,62],[-9,38],[-61,-7],[-111,-41],[-140,-108]],width:14},
+{name:'湖畔环线',pts:[[-111,-41],[-144,-10],[-158,50],[-134,100],[-75,103],[-49,57],[-61,-7]],width:12},
+{name:'山路环线',pts:[[52,62],[81,103],[122,110],[145,81],[134,43],[98,17]],width:12},
+{name:'镇内横街',pts:[[-93,-73],[-55,-106],[-13,-115],[38,-66]],width:11}
+];
+const lines=[];
+function trackPath(def){
+ const curve=new THREE.CatmullRomCurve3(def.pts.map(p=>new THREE.Vector3(p[0],0,p[1])),false,'centripetal',.22);
+ const samples=Math.max(80,def.pts.length*24),left=[],right=[],vertices=[],indices=[],mid=[];
+ for(let i=0;i<=samples;i++){
+  const u=i/samples,p=curve.getPoint(u),t=curve.getTangent(Math.min(.99999,u)),normal=new THREE.Vector3(-t.z,0,t.x).normalize();
+  p.y=.18;const a=p.clone().addScaledVector(normal,def.width/2),b=p.clone().addScaledVector(normal,-def.width/2);
+  left.push(a);right.push(b);mid.push([p.x,p.z]);
+  vertices.push(a.x,a.y,a.z,b.x,b.y,b.z);
+  if(i<samples){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2)}
+ }
+ const geom=new THREE.BufferGeometry();geom.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geom.setIndex(indices);geom.computeVertexNormals();
+ const strip=new THREE.Mesh(geom,road);strip.receiveShadow=true;strip.material.side=THREE.DoubleSide;scene.add(strip);
+ // Road-edge colored stripes are static, visible from a distance.
+ for(let j=0;j<left.length-1;j+=3){
+  for(const arr of [left,right]){
+   const a=arr[j],b=arr[Math.min(j+2,arr.length-1)],len=a.distanceTo(b);
+   const dash=box((a.x+b.x)/2,.27,(a.z+b.z)/2,.48,.035,len,edge);
+   dash.rotation.y=Math.atan2(b.x-a.x,b.z-a.z);
+  }
+ }
+ lines.push({name:def.name,points:mid,width:def.width});
+}
+routeDefs.forEach(trackPath);
+function tree(x,z,scale=1){
+ const trunk=cylinder(x,2.9*scale,z,.7*scale,5.8*scale,mat('#856746'),7);
+ const cone=mesh(new THREE.ConeGeometry(4.3*scale,9*scale,7),mat(['#3f9959','#459d4c','#358d67'][Math.abs(Math.round(x+z))%3]),x,10*scale,z);
+ return [trunk,cone];
+}
+let randomSeed=27;function rng(){randomSeed=(randomSeed*1664525+1013904223)>>>0;return randomSeed/4294967296}
+function roadDistance(x,z){let best=1e9;for(const l of lines){for(let i=1;i<l.points.length;i+=2){const a=l.points[i-1],b=l.points[i];const vx=b[0]-a[0],vz=b[1]-a[1];const t=Math.max(0,Math.min(1,((x-a[0])*vx+(z-a[1])*vz)/(vx*vx+vz*vz||1)));best=Math.min(best,Math.hypot(x-a[0]-t*vx,z-a[1]-t*vz)-l.width/2)}}return best}
+function building(x,z,color,w=13,d=12,h=12,shop=false){
+ const main=box(x,h/2,z,w,h,d,mat(color));const roof=mesh(new THREE.ConeGeometry(Math.max(w,d)*.83,5,4),mat(shop?'#bb5b62':'#d86955'),x,h+2.5,z);roof.rotation.y=Math.PI/4;
+ box(x,h*.39,z+d/2+.12,w*.45,h*.26,.25,mat('#bdefff'));
+ if(shop){box(x,h*.66,z+d/2+.7,w*.8,2.0,2,mat('#ffdec0'));box(x,h*.53,z+d/2+1,w*.7,1.1,1.3,mat('#fa8a80'))}
+ return [main,roof];
+}
+// Town lies east/southeast of the garage. Deliberately short skyline for a child-friendly camera.
+const shopColors=['#f6b7a5','#ffdf9d','#a9cdeb','#dfb5db','#b9dfb5'];
+[[-75,-52],[-51,-47],[-27,-42],[0,-43],[26,-38],[62,-52],[-73,-133],[-45,-136],[-12,-140],[19,-131]].forEach(([x,z],i)=>building(x,z,shopColors[i%5],14+i%3*3,13,12+i%4*3,i%2===0));
+building(-156,-125,'#f2bb8e',16,14,13,false);building(-160,-94,'#c9e3a0',16,15,10,false);
+box(-132,3,-131,21,6,17,mat('#dce5f3'));box(-132,6.3,-131,22,1,18,mat('#5ca6cb'));
+box(-132,3,-122.3,12,4,.2,mat('#f2f5fd')); // closed garage wall
+// Lake park.
+const pond=circle(-109,61,35,water);pond.position.y=.08;
+for(let i=0;i<12;i++){const t=i*Math.PI*2/12;const x=-109+Math.cos(t)*39,z=61+Math.sin(t)*37;if(roadDistance(x,z)>7)tree(x,z,.7)}
+box(-135,.48,78,17,.8,6,mat('#bf9164'));
+const pier=cylinder(-135,1.0,78,1.5,2,mat('#e0aa68'),8);
+// Mountain silhouette beyond road loop, not collidable whitebox geometry.
+for(let i=0;i<12;i++){const x=63+i*10,z=150+(i%3)*8;const h=35+(i%4)*11;const hill=mesh(new THREE.ConeGeometry(15,h,6),mat(i%2?'#86af85':'#99ada2'),x,h/2-.4,z);hill.castShadow=false}
+for(let i=0;i<105;i++){const x=(rng()-.5)*400,z=(rng()-.5)*365;if(roadDistance(x,z)<14||Math.hypot(x+109,z-61)<43||x>45&&z>115)continue;tree(x,z,.45+rng()*.55)}
+// Town square and simple fountain.
+cylinder(-18,.5,-90,12,.9,mat('#e1d0b3'),30);cylinder(-18,1.0,-90,4,1.0,water,20);cylinder(-18,3,-90,.5,4.0,mat('#f5f6fb'),10);
+const tasks=[
+{id:'town',name:'小镇商店',x:-57,z:-60,color:0xffce53},
+{id:'park',name:'湖边码头',x:-136,z:80,color:0x8de2ff},
+{id:'hill',name:'山顶观景点',x:121,z:111,color:0xdab5ff},
+{id:'garage',name:'返回车库',x:-134,z:-107,color:0xb4f0a6}
+];
+const beacons=[];
+for(const t of tasks){
+ const pole=cylinder(t.x,3,t.z,.55,6,mat('#e6e3d2'),8);
+ const orb=mesh(new THREE.OctahedronGeometry(3.5),new THREE.MeshStandardMaterial({color:t.color,emissive:t.color,emissiveIntensity:.5}),t.x,8,t.z);beacons.push(orb);
+ const ring=mesh(new THREE.TorusGeometry(5.2,.5,7,20),mat('#fffbea'),t.x,.5,t.z);ring.rotation.x=Math.PI/2;
+}
+const car=new THREE.Group();scene.add(car);
+const frame=new THREE.Mesh(new THREE.BoxGeometry(4.7,1.6,7.0),mat('#e95155',.35));frame.position.y=2.1;frame.castShadow=true;car.add(frame);
+const hood=new THREE.Mesh(new THREE.BoxGeometry(4.15,1,2.35),mat('#f77664',.4));hood.position.set(0,2.0,-2.5);hood.castShadow=true;car.add(hood);
+const cab=new THREE.Mesh(new THREE.BoxGeometry(3.8,1.65,2.5),mat('#a5e5fb',.3));cab.position.set(0,3.35,1.0);cab.castShadow=true;car.add(cab);
+const roof=new THREE.Mesh(new THREE.BoxGeometry(4.1,.35,2.7),mat('#f6f2ed',.4));roof.position.set(0,4.2,1);car.add(roof);
+const wheels=[];for(const x of [-2.25,2.25])for(const z of [-2.3,2.4]){
+ const tire=new THREE.Mesh(new THREE.CylinderGeometry(1.23,1.23,.75,18),mat('#29333d',.8));
+ tire.rotation.z=Math.PI/2;tire.position.set(x,1.33,z);car.add(tire);wheels.push(tire);
+ const hub=new THREE.Mesh(new THREE.CylinderGeometry(.62,.62,.79,14),mat('#d0e4ee',.4));hub.rotation.z=Math.PI/2;hub.position.copy(tire.position);car.add(hub);
+}
+const lightsMat=new THREE.MeshBasicMaterial({color:0xfff3bd});for(const x of [-1.45,1.45]){const light=new THREE.Mesh(new THREE.BoxGeometry(.9,.38,.12),lightsMat);light.position.set(x,2.2,-3.63);car.add(light)}
+const keys={left:false,right:false,gas:false,brake:false};const state={x:-140,z:-108,angle:Math.PI/2,speed:0,steer:0,next:0,cam:0,visited:new Set()};
+function reset(){state.x=-140;state.z=-108;state.angle=Math.PI/2;state.speed=0;state.steer=0;state.next=0;state.visited.clear();updateUi();}
+function bindControl(el,key){const down=e=>{e.preventDefault();keys[key]=true;el.classList.add('pressed');try{el.setPointerCapture(e.pointerId)}catch(_){}};const up=e=>{e.preventDefault();keys[key]=false;el.classList.remove('pressed')};el.addEventListener('pointerdown',down);for(const ev of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(ev,up)}
+document.querySelectorAll('[data-key]').forEach(b=>bindControl(b,b.dataset.key));
+window.addEventListener('keydown',e=>{const map={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'gas',KeyW:'gas',ArrowDown:'brake',KeyS:'brake'};if(map[e.code]){keys[map[e.code]]=true;e.preventDefault()}});
+window.addEventListener('keyup',e=>{const map={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'gas',KeyW:'gas',ArrowDown:'brake',KeyS:'brake'};if(map[e.code]){keys[map[e.code]]=false;e.preventDefault()}});
+document.querySelector('#view').addEventListener('click',()=>{state.cam=(state.cam+1)%3});
+document.querySelector('#reset').addEventListener('click',reset);
+document.querySelector('#sound').addEventListener('click',()=>message('白模没有接入音效，正式驾驶声音保留在 V2 原游戏中'));
+const $=id=>document.getElementById(id);
+let noticeUntil=0;function message(t){$('notice').textContent=t;$('notice').classList.add('show');noticeUntil=performance.now()+2800}
+function region(){if(state.z>20&&state.x>38)return '山路环线';if(state.z>5&&state.x<-45)return '公园 / 湖边';if(state.x<-110&&state.z<-76)return '家门口 / 车库';return '小镇主街'}
+function updateUi(){
+ $('speed').textContent='速度 '+Math.round(Math.abs(state.speed)*3.6)+' km/h';
+ $('zone').textContent='当前位置：'+region();
+ const t=tasks[Math.min(state.next,tasks.length-1)];
+ $('task').textContent=state.next>=tasks.length?'🏆 地图探索完成！继续自由驾驶':'下一站：'+t.name+' ★（'+Math.round(Math.hypot(t.x-state.x,t.z-state.z))+'m）';
+}
+const mm=$('mini'),mc=mm.getContext('2d');function mmPoint(x,z){return [((x+210)/420)*mm.width,((190-z)/380)*mm.height]}
+function drawMap(){
+ mc.clearRect(0,0,mm.width,mm.height);mc.fillStyle='#d4ebcb';mc.fillRect(0,0,mm.width,mm.height);
+ const [wx,wz]=mmPoint(-109,61);mc.fillStyle='#75c9eb';mc.beginPath();mc.arc(wx,wz,18,0,Math.PI*2);mc.fill();
+ for(const l of lines){mc.strokeStyle='#7c8589';mc.lineWidth=5;mc.lineCap='round';mc.beginPath();l.points.forEach((p,i)=>{const [x,y]=mmPoint(...p);if(i===0)mc.moveTo(x,y);else mc.lineTo(x,y)});mc.stroke()}
+ for(const [i,t] of tasks.entries()){const [x,y]=mmPoint(t.x,t.z);mc.fillStyle=i<state.next?'#439b58':'#ffc542';mc.beginPath();mc.arc(x,y,5,0,7);mc.fill();mc.strokeStyle='#fff';mc.stroke()}
+ const [px,py]=mmPoint(state.x,state.z);mc.fillStyle='#f04455';mc.beginPath();mc.arc(px,py,6,0,7);mc.fill();mc.strokeStyle='#fff';mc.lineWidth=2;mc.stroke();
+ mc.strokeStyle='#fff';mc.beginPath();mc.moveTo(px,py);mc.lineTo(px+10*Math.sin(state.angle),py-10*Math.cos(state.angle));mc.stroke()
+}
+function drive(dt){
+ const accel=keys.gas?20:0,brake=keys.brake?28:0;
+ if(accel)state.speed+=accel*dt;
+ if(brake)state.speed-=brake*dt;
+ if(!keys.gas&&!keys.brake)state.speed-=Math.sign(state.speed)*Math.min(Math.abs(state.speed),9*dt);
+ state.speed=THREE.MathUtils.clamp(state.speed,-12,28);
+ const target=(keys.left?1:0)-(keys.right?1:0);
+ state.steer=THREE.MathUtils.damp(state.steer,target,7,dt);
+ if(Math.abs(state.speed)>.3)state.angle+=state.steer*dt*(.65+Math.min(Math.abs(state.speed),20)*.025)*Math.sign(state.speed);
+ const nextX=state.x+Math.sin(state.angle)*state.speed*dt;
+ const nextZ=state.z-Math.cos(state.angle)*state.speed*dt;
+ if(Math.abs(nextX)>202||Math.abs(nextZ)>176){state.speed=0}else{state.x=nextX;state.z=nextZ}
+ const d=roadDistance(state.x,state.z);
+ if(d>2.5)state.speed*=Math.pow(.965,dt*60); // Slow on grass.
+ car.position.set(state.x,.1,state.z);car.rotation.y=-state.angle;
+ wheels.forEach(w=>{w.rotation.x+=state.speed*dt/1.2});
+ // The intended task marker needs proximity; no coins or formal rewards in this isolated prototype.
+ const targetTask=tasks[state.next];
+ if(targetTask&&Math.hypot(state.x-targetTask.x,state.z-targetTask.z)<13){
+  state.next++;message(state.next===tasks.length?'🏆 完成一圈探索！可以继续自由开车':'⭐ 已到达 '+targetTask.name+'！下一站已标记');
+ }
+}
+function updateCamera(dt){
+ // 0: higher/longer Cam3 overview; 1: side 3/4 to show front; 2: overhead for road planning.
+ const forward=new THREE.Vector3(Math.sin(state.angle),0,-Math.cos(state.angle));
+ const side=new THREE.Vector3(Math.cos(state.angle),0,Math.sin(state.angle));
+ let pos=new THREE.Vector3(state.x,0,state.z),look=new THREE.Vector3(state.x,0,state.z);
+ if(state.cam===0){pos.addScaledVector(forward,-18).add(new THREE.Vector3(0,12,0));look.addScaledVector(forward,12).y+=2}
+ else if(state.cam===1){pos.addScaledVector(forward,11).addScaledVector(side,13).y+=8;look.y+=2.5}
+ else {pos.y+=61;look.addScaledVector(forward,4)}
+ camera.position.lerp(pos,1-Math.exp(-4*dt));camera.lookAt(look)
+}
+let last=performance.now(),frameCount=0;function animate(now){
+ const dt=Math.min(.05,Math.max(.001,(now-last)/1000));last=now;
+ drive(dt);updateCamera(dt);
+ for(let i=0;i<beacons.length;i++){beacons[i].rotation.y+=dt*.5;beacons[i].position.y=8+Math.sin(now/600+i)*.7}
+ if(now>noticeUntil)$('notice').classList.remove('show');
+ if(frameCount++%6===0){updateUi();drawMap()}
+ renderer.render(scene,camera);requestAnimationFrame(animate)
+}
+window.addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()});
+reset();$('loading').classList.add('hidden');message('地图 V0.1 白模：先从小镇商店出发！');requestAnimationFrame(animate);
+</script></body></html>

@@ -1,0 +1,18 @@
+name: Free exploration whitebox checks
+on:
+  push:
+    branches: [feat/free-explore-v01-map-whitebox-20261114]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate whitebox playable page and save isolation
+        run: node --experimental-vm-modules tests/explore-whitebox-contract.mjs
