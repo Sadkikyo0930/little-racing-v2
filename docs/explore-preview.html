@@ -155,7 +155,8 @@ function drive(dt){
  state.speed=THREE.MathUtils.clamp(state.speed,-12,28);
  const target=(keys.left?1:0)-(keys.right?1:0);
  state.steer=THREE.MathUtils.damp(state.steer,target,7,dt);
- if(Math.abs(state.speed)>.3)state.angle+=state.steer*dt*(.65+Math.min(Math.abs(state.speed),20)*.025)*Math.sign(state.speed);
+ // Heading angle increases clockwise; subtract left steering to turn left.
+ if(Math.abs(state.speed)>.3)state.angle-=state.steer*dt*(.65+Math.min(Math.abs(state.speed),20)*.025)*Math.sign(state.speed);
  const nextX=state.x+Math.sin(state.angle)*state.speed*dt;
  const nextZ=state.z-Math.cos(state.angle)*state.speed*dt;
  if(Math.abs(nextX)>202||Math.abs(nextZ)>176){state.speed=0}else{state.x=nextX;state.z=nextZ}
