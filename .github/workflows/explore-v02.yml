@@ -1,0 +1,18 @@
+name: Explore V0.2 3km mountain and lakeside safety
+on:
+  push:
+    branches: [feat/explore-v02-3km-mountain-lakeside-20261115]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  v02:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Test game route topology, elevation, bumps and family isolation
+        run: node --experimental-vm-modules tests/explore-v02-contract.mjs
