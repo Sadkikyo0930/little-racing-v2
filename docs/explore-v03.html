@@ -78,6 +78,80 @@ function drawRoad(def){
  }
 }
 roads.forEach(drawRoad);
+// A genuine mountainside must support the road, rather than a floating strip.
+// Build widening terrain contours underneath each switchback. The shoulder
+// blends into a cut slope, middle slope, and wide grounded mountain apron.
+const rockSide=M('#8f987f'),rockWall=M('#858b7e'),guardMetal=M('#efe6cd');
+const railPosts=[];
+for(const line of lines.filter(r=>r.kind==='mountain')){
+ const widths=[0,line.width/2+1,line.width/2+14,line.width/2+55,line.width/2+155,line.width/2+300];
+ const drops=[.15,.8,7,28,100,360],verts=[],indices=[];
+ const stride=widths.length*2;
+ for(let i=0;i<line.pts.length;i++){
+  const p=line.pts[i],a=line.pts[Math.max(0,i-1)],b=line.pts[Math.min(i+1,line.pts.length-1)];
+  let nx=-(b[1]-a[1]),nz=b[0]-a[0],l=Math.hypot(nx,nz)||1;nx/=l;nz/=l;
+  for(const sign of [-1,1]){
+   for(let j=0;j<widths.length;j++)verts.push(p[0]+nx*widths[j]*sign,Math.max(-1.5,p[2]-drops[j]),p[1]+nz*widths[j]*sign);
+   if(i%7===0)railPosts.push([p[0]+nx*(line.width/2+1.1)*sign,p[2]+1.2,p[1]+nz*(line.width/2+1.1)*sign]);
+  }
+ }
+ for(let i=0;i<line.pts.length-1;i++)for(let side=0;side<2;side++)for(let j=0;j<widths.length-1;j++){
+  const a=i*stride+side*widths.length+j,b=(i+1)*stride+side*widths.length+j;
+  indices.push(a,a+1,b,a+1,b+1,b);
+ }
+ const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(verts,3));geometry.setIndex(indices);geometry.computeVertexNormals();
+ const slope=part(geometry,rockSide,0,0,0);slope.material.side=T.DoubleSide;slope.frustumCulled=false;
+ // Side rails trace real elevation and help indicate road edges at hairpins.
+ for(const sign of [-1,1]){
+  const rail=[];for(let i=0;i<line.pts.length;i+=2){
+   const p=line.pts[i],a=line.pts[Math.max(0,i-1)],b=line.pts[Math.min(i+1,line.pts.length-1)];
+   let nx=-(b[1]-a[1]),nz=b[0]-a[0],l=Math.hypot(nx,nz)||1;
+   rail.push(p[0]+nx/l*(line.width/2+1.1)*sign,p[2]+2.1,p[1]+nz/l*(line.width/2+1.1)*sign);
+  }
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(rail,3));
+  scene.add(new T.Line(g,new T.LineBasicMaterial({color:'#fff2d9'})));
+ }
+}
+if(railPosts.length){
+ const inst=new T.InstancedMesh(new T.CylinderGeometry(.16,.16,2,5),guardMetal,railPosts.length);
+ const d=new T.Object3D();railPosts.forEach((v,i)=>{d.position.set(...v);d.updateMatrix();inst.setMatrixAt(i,d.matrix)});scene.add(inst);
+}
+// The two tunnels have hollow arches and rocky outer shells; the roadway
+// passes through the cavity without an artificial solid wall.
+const tunnelAxis=[];
+function carveTunnel(roadName,startIndex,endIndex,label){
+ const def=roads.find(r=>r.name===roadName),c=new T.CatmullRomCurve3(def.pts.map(p=>new T.Vector3(p[0],p[2],p[1])),false,'centripetal',.4);
+ const rings=22,arcs=12,inner=[],outer=[],faces=[];
+ for(let i=0;i<=rings;i++){
+  const t=(startIndex+(endIndex-startIndex)*i/rings)/(def.pts.length-1),p=c.getPoint(t),v=c.getTangent(Math.min(.9999,t)),len=Math.hypot(v.x,v.z)||1,nx=-v.z/len,nz=v.x/len;
+  tunnelAxis.push({x:p.x,z:p.z,y:p.y,label});
+  for(let j=0;j<=arcs;j++){
+   const a=Math.PI*j/arcs,side=Math.cos(a),height=Math.sin(a);
+   inner.push(p.x+nx*8.5*side,p.y+.5+9.5*height,p.z+nz*8.5*side);
+   outer.push(p.x+nx*16*side,p.y+.5+16*height,p.z+nz*16*side);
+   if(i<rings&&j<arcs){const k=i*(arcs+1)+j,b=k+arcs+1;faces.push(k,k+1,b,k+1,b+1,b)}
+  }
+  if(i===0||i===rings){
+   const loop=[];for(let k=0;k<=arcs;k++){const a=Math.PI*k/arcs;loop.push(p.x+nx*8.6*Math.cos(a),p.y+.5+9.6*Math.sin(a),p.z+nz*8.6*Math.cos(a))}
+   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(loop,3));
+   scene.add(new T.Line(g,new T.LineBasicMaterial({color:'#fff2ca'})));
+   for(const side of [-1,1]){
+    const buttress=part(new T.ConeGeometry(19,32,8),rockWall,p.x+nx*25*side,p.y+12,p.z+nz*25*side);
+    buttress.rotation.y=.1;
+   }
+  }
+ }
+ for(const [v,m] of [[inner,M('#545d56')],[outer,rockWall]]){
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v,3));g.setIndex(faces);g.computeVertexNormals();
+  const shell=part(g,m,0,0,0);shell.material.side=T.DoubleSide;shell.frustumCulled=false;
+ }
+ for(let k=4;k<rings;k+=5){
+  const p=tunnelAxis[tunnelAxis.length-rings-1+k];
+  part(new T.BoxGeometry(2.5,.3,1),new T.MeshBasicMaterial({color:'#ffecb0'}),p.x,p.y+9.2,p.z);
+ }
+}
+carveTunnel('盘山公路·上山',7.08,7.78,'盘山主隧道');
+carveTunnel('乡村支线',3.24,3.77,'郊外秘密短隧道');
 function closestRoad(x,z){
  let best={distance:Infinity,y:0,kind:'grass',name:'野外'};
  for(const l of lines)for(let i=1;i<l.pts.length;i++){
@@ -91,10 +165,11 @@ function closestRoad(x,z){
 // Actual elevated road needs a visual mountainside beneath it.
 // Each slope column is drawn only every 110m to keep the low-poly prototype light.
 for(const l of lines.filter(x=>x.kind==='mountain')){
- for(let i=3;i<l.pts.length;i+=10){
-  const p=l.pts[i];if(p[2]<12)continue;
-  const radius=32+Math.min(90,p[2]*.27);
-  cone(p[0],p[2]*.42-3,p[1],radius,p[2]*.91,hillMat,7);
+ // Wide sloped mountainsides now carry the road; sparse offset rock masses
+ // add depth without covering the roadway.
+ for(let i=0;i<l.pts.length;i+=40){
+  const p=l.pts[i];if(p[2]<60)continue;
+  cone(p[0]+205,p[2]*.43-3,p[1]+200,90,p[2]*.91,hillMat,7);
  }
 }
 const lake=part(new T.CircleGeometry(355,64),waterMat,-800,-1,655);lake.rotation.x=-Math.PI/2;
