@@ -1,0 +1,20 @@
+name: Explore V0.3 terrain tunnel jump safety
+on:
+  push:
+    branches: [feat/explore-v03-mountain-tunnels-offroad-20261115]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  v03:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate mountain roadbed tunnels and real airborne physics
+        run: node --experimental-vm-modules tests/explore-v03-contract.mjs
+      - name: Validate existing V0.2 stays unchanged
+        run: node --experimental-vm-modules tests/explore-v02-contract.mjs
