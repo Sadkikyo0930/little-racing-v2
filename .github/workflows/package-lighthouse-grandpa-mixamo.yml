@@ -21,24 +21,17 @@ jobs:
           mkdir -p _lighthouse_mixamo_package docs/downloads
           cp docs/assets/lighthouse-grandpa-Bfj9bp4N.glb _lighthouse_mixamo_package/lighthouse-grandpa-original.glb
           test "$(stat -c%s _lighthouse_mixamo_package/lighthouse-grandpa-original.glb)" -eq 541804
-          cat >_lighthouse_mixamo_package/README.txt <<'EOF'
-Lighthouse Grandpa - Original GLB for Mixamo Test
-Source: Sadkikyo0930/little-racing-v2
-Original path: docs/assets/lighthouse-grandpa-Bfj9bp4N.glb
-Git blob SHA: 310edbaabb68a2c4fcca5cc263974ab629c077e5
-Original GLB size: 541804 bytes.
-
-This is the original model copied unchanged from the existing official
-game. No rigging, animation, geometry modifications, or texturing changes
-have been performed in this ZIP.
-
-For Mixamo:
-- Open the GLB in Blender, inspect whether a skeleton/animations exist.
-- If needed export as FBX with textures, and upload FBX to Mixamo.
-- Try auto-rig on a COPY. Preserve original model, facial appearance,
-  materials and UVs. Do not overwrite official GLB or deploy the test.
-- Report rigging success, joints, skin weights, walking, waving and export.
-EOF
+          printf '%s\n' \
+            'Lighthouse Grandpa Original GLB for Mixamo' \
+            'Source: Sadkikyo0930/little-racing-v2' \
+            'Path: docs/assets/lighthouse-grandpa-Bfj9bp4N.glb' \
+            'Git blob SHA: 310edbaabb68a2c4fcca5cc263974ab629c077e5' \
+            'Size: 541804 bytes.' \
+            'This GLB is copied unchanged. No rig or animation applied.' \
+            'For Mixamo use Blender to inspect and export FBX.' \
+            'Test upload, auto-rig, walk and wave on a copy.' \
+            'Do not overwrite the production GLB or deploy the test.' \
+            > _lighthouse_mixamo_package/README.txt
           (cd _lighthouse_mixamo_package && zip -9 -q ../docs/downloads/lighthouse-grandpa-mixamo-test.zip lighthouse-grandpa-original.glb README.txt)
           unzip -t docs/downloads/lighthouse-grandpa-mixamo-test.zip
           sha256sum _lighthouse_mixamo_package/lighthouse-grandpa-original.glb docs/downloads/lighthouse-grandpa-mixamo-test.zip
