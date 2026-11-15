@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -31,9 +33,9 @@ jobs:
       - name: V0.6 must be additive only (never touch the main game or earlier pages)
         if: github.event_name == 'push'
         run: |
-          changed=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")
-          echo "$changed"
-          unexpected=$(printf '%s\n' "$changed" | grep -vE '^(docs/explore-v06\.html|tests/explore-v06-contract\.mjs|\.github/workflows/explore-v06\.yml)$' || true)
+          changed=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" || true)
+          printf '%s\n' "$changed"
+          unexpected=$(printf '%s\n' "$changed" | grep -vE '^(docs/explore-v06\.html|tests/explore-v06-contract\.mjs|\.github/workflows/explore-v06\.yml)$' | grep -v '^$' || true)
           if [ -n "$unexpected" ]; then
             echo "Unexpected files changed:"; echo "$unexpected"; exit 1
           fi
