@@ -1,0 +1,28 @@
+name: Explore V0.4 structure and clearance
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/explore-v04.html'
+      - 'tests/explore-v04-contract.mjs'
+      - '.github/workflows/explore-v04.yml'
+  pull_request:
+    paths:
+      - 'docs/explore-v04.html'
+      - 'tests/explore-v04-contract.mjs'
+permissions:
+  contents: read
+jobs:
+  v04:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate V0.4 tunnel structure, clearance and preserved routes
+        run: node --experimental-vm-modules tests/explore-v04-contract.mjs
+      - name: Keep V0.3 and V0.2 contracts green
+        run: |
+          node --experimental-vm-modules tests/explore-v03-contract.mjs
+          node --experimental-vm-modules tests/explore-v02-contract.mjs
