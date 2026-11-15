@@ -1,0 +1,37 @@
+name: Explore V0.5 art pass isolated
+on:
+  push:
+    branches:
+      - feat/explore-v05-art-pass-20261115
+    paths:
+      - tools/build-explore-v05-art.py
+      - tools/test-explore-v05-art.py
+      - .github/workflows/explore-v05-art.yml
+  pull_request:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Generate isolated V0.5 HTML
+        run: python3 tools/build-explore-v05-art.py
+      - name: Safety and syntax checks
+        run: |
+          python3 tools/test-explore-v05-art.py
+          node --check /tmp/explore-v05-module.mjs
+      - name: Commit only V0.5 preview to isolated branch
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/explore-v05.html
+          if ! git diff --cached --quiet; then
+            git commit -m "feat(explore): generated V0.5 scenic art prototype"
+            git push origin HEAD:feat/explore-v05-art-pass-20261115
+          fi
