@@ -1,0 +1,40 @@
+name: Explore V0.6 boutique showcase
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/explore-v06.html
+      - tests/explore-v06-contract.mjs
+      - .github/workflows/explore-v06.yml
+  pull_request:
+    paths:
+      - docs/explore-v06.html
+      - tests/explore-v06-contract.mjs
+      - .github/workflows/explore-v06.yml
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate V0.6 showcase zones, quick-look, tunnel and preserved driving
+        run: node --experimental-vm-modules tests/explore-v06-contract.mjs
+      - name: Keep V0.4 / V0.3 / V0.2 contracts green
+        run: |
+          node --experimental-vm-modules tests/explore-v04-contract.mjs
+          node --experimental-vm-modules tests/explore-v03-contract.mjs
+          node --experimental-vm-modules tests/explore-v02-contract.mjs
+      - name: V0.6 must be additive only (never touch the main game or earlier pages)
+        if: github.event_name == 'push'
+        run: |
+          changed=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")
+          echo "$changed"
+          unexpected=$(printf '%s\n' "$changed" | grep -vE '^(docs/explore-v06\.html|tests/explore-v06-contract\.mjs|\.github/workflows/explore-v06\.yml)$' || true)
+          if [ -n "$unexpected" ]; then
+            echo "Unexpected files changed:"; echo "$unexpected"; exit 1
+          fi
+          echo "ADDITIVE_ONLY_OK"

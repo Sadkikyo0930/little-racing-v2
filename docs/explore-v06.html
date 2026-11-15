@@ -1,0 +1,1191 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#f2dfc4"><link rel="icon" href="data:,"><title>小小赛车 V2 · 自由探索 V0.6 · 精品样板区</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;overflow:hidden;width:100%;height:100%;touch-action:none;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",system-ui,sans-serif;color:#27384a;background:#cfe3ea}canvas#scene{position:fixed;inset:0;width:100%;height:100%;display:block}button{font:inherit;cursor:pointer;user-select:none;-webkit-user-select:none}
+#top{position:fixed;top:calc(9px + env(safe-area-inset-top,0px));left:calc(9px + env(safe-area-inset-left,0px));right:calc(9px + env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none}
+.panel{background:linear-gradient(160deg,#fffdf8f4,#eef6f4e8);border:1px solid #ffffff;border-radius:16px;box-shadow:0 8px 26px #21445c30,inset 0 1px 0 #fff;backdrop-filter:blur(12px);padding:11px 14px;pointer-events:auto}
+h1{font-size:16px;margin:0 0 5px;letter-spacing:.3px}#sub{font-size:11px;color:#6c8496;margin:0 0 8px}#telemetry{font-size:13px;font-weight:800;color:#1f5c6d}#region{font-size:11px;margin-top:5px;color:#a06a3c;font-weight:750}
+#mapPanel{text-align:center}#map{width:158px;height:158px;display:block;border-radius:12px;background:#e7f0e2}#task{font-size:11px;text-align:center;max-width:158px;margin-top:5px;color:#4a6a78;font-weight:700}
+#zones{position:fixed;right:calc(10px + env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:5px;z-index:5;max-height:calc(100vh - 250px);overflow-y:auto;scrollbar-width:none}#zones::-webkit-scrollbar{display:none}
+#zones .cap{font-size:10px;font-weight:850;color:#3d6070;text-align:center;letter-spacing:2px;background:#ffffffd8;border-radius:9px;padding:3px 0;border:1px solid #fff;box-shadow:0 2px 8px #21445c22}
+#zones button{background:linear-gradient(150deg,#fffdf9f2,#e9f4f2ea);border:1px solid #ffffff;border-radius:12px;box-shadow:0 3px 10px #21445c2b;padding:7px 10px;font-weight:850;font-size:11.5px;color:#24485a;min-width:112px;text-align:left;transition:transform .14s,box-shadow .14s,background .14s}
+#zones button:hover{transform:translateX(-3px);box-shadow:0 5px 16px #21445c3c}
+#zones button.on{background:linear-gradient(150deg,#ffe6b8,#ffd08a);color:#5b3a15;border-color:#fff2d6}
+#zones button.mini{min-width:112px;font-size:10.5px;padding:5px 10px;background:#ffffffd9}
+#zones .sep{height:1px;background:#ffffffaa;margin:2px 8px}
+#hint{position:fixed;left:50%;bottom:calc(104px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-size:11px;color:#ffffff;background:#24485a99;padding:5px 13px;border-radius:20px;pointer-events:none;backdrop-filter:blur(6px)}
+#controls{position:fixed;bottom:calc(13px + env(safe-area-inset-bottom,0px));left:calc(12px + env(safe-area-inset-left,0px));right:calc(12px + env(safe-area-inset-right,0px));display:flex;justify-content:space-between;pointer-events:none}
+.group{display:flex;align-items:flex-end;gap:9px}.ctrl{width:66px;height:66px;touch-action:none;pointer-events:auto;border:2px solid #ffffff;background:#ffffffdf;border-radius:19px;box-shadow:0 4px 0 #8fb2c4,0 7px 16px #21445c33;color:#1e4a60;font-size:24px;font-weight:850}.ctrl.on{background:#ffe18a;transform:translateY(2px)}.ctrl.gas{width:80px;height:84px;background:linear-gradient(160deg,#b6f2c9,#7ddda6);font-size:16px}.ctrl.brake{height:69px;background:linear-gradient(160deg,#ffd2c8,#ffb2a5);font-size:14px}
+#toast{position:fixed;left:50%;top:22%;transform:translateX(-50%);background:linear-gradient(150deg,#fff9e9f5,#ffe9bfe8);border:2px solid #f0c86d;padding:12px 20px;border-radius:18px;font-weight:850;text-align:center;max-width:78%;display:none;pointer-events:none;box-shadow:0 8px 24px #21445c33;color:#6b481c}#toast.show{display:block}
+#tunnelShade{position:fixed;inset:0;pointer-events:none;background:#071522;opacity:0;transition:opacity .35s}
+#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 52%,#173b4b24 100%)}
+#loading{position:fixed;inset:0;display:grid;place-items:center;z-index:99;background:linear-gradient(160deg,#f7e7cd,#bcdcea);font-size:20px;font-weight:900;color:#31576a}
+@media(max-width:720px){#top{top:4px}h1{font-size:12px}#sub{font-size:9px}.panel{padding:6px 8px}#map{width:98px;height:98px}#task{font-size:9px;max-width:98px}#telemetry{font-size:11px}#zones{right:6px;gap:4px}#zones button{min-width:86px;font-size:10px;padding:6px 7px}#zones .cap{font-size:9px}#zones button.mini{min-width:86px;font-size:9px;padding:5px 7px}.ctrl{height:52px;width:52px;border-radius:15px}#hint{display:none}}
+</style></head><body>
+<canvas id="scene"></canvas><div id="loading">正在绘制 V0.6 精品样板区…</div>
+<header id="top"><section class="panel"><h1>🚗 自由探索 V0.6 · 精品样板区</h1><p id="sub">少而精 · 四个近距离高品质场景 · 出生点 1 分钟看完</p><div id="telemetry">速度 0 km/h · 海拔 0 m</div><div id="region">🏛 中央广场 / 出生点</div></section>
+<section class="panel" id="mapPanel"><canvas id="map" width="216" height="216" aria-label="样板区小地图"></canvas><div id="task">点右侧按钮一键跳转</div></section></header>
+<div id="zones"><div class="cap">快速跳转</div>
+<button data-zone="lake">🏞 湖边公路</button><button data-zone="tunnel">⛰ 山路隧道</button>
+<button data-zone="town">🏘 小镇街道</button><button data-zone="light">🗼 灯塔广场</button>
+<div class="sep"></div><button data-zone="home" class="mini">🏛 回中央广场</button>
+<div class="sep"></div><div class="cap">预设机位</div>
+<button data-view="lake" class="mini">📷 湖景</button><button data-view="tunnel" class="mini">📷 洞口</button>
+<button data-view="town" class="mini">📷 街道</button><button data-view="light" class="mini">📷 灯塔</button>
+<div class="sep"></div><button id="drive" class="mini">🎥 回到驾驶</button><button id="cam" class="mini">🔄 切换视角</button></div>
+<div id="hint">键盘 1 / 2 / 3 / 4 也可跳转 · 0 回中央</div>
+<div id="tunnelShade"></div><div id="vignette"></div><div id="toast" role="status"></div>
+<div id="controls"><div class="group"><button class="ctrl" data-key="left">◀</button><button class="ctrl" data-key="right">▶</button></div><div class="group"><button class="ctrl brake" data-key="brake">刹车</button><button class="ctrl gas" data-key="gas">加速</button></div></div>
+<script type="module">
+import * as T from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
+/* ==================== 0. 渲染基础：渐变天空 / 黄昏光 / 阴影 / 精致材质 ==================== */
+const $=id=>document.getElementById(id),renderer=new T.WebGLRenderer({canvas:$('scene'),antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.23;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
+const scene=new T.Scene();scene.background=new T.Color('#cfe3ea');scene.fog=new T.Fog('#d6e5e6',380,1150);
+const camera=new T.PerspectiveCamera(60,innerWidth/innerHeight,.1,2600);
+// 渐变天空球（替代纯色背景，是 V0.6 画面质感的第一层）
+const sky=new T.Mesh(new T.SphereGeometry(1600,32,20),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,
+ uniforms:{top:{value:new T.Color('#78b4dd')},mid:{value:new T.Color('#dce9e5')},low:{value:new T.Color('#ffe3ba')}},
+ vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+ fragmentShader:'varying vec3 vP;uniform vec3 top,mid,low;void main(){float h=normalize(vP).y;vec3 c=mix(low,mid,smoothstep(-0.12,0.30,h));c=mix(c,top,smoothstep(0.22,0.85,h));gl_FragColor=vec4(c,1.0);}'}));
+sky.frustumCulled=false;scene.add(sky);
+const hemi=new T.HemisphereLight(0xfff3df,0x7d9b83,2.15);scene.add(hemi);
+const sun=new T.DirectionalLight(0xffd9a0,2.55);sun.position.set(-330,420,250);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-520;sun.shadow.camera.right=520;sun.shadow.camera.top=520;sun.shadow.camera.bottom=-520;
+sun.shadow.camera.near=1;sun.shadow.camera.far=1300;sun.shadow.bias=-.0006;sun.shadow.normalBias=.045;scene.add(sun);
+const fill=new T.DirectionalLight(0xc7e6ff,.62);fill.position.set(280,240,-330);scene.add(fill);
+const M=(c,o={})=>new T.MeshStandardMaterial({color:c,roughness:.86,...o});
+const geoBox=(w,h,d)=>new T.BoxGeometry(w,h,d);
+function part(g,m,x,y,z){const o=new T.Mesh(g,m);o.position.set(x,y,z);scene.add(o);return o}
+function cube(x,y,z,w,h,d,m){return part(geoBox(w,h,d),m,x,y,z)}
+function cyl(x,y,z,r,h,m,n=14){return part(new T.CylinderGeometry(r,r,h,n),m,x,y,z)}
+function ball(x,y,z,r,m,d=1){return part(new T.IcosahedronGeometry(r,d),m,x,y,z)}
+function ribbon(rows,m,uvScale=0){
+ const v=[],u=[],idx=[];
+ rows.forEach((r,i)=>{v.push(...r[0],...r[1]);u.push(0,i/(uvScale||1),1,i/(uvScale||1));
+  if(i<rows.length-1){const k=2*i;idx.push(k,k+1,k+2,k+1,k+3,k+2)}});
+ if(!v.length)return null;
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v,3));
+ g.setAttribute('uv',new T.Float32BufferAttribute(u,2));g.setIndex(idx);g.computeVertexNormals();
+ const o=part(g,m,0,0,0);o.material.side=T.DoubleSide;o.frustumCulled=false;return o;
+}
+function instanced(geo,mat,list,fn){
+ if(!list||!list.length)return null;
+ const im=new T.InstancedMesh(geo,mat,list.length),d=new T.Object3D();
+ list.forEach((v,i)=>{d.position.set(0,0,0);d.rotation.set(0,0,0);d.scale.set(1,1,1);fn(d,v,i);d.updateMatrix();im.setMatrixAt(i,d.matrix)});
+ im.instanceMatrix.needsUpdate=true;im.frustumCulled=false;scene.add(im);return im;
+}
+let seed=60321;function rnd(){seed=(1664525*seed+1013904223)>>>0;return seed/4294967296}
+function texCanvas(w,h,paint){const c=document.createElement('canvas');c.width=w;c.height=h;paint(c.getContext('2d'),w,h);const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;return t}
+function speckleTex(base,palette,count){return texCanvas(256,256,(g,w,h)=>{g.fillStyle=base;g.fillRect(0,0,w,h);for(let i=0;i<count;i++){const x=rnd()*w,y=rnd()*h,r=.6+rnd()*3;g.fillStyle=palette[Math.floor(rnd()*palette.length)];g.beginPath();g.arc(x,y,r,0,6.2832);g.fill()}})}
+function labelTex(text,bg='#39483f',fg='#ffe9b8'){
+ const t=texCanvas(512,160,(g,w,h)=>{g.fillStyle=bg;g.fillRect(0,0,w,h);g.strokeStyle=fg;g.lineWidth=8;g.strokeRect(9,9,w-18,h-18);g.fillStyle=fg;g.font='bold 64px "PingFang SC","Microsoft YaHei",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(text,w/2,h/2+3)});return t;
+}
+function stripeTex(a,b,n=8,vertical=false){return texCanvas(256,256,(g,w,h)=>{g.fillStyle=a;g.fillRect(0,0,w,h);g.fillStyle=b;const s=w/n;for(let i=0;i<n;i+=2){if(vertical)g.fillRect(i*s,0,s,h);else g.fillRect(0,i*s,w,s)}})}
+const PALETTE={stone:'#f0e6d0',stoneDark:'#cdbfa4',wood:'#a4784c',woodDark:'#6d4d33',cream:'#fff4dc',mint:'#8fc5a3',rose:'#e79a8e',terracotta:'#d98b63',butter:'#f2cf82',slate:'#6f7d80',leaf:'#6fa268',leafDark:'#4e855d',glass:'#a8dbe8',red:'#d9554d'};
+const gravelTex=speckleTex('#b39a76',['#cdb78e','#917a58','#e0cda7','#79634a','#ab926e'],1900);
+const gravelMat=new T.MeshStandardMaterial({map:gravelTex,roughness:1,vertexColors:true,side:T.DoubleSide});
+const roadMat=new T.MeshStandardMaterial({color:'#6f757a',roughness:.94,side:T.DoubleSide});
+const edgeMat=new T.MeshStandardMaterial({color:'#fff6e2',roughness:.75,side:T.DoubleSide,emissive:'#4a4028',emissiveIntensity:.08});
+const midMat=new T.MeshStandardMaterial({color:'#ffe6a4',roughness:.8,side:T.DoubleSide});
+const stoneMat=M(PALETTE.stone,{roughness:.92}),stoneDarkMat=M(PALETTE.stoneDark),woodMat=M(PALETTE.wood),woodDarkMat=M(PALETTE.woodDark);
+const rockMat=M('#9aa094',{roughness:1,flatShading:true});
+const leafMats=['#7fb56e','#6da56a','#8ec079','#5f9765'].map(c=>M(c,{roughness:.95}));
+const trunkMat=M('#9a7550');
+const grassMat=M('#9dc38a',{roughness:1});
+// 主地面 + 一层柔和的地形色斑，避免大块纯色
+const ground=new T.Mesh(new T.PlaneGeometry(2600,2600),grassMat);ground.rotation.x=-Math.PI/2;ground.position.y=-2;ground.receiveShadow=true;scene.add(ground);
+const groundPatchTex=speckleTex('#9dc38a',['#a8cb92','#8fb57c','#b0cf97','#8ab079'],2600);
+const groundPatch=new T.Mesh(new T.PlaneGeometry(2600,2600),new T.MeshStandardMaterial({map:groundPatchTex,roughness:1,transparent:true,opacity:.5}));
+groundPatch.rotation.x=-Math.PI/2;groundPatch.position.y=-1.96;scene.add(groundPatch);
+// 程序化水面：渐变 + 双频波纹高光 + 菲涅尔 + 浅滩，明显区别于 V0.5 的纯色圆片
+const waterUniforms={uTime:{value:0},uShallow:{value:new T.Color('#a9f2dd')},uDeep:{value:new T.Color('#2d8fb8')},uSun:{value:new T.Color('#fff6d8')}};
+function waterMaterial(){
+ return new T.ShaderMaterial({transparent:true,side:T.DoubleSide,uniforms:waterUniforms,
+  vertexShader:'varying vec2 vU;varying vec3 vW;void main(){vU=uv;vec4 w=modelMatrix*vec4(position,1.0);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
+  fragmentShader:`varying vec2 vU;varying vec3 vW;uniform float uTime;uniform vec3 uShallow,uDeep,uSun;
+   void main(){vec2 p=vW.xz;float t=uTime;
+    float w=sin(p.x*.085+t*1.15)*.5+sin(p.y*.103-t*.9)*.5+sin((p.x+p.y)*.055+t*.6)*.35;
+    float w2=sin(p.x*.31-t*1.9)*sin(p.y*.27+t*1.5);
+    float edge=length(vU-.5)*2.0;
+    vec3 col=mix(uDeep,uShallow,clamp(.16+w*.18+edge*.52,0.0,1.0));
+    float glint=pow(max(0.0,sin(p.x*.21+t*1.4)*sin(p.y*.19-t*1.1)),14.0);
+    col+=uSun*glint*.42;col+=uSun*pow(max(0.0,w2),9.0)*.09;
+    float foam=smoothstep(.86,1.0,edge+w*.05);col=mix(col,vec3(.93,.98,.97),foam*.6);
+    gl_FragColor=vec4(col,.93);}`});
+}
+const WATER_MAT=waterMaterial();
+const LAKE={x:-275,z:255,r:88},SEA={x:-1000,z:-800,r:800};
+const inWater=(x,z,r=0)=>Math.hypot(x-LAKE.x,z-LAKE.z)<LAKE.r+r||Math.hypot(x-SEA.x,z-SEA.z)<SEA.r+r;
+/* ==================== 1. 紧凑精品岛路网：四区环抱出生点，最远约 330 m ==================== */
+const roads=[
+{name:'中央环线',kind:'asphalt',width:15,pts:[[0,128,1],[66,111,1],[111,66,1],[128,0,1],[111,-66,1],[66,-111,1],[0,-128,1],[-66,-111,1],[-111,-66,1],[-128,0,1],[-111,66,1],[-66,111,1],[0,128,1]]},
+{name:'湖畔精品公路',kind:'gravel',width:13,pts:[[-66,111,1],[-105,150,2],[-140,200,3],[-150,260,4],[-135,320,3],[-95,360,2],[-40,345,2],[-15,285,1],[-20,200,1],[-15,150,1],[0,128,1]]},
+{name:'盘山隧道公路',kind:'mountain',width:12,pts:[[66,111,1],[120,135,7],[175,165,18],[235,180,31],[295,205,45],[320,265,58],[285,320,70],[225,340,80],[180,300,86],[175,240,90],[215,195,94],[275,180,97],[320,220,99],[300,285,92],[245,330,80],[175,335,62],[115,285,38],[95,215,15],[111,66,1]]},
+{name:'小镇主街',kind:'asphalt',width:16,pts:[[0,-128,1],[0,-200,1],[0,-275,1],[0,-350,1]]},
+{name:'小镇环街',kind:'asphalt',width:11,pts:[[0,-200,1],[-95,-205,1],[-115,-285,1],[-65,-355,1],[0,-350,1],[65,-355,1],[115,-285,1],[95,-205,1],[0,-200,1]]},
+{name:'灯塔海崖路',kind:'asphalt',width:12,pts:[[-66,-111,1],[-130,-160,2],[-205,-215,3],[-275,-265,3],[-300,-235,3]]},
+{name:'海岸连接线',kind:'asphalt',width:11,pts:[[0,-350,1],[-130,-375,2],[-245,-355,3],[-300,-235,3]]}
+];
+/* ==================== 2. 隧道轴线：与道路同一条曲线，采样点严格对齐（V0.4 机制保留） ==================== */
+const TUN_W=15,TUN_WALL=4.6,TUN_TOP=10.2,SHELL=3.2,DECK_LIFT=.11;
+const TUNNEL_DEFS=[{road:'盘山隧道公路',a:9.05,b:10.85,name:'松云岭精品隧道',portal:'松云岭',len:'320 m',exit:'valley'}];
+const METAS=roads.map(def=>({def,curve:new T.CatmullRomCurve3(def.pts.map(p=>new T.Vector3(p[0],p[2],p[1])),false,'centripetal',.4),n:0}));
+METAS.forEach(m=>{m.n=Math.max(120,Math.ceil(m.curve.getLength()/11))});
+const TUNNELS=TUNNEL_DEFS.map(td=>{
+ const m=METAS.find(x=>x.def.name===td.road),seg=m.def.pts.length-1;
+ const iA=Math.round(td.a/seg*m.n),iB=Math.round(td.b/seg*m.n),t0=iA/m.n,t1=iB/m.n;
+ const rings=Math.max(18,Math.ceil((t1-t0)*m.curve.getLength()/5)),axis=[];
+ for(let i=0;i<=rings;i++){
+  const t=t0+(t1-t0)*i/rings,p=m.curve.getPoint(t),v=m.curve.getTangent(Math.min(t,.99999)),l=Math.hypot(v.x,v.z)||1;
+  axis.push({x:p.x,z:p.z,y:p.y,nx:-v.z/l,nz:v.x/l,y0:p.y+DECK_LIFT,t});
+ }
+ return {...td,meta:m,iA,iB,t0,t1,rings,axis,W:TUN_W,wall:TUN_WALL,top:TUN_TOP};
+});
+function tunnelAt(x,z){
+ let best=null;
+ for(const t of TUNNELS)for(let k=0;k<t.axis.length;k++){
+  const a=t.axis[k],dx=x-a.x,dz=z-a.z,d2=dx*dx+dz*dz;
+  if(!best||d2<best.d2)best={t,k,d2,dx,dz,a};
+ }
+ if(!best||best.d2>3600)return null;
+ const {t,k,dx,dz,a}=best;
+ return {t,k,a,dist:Math.sqrt(best.d2),lat:dx*a.nx+dz*a.nz,along:dx*a.nz-dz*a.nx,y0:a.y0,W:t.W,top:t.top,inside:k>0&&k<t.axis.length-1};
+}
+function intrudesTunnel(x,y,z,r){
+ for(const t of TUNNELS)for(let k=0;k<t.axis.length;k+=2){
+  const a=t.axis[k],dx=x-a.x,dz=z-a.z,lat=Math.abs(dx*a.nx+dz*a.nz),along=Math.abs(dx*a.nz-dz*a.nx);
+  if(along>r+9)continue;
+  if(lat-r<t.W/2-.4&&y-r<a.y0+t.top-.4&&y+r>a.y0+.25)return true;
+ }
+ return false;
+}
+// 隧道净空盒：所有山体坡面逐四边形裁切，杜绝 V0.3 的「边坡横穿隧道」穿模
+function tunnelVolumeNear(x,z,y){
+ for(const t of TUNNELS)for(let k=0;k<t.axis.length;k+=2){
+  const a=t.axis[k],dx=x-a.x,dz=z-a.z;
+  if(Math.abs(dx*a.nz-dz*a.nx)>26)continue;
+  if(Math.abs(dx*a.nx+dz*a.nz)<t.W/2+24&&y>a.y0-46&&y<a.y0+t.top+34)return true;
+ }
+ return false;
+}
+/* ==================== 3. 道路网格：隧道段挖空 + 湖畔真实多频起伏 + 统一净空 ==================== */
+const lines=[],AUDIT={obstacles:[],rejected:0,deckGaps:0};
+const GRAVEL_CRESTS=[70,170,280,390];
+function drawRoad(m){
+ const {def,curve,n}=m,tun=TUNNELS.find(t=>t.meta===m),length=curve.getLength();
+ const vertices=[],uvs=[],colors=[],indices=[],points=[],cum=[],edgeRuns=[[],[]],midPts=[];
+ let runL=[],runR=[];
+ const flush=()=>{if(runL.length>1)edgeRuns[0].push(runL);if(runR.length>1)edgeRuns[1].push(runR);runL=[];runR=[]};
+ for(let i=0;i<=n;i++){
+  const t=i/n,p=curve.getPoint(t),tan=curve.getTangent(Math.min(t,.99999));
+  const nx=-tan.z,nz=tan.x,norm=Math.hypot(nx,nz)||1,ux=nx/norm,uz=nz/norm,half=def.width/2,meters=t*length;
+  if(def.kind==='gravel'){
+   for(const center of GRAVEL_CRESTS){const u=Math.abs(meters-center)/28;if(u<1)p.y+=4.2*Math.pow(1-u*u,2)}
+   p.y+=.42*Math.sin(meters*.071)+.26*Math.sin(meters*.19+1.7)+.14*Math.sin(meters*.47+.5);
+  }
+  const wobble=def.kind==='gravel'?.34*Math.sin(meters*.13)+.18*Math.sin(meters*.31+2.2):0;
+  const wobbleR=def.kind==='gravel'?.31*Math.sin(meters*.11+1.1)+.17*Math.sin(meters*.29):0;
+  vertices.push(p.x+ux*(half+wobble),p.y+DECK_LIFT,p.z+uz*(half+wobble),p.x-ux*(half+wobbleR),p.y+DECK_LIFT,p.z-uz*(half+wobbleR));
+  const v=meters/8;uvs.push(0,v,1,v);
+  if(def.kind==='gravel'){const s=.86+.14*Math.sin(meters*.23)+.07*Math.sin(meters*.71);colors.push(s,s*.98,s*.92,s*.94,s,s*.9)}
+  points.push([p.x,p.z,p.y]);cum.push(meters);
+  const skip=!!tun&&i>=tun.iA&&i<tun.iB;
+  if(skip){flush();AUDIT.deckGaps++}else{
+   if(i<n){const k=2*i;indices.push(k,k+1,k+2,k+1,k+3,k+2)}
+   const ey=p.y+DECK_LIFT+.075;
+   runL.push([[p.x+ux*(half-.05),ey,p.z+uz*(half-.05)],[p.x+ux*(half-.46),ey,p.z+uz*(half-.46)]]);
+   runR.push([[p.x-ux*(half-.05),ey,p.z-uz*(half-.05)],[p.x-ux*(half-.46),ey,p.z-uz*(half-.46)]]);
+   if(i%10<4){const ly=p.y+DECK_LIFT+.078;midPts.push(p.x-tan.x*3,ly,p.z-tan.z*3,p.x+tan.x*3,ly,p.z+tan.z*3)}
+  }
+ }
+ flush();
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(vertices,3));
+ g.setAttribute('uv',new T.Float32BufferAttribute(uvs,2));
+ if(colors.length)g.setAttribute('color',new T.Float32BufferAttribute(colors,3));
+ g.setIndex(indices);g.computeVertexNormals();
+ const mesh=part(g,def.kind==='gravel'?gravelMat:roadMat,0,0,0);mesh.frustumCulled=false;mesh.receiveShadow=true;
+ lines.push({name:def.name,kind:def.kind,width:def.width,half:def.width/2,pts:points,cum});
+ for(const runs of edgeRuns)for(const run of runs)ribbon(run,edgeMat,9);
+ if(midPts.length){const mg=new T.BufferGeometry();mg.setAttribute('position',new T.Float32BufferAttribute(midPts,3));scene.add(new T.LineSegments(mg,new T.LineBasicMaterial({color:'#fff0bd',transparent:true,opacity:.85})))}
+}
+METAS.forEach(drawRoad);
+function closestRoad(x,z){
+ let best={distance:Infinity,y:0,kind:'grass',name:'草地',half:0,bend:0,px:x,pz:z,m:0};
+ for(const l of lines)for(let i=1;i<l.pts.length;i++){
+  const a=l.pts[i-1],b=l.pts[i],vx=b[0]-a[0],vz=b[1]-a[1],len=vx*vx+vz*vz||1,cm0=l.cum[i-1],cm1=l.cum[i];
+  const t=Math.max(0,Math.min(1,((x-a[0])*vx+(z-a[1])*vz)/len));
+  const dis=Math.hypot(x-a[0]-t*vx,z-a[1]-t*vz);
+  if(dis<best.distance){
+   let bend=0;
+   if(i>1&&i<l.pts.length-1){
+    const p=l.pts[i-2],q=l.pts[i+1],v1x=a[0]-p[0],v1z=a[1]-p[1],v2x=q[0]-b[0],v2z=q[1]-b[1];
+    const n1=Math.hypot(v1x,v1z)||1,n2=Math.hypot(v2x,v2z)||1;
+    bend=Math.max(0,1-(v1x*v2x+v1z*v2z)/(n1*n2));
+   }
+   best={distance:dis,y:a[2]+t*(b[2]-a[2]),kind:l.kind,name:l.name,half:l.half,bend,px:a[0]+t*vx,pz:a[1]+t*vz,m:cm0+t*(cm1-cm0)};
+  }
+ }
+ return best;
+}
+/* 统一静态物体净空：路半宽 + 半径 + 基础余量 + 山地/碎石/弯道附加余量 + 隧道/水面/边界禁入 */
+function clearance(x,z,y,r,margin=3){
+ const c=closestRoad(x,z);
+ const need=c.half+r+margin+(c.kind==='mountain'?4:0)+(c.kind==='gravel'?3:0)+c.bend*7;
+ const vol=intrudesTunnel(x,y,z,r),water=inWater(x,z,r);
+ const ok=c.distance>=need&&!vol&&!water&&Math.abs(x)<1150&&Math.abs(z)<1150;
+ return {ok,distance:c.distance,need,y:c.y,kind:c.kind};
+}
+function place(x,z,y,r,kind,build,margin=3){
+ const c=clearance(x,z,y,r,margin);
+ if(!c.ok){AUDIT.rejected++;return false}
+ AUDIT.obstacles.push({x:+x.toFixed(1),z:+z.toFixed(1),y:+y.toFixed(1),r:+r.toFixed(1),kind,distance:+c.distance.toFixed(2),need:+c.need.toFixed(2),ok:true});
+ if(build)build();return true;
+}
+/* ==================== 4. 通用高品质组件：圆球冠树 / 花簇 / 岩石 / 护栏 / 路灯 ==================== */
+const TREES=[],FLOWERS=[],ROCKS=[],GUARD_POSTS=[],GUARD_CAPS=[],GUARD_BEAMS=[],LAMPS=[];
+const PETAL=['#ff9fb0','#ffd873','#fff3e2','#c3a8e6','#ffb27f','#9fd8e8'].map(c=>new T.Color(c));
+const LEAF=['#7fb56e','#8ec079','#6da56a','#59a06a','#93c584'].map(c=>new T.Color(c));
+const ROCKCOL=['#a9a99a','#8f988f','#bdb8a6','#7f8a80','#cfc7b1'].map(c=>new T.Color(c));
+const tree=(x,z,y,s=1,tint=0)=>TREES.push([x,z,y,9*s,s,tint]);
+const flower=(x,z,y,s=1,tint=0)=>FLOWERS.push([x,z,y,s,tint]);
+const rockAt=(x,z,y,r,tint=0)=>ROCKS.push([x,z,y,r,tint]);
+// 路肩安全护栏：位于路半宽 +2.1 m，属于道路设施而非车道障碍
+function guardAlong(lineName,from,to,side){
+ const l=lines.find(q=>q.name===lineName);if(!l)return;
+ const step=Math.max(1,Math.round(l.pts.length/110));
+ for(let i=1;i<l.pts.length-step;i+=step){
+  const t=i/(l.pts.length-1);if(t<from||t>to)continue;
+  const a=l.pts[i-1],b=l.pts[i],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz)||1;
+  const ux=dx/len,uz=dz/len,nx=-uz,nz=ux,off=(l.half+2.1)*side;
+  const x=a[0]+nx*off,z=a[1]+nz*off,y=a[2];
+  if(intrudesTunnel(x,y+1,z,1.4)||inWater(x,z,1))continue;
+  const rot=-Math.atan2(dz,dx);
+  GUARD_POSTS.push([x,y+1.2,z,rot]);GUARD_CAPS.push([x,y+2.5,z,rot]);
+  GUARD_BEAMS.push([a[0]+nx*off+ux*len*.5,y+1.72,a[1]+nz*off+uz*len*.5,rot,len]);
+ }
+}
+function lampPost(x,z,y,style=0){
+ LAMPS.push([x,z,y,style]);
+ return place(x,z,y+2,1.1,'street-lamp',null,2.6);
+}
+function bench(x,z,y,rot=0){
+ const g=new T.Group();g.position.set(x,y,z);g.rotation.y=rot;scene.add(g);
+ const add=(w,h,d,px,py,pz,m)=>{const o=new T.Mesh(geoBox(w,h,d),m);o.position.set(px,py,pz);o.castShadow=true;g.add(o);return o};
+ add(9,.55,2.4,0,1.3,0,woodMat);add(9,2.1,.45,0,2.35,-1,woodMat);
+ for(const dx of [-3.6,3.6]){add(.5,1.3,2.1,dx,.65,0,woodDarkMat);add(.5,2.4,.45,dx,2.4,-1,woodDarkMat)}
+}
+function planter(x,z,y,w=5,d=3){
+ cube(x,y+.8,z,w,1.6,d,stoneDarkMat);cube(x,y+1.7,z,w+.5,.35,d+.5,stoneMat);
+ for(let i=0;i<7;i++){const px=x+(rnd()-.5)*w*.8,pz=z+(rnd()-.5)*d*.7;
+  ball(px,y+2.3+rnd()*.5,pz,.55+rnd()*.35,M(PETAL[Math.floor(rnd()*PETAL.length)].getStyle()))}
+}
+function signBoard(x,z,y,rot,text,bg='#3e5a52',fg='#ffe9b8',w=13,h=4){
+ cyl(x,y+3,z,.35,6,woodDarkMat,8);
+ const p=part(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:labelTex(text,bg,fg),side:T.DoubleSide}),x,y+7,z);
+ p.rotation.y=rot;return p;
+}
+function warnSign(x,z,y,rot){
+ cyl(x,y+3,z,.28,6,stoneMat,8);
+ const s=new T.Shape();s.moveTo(0,3.1);s.lineTo(2.9,-2.3);s.lineTo(-2.9,-2.3);s.closePath();
+ const g=new T.ExtrudeGeometry(s,{depth:.3,bevelEnabled:true,bevelSize:.18,bevelThickness:.18,bevelSegments:1});
+ const o=part(g,M('#f6cf58',{emissive:'#6b5010',emissiveIntensity:.12}),x,y+6.2,z);o.rotation.y=rot;o.castShadow=true;
+}
+function buildCommons(){
+ const d=new T.Object3D();
+ if(TREES.length){
+  const tr=new T.InstancedMesh(new T.CylinderGeometry(.44,.66,1,7),trunkMat,TREES.length);
+  const cr=new T.InstancedMesh(new T.IcosahedronGeometry(1,2),M('#ffffff',{roughness:.96}),TREES.length*4);
+  let ci=0;
+  TREES.forEach((v,i)=>{
+   const [x,z,y,h,s,tint]=v;
+   d.rotation.set(0,i*.61,0);d.position.set(x,y+h*.38,z);d.scale.set(s,h*.76,s);d.updateMatrix();tr.setMatrixAt(i,d.matrix);
+   for(let k=0;k<4;k++){
+    const ang=k*1.57+i*.27,rr=k===0?0:h*.26;
+    d.rotation.set(0,ang,0);d.position.set(x+Math.cos(ang)*rr,y+h*(.76+(k%2)*.1),z+Math.sin(ang)*rr);
+    const q=k===0?.36:.27;d.scale.set(h*q,h*q*.86,h*q);d.updateMatrix();cr.setMatrixAt(ci,d.matrix);
+    cr.setColorAt(ci,LEAF[(tint+k)%LEAF.length]);ci++;
+   }
+  });
+  tr.instanceMatrix.needsUpdate=true;cr.instanceMatrix.needsUpdate=true;cr.instanceColor.needsUpdate=true;
+  tr.castShadow=true;cr.castShadow=true;scene.add(tr,cr);
+ }
+ if(FLOWERS.length){
+  const fm=new T.InstancedMesh(new T.IcosahedronGeometry(.38,1),M('#ffffff',{roughness:.95}),FLOWERS.length);
+  const sm=new T.InstancedMesh(new T.CylinderGeometry(.1,.15,1,4),M('#6ba16a'),FLOWERS.length);
+  FLOWERS.forEach((v,i)=>{
+   const [x,z,y,s,tint]=v;
+   d.rotation.set(0,i*.7,0);d.position.set(x,y+.5*s,z);d.scale.setScalar(s);d.updateMatrix();fm.setMatrixAt(i,d.matrix);fm.setColorAt(i,PETAL[tint%PETAL.length]);
+   d.rotation.set(0,0,0);d.position.set(x,y+.18,z);d.scale.set(s*.7,s*.72,s*.7);d.updateMatrix();sm.setMatrixAt(i,d.matrix);
+  });
+  fm.instanceMatrix.needsUpdate=true;fm.instanceColor.needsUpdate=true;sm.instanceMatrix.needsUpdate=true;scene.add(fm,sm);
+ }
+ if(ROCKS.length){
+  const rm=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),M('#ffffff',{roughness:1,flatShading:true}),ROCKS.length);
+  ROCKS.forEach((v,i)=>{const [x,z,y,r,tint]=v;d.rotation.set(r*.7,r*.3,r*.5);d.position.set(x,y+r*.42,z);d.scale.set(r,r*.72,r*1.1);d.updateMatrix();rm.setMatrixAt(i,d.matrix);rm.setColorAt(i,ROCKCOL[tint%ROCKCOL.length])});
+  rm.instanceMatrix.needsUpdate=true;rm.instanceColor.needsUpdate=true;rm.castShadow=true;rm.receiveShadow=true;scene.add(rm);
+ }
+ const gp=instanced(geoBox(.62,2.5,.62),stoneMat,GUARD_POSTS,(o,v)=>{o.position.set(v[0],v[1],v[2]);o.rotation.y=v[3]});
+ const gc=instanced(new T.SphereGeometry(.42,8,6),stoneMat,GUARD_CAPS,(o,v)=>o.position.set(v[0],v[1],v[2]));
+ const gb=instanced(geoBox(9,.36,.24),stoneMat,GUARD_BEAMS,(o,v)=>{o.position.set(v[0],v[1],v[2]);o.rotation.y=v[3];o.scale.set(v[4]/9,1,1)});
+ const gb2=instanced(geoBox(9,.3,.22),stoneMat,GUARD_BEAMS,(o,v)=>{o.position.set(v[0],v[1]-.72,v[2]);o.rotation.y=v[3];o.scale.set(v[4]/9,1,1)});
+ [gp,gc,gb,gb2].forEach(o=>{if(o)o.castShadow=true});
+ if(LAMPS.length){
+  const lp=instanced(new T.CylinderGeometry(.24,.36,1,8),M('#3f4a4a'),LAMPS,(o,v)=>{o.position.set(v[0],v[2]+3.2,v[1]);o.scale.set(1,6.4,1)});
+  const lh=new T.InstancedMesh(new T.CylinderGeometry(1.05,.72,1.5,8),new T.MeshBasicMaterial({color:'#ffdf9c'}),LAMPS.length);
+  const lb=new T.InstancedMesh(new T.ConeGeometry(1.5,1.1,8),M('#3f4a4a'),LAMPS.length);
+  LAMPS.forEach((v,i)=>{d.position.set(v[0],v[2]+7.1,v[1]);d.rotation.set(0,0,0);d.scale.set(1,1,1);d.updateMatrix();lh.setMatrixAt(i,d.matrix);
+   d.position.y=v[2]+8.4;d.updateMatrix();lb.setMatrixAt(i,d.matrix)});
+  lh.instanceMatrix.needsUpdate=true;lb.instanceMatrix.needsUpdate=true;scene.add(lh,lb);if(lp)lp.castShadow=true;
+  LAMPS.forEach(v=>{const pl=new T.PointLight(0xffcf8a,.42,32,2);pl.position.set(v[0],v[2]+7,v[1]);scene.add(pl)});
+ }
+}
+/* ==================== 4b. 中央出生点广场：第一眼就是精品效果 ==================== */
+function centralPlaza(){
+ const plaza=part(new T.CylinderGeometry(52,52,1.1,48),M('#e9dec4',{map:speckleTex('#e9dec4',['#f4ead4','#d8cbb0','#fbf2df','#cdbfa2'],1400),roughness:.95}),0,-.4,0);
+ plaza.receiveShadow=true;
+ const ring=part(new T.TorusGeometry(48,1.2,8,64),stoneMat,0,.45,0);ring.rotation.x=Math.PI/2;
+ for(let i=0;i<4;i++){const a=i*Math.PI/2,px=Math.cos(a)*40,pz=Math.sin(a)*40;
+  place(px,pz,.6,4,'plaza-planter',()=>planter(px,pz,.2,7,4),1);
+ }
+ cyl(0,2.2,0,7,4,stoneDarkMat,20);cyl(0,4.4,0,5.4,.6,stoneMat,20);
+ ball(0,8.2,0,4.2,M('#8fc5bd',{metalness:.35,roughness:.35}),2);
+ const halo=part(new T.TorusGeometry(6.1,.35,8,40),M('#f2cf82',{metalness:.5,roughness:.3}),0,8.2,0);halo.rotation.x=.4;
+ const names=[['湖边','#8dc8c0'],['隧道','#b9a68e'],['小镇','#e4a06f'],['灯塔','#e07268']];
+ for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4,px=Math.cos(a)*16,pz=Math.sin(a)*16;
+  signBoard(px,pz,.4,-a+Math.PI/2,names[i][0],'#40565a',names[i][1],9,3.2);
+ }
+ for(let i=0;i<6;i++){const a=i*1.047,px=Math.cos(a)*30,pz=Math.sin(a)*30;
+  place(px,pz,.5,3,'plaza-bench',()=>bench(px,pz,.2,-a),1);
+  lampPost(Math.cos(a)*45,Math.sin(a)*45,.2);
+ }
+ // 广场外圈树与花簇：出生第一眼就有饱满的近景层次
+ for(let i=0;i<12;i++){
+  const a=i/12*Math.PI*2+.14,px=Math.cos(a)*70,pz=Math.sin(a)*70;
+  if(place(px,pz,.2,4,'plaza-tree',null,2))tree(px,pz,.2,.85+rnd()*.35,Math.floor(rnd()*5));
+  const fx=Math.cos(a+.13)*50,fz=Math.sin(a+.13)*50;
+  if(place(fx,fz,.2,1.3,'plaza-flower',null,1))flower(fx,fz,.2,.7+rnd()*.6,Math.floor(rnd()*6));
+ }
+}
+centralPlaza();
+/* ==================== 5. 样板区 A · 湖边公路：渐变湖水 / 石滩 / 芦苇 / 白色护栏 ==================== */
+function lakeZone(){
+ const lake=part(new T.CircleGeometry(LAKE.r,96),WATER_MAT,LAKE.x,-.92,LAKE.z);lake.rotation.x=-Math.PI/2;lake.name='lake-water';
+ const shore=part(new T.RingGeometry(LAKE.r-3,LAKE.r+22,96),M('#c9d9b8',{side:T.DoubleSide,roughness:1}),LAKE.x,-1.02,LAKE.z);shore.rotation.x=-Math.PI/2;
+ const shallow=part(new T.RingGeometry(LAKE.r-16,LAKE.r-2,96),new T.MeshBasicMaterial({color:'#bff0e2',transparent:true,opacity:.5,side:T.DoubleSide,depthWrite:false}),LAKE.x,-.86,LAKE.z);shallow.rotation.x=-Math.PI/2;
+ const pebbles=[];
+ for(let i=0;i<420;i++){
+  const a=rnd()*Math.PI*2,r=LAKE.r-2+rnd()*27,x=LAKE.x+Math.cos(a)*r,z=LAKE.z+Math.sin(a)*r;
+  if(inWater(x,z,-4))continue;
+  if(!place(x,z,-.5,1.6,'lake-pebble',null,1))continue;
+  pebbles.push([x,z,-.6+rnd()*.5,.7+rnd()*2.1,Math.floor(rnd()*5)]);
+ }
+ const pm=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),M('#ffffff',{roughness:1,flatShading:true}),pebbles.length),d=new T.Object3D();
+ pebbles.forEach((v,i)=>{const [x,z,y,r,tint]=v;d.position.set(x,y,z);d.rotation.set(r,r*.7,r*1.3);d.scale.set(r,r*.55,r*.85);d.updateMatrix();pm.setMatrixAt(i,d.matrix);pm.setColorAt(i,ROCKCOL[tint%ROCKCOL.length])});
+ pm.instanceMatrix.needsUpdate=true;pm.instanceColor.needsUpdate=true;pm.castShadow=true;scene.add(pm);
+ // 芦苇与香蒲：成簇生长，穗头单独一层
+ const reeds=[],cattails=[];
+ for(let c=0;c<26;c++){
+  const a=rnd()*Math.PI*2,r=LAKE.r+3+rnd()*17,cx=LAKE.x+Math.cos(a)*r,cz=LAKE.z+Math.sin(a)*r;
+  for(let j=0;j<9;j++){
+   const x=cx+(rnd()-.5)*9,z=cz+(rnd()-.5)*9;
+   if(!place(x,z,-.2,1.1,'lake-reed',null,1.5))continue;
+   const h=2.6+rnd()*2.8;reeds.push([x,z,-.2,h]);
+   if(j%3===0)cattails.push([x,z,-.2+h*.85]);
+  }
+ }
+ const rm=new T.InstancedMesh(new T.CylinderGeometry(.075,.13,1,4),M('#7fa96c'),reeds.length);
+ reeds.forEach((v,i)=>{const [x,z,y,h]=v;d.rotation.set((rnd()-.5)*.22,0,(rnd()-.5)*.22);d.position.set(x,y+h*.5,z);d.scale.set(1,h,1);d.updateMatrix();rm.setMatrixAt(i,d.matrix)});
+ rm.instanceMatrix.needsUpdate=true;scene.add(rm);
+ const cm=new T.InstancedMesh(new T.CylinderGeometry(.34,.28,1.5,7),M('#b07e4e'),cattails.length);
+ cattails.forEach((v,i)=>{const [x,z,y]=v;d.rotation.set(0,0,0);d.position.set(x,y,z);d.scale.set(1,1,1);d.updateMatrix();cm.setMatrixAt(i,d.matrix)});
+ cm.instanceMatrix.needsUpdate=true;scene.add(cm);
+ for(let i=0;i<22;i++){
+  const a=.35+rnd()*2.4,r=LAKE.r+30+rnd()*75,x=LAKE.x+Math.cos(a)*r,z=LAKE.z+Math.sin(a)*r;
+  if(inWater(x,z,3))continue;
+  const y=Math.max(-.5,closestRoad(x,z).y-.5);
+  if(place(x,z,y,4.5,'lake-tree',null,3))tree(x,z,y,.8+rnd()*.6,Math.floor(rnd()*5));
+ }
+ for(let i=0;i<150;i++){
+  const a=rnd()*Math.PI*2,r=LAKE.r+8+rnd()*60,x=LAKE.x+Math.cos(a)*r,z=LAKE.z+Math.sin(a)*r;
+  if(inWater(x,z,1))continue;
+  const y=Math.max(-.4,closestRoad(x,z).y-.3);
+  if(place(x,z,y,1.4,'lake-flower',null,2))flower(x,z,y,.7+rnd()*1.2,Math.floor(rnd()*6));
+ }
+ for(let i=0;i<30;i++){
+  const a=rnd()*Math.PI*2,r=LAKE.r+16+rnd()*70,x=LAKE.x+Math.cos(a)*r,z=LAKE.z+Math.sin(a)*r;
+  if(inWater(x,z,2)||intrudesTunnel(x,2,z,2))continue;
+  if(place(x,z,0,2.4,'lake-rock',null,2))rockAt(x,z,-.4,1.4+rnd()*2.4,Math.floor(rnd()*5));
+ }
+ guardAlong('湖畔精品公路',.06,.94,1);
+ // 木栈道观景平台：贴岸但走净空，不占车道
+ const deckX=-193,deckZ=225;
+ for(let i=0;i<9;i++){
+  const z=deckZ+i*6;
+  if(!place(deckX,z,.4,3,'lake-boardwalk',null,1))continue;
+  cube(deckX,.4,z,11,.5,5.5,woodMat);
+  for(const dx of [-4.6,4.6])cyl(deckX+dx,1.1,z,.5,2.2,woodDarkMat,8);
+ }
+ place(deckX+7,deckZ+20,.4,3,'lake-bench',()=>bench(deckX+7,deckZ+20,.4,Math.PI/2),1);
+ signBoard(-118,168,1,-.7,'湖边公路','#2f6a72','#e9f7d9',14,4.4);
+ AUDIT.lake={pebbles:pebbles.length,reeds:reeds.length,waterShader:true,shoreRings:2,boardwalk:true};
+}
+lakeZone();
+/* ==================== 6. 样板区 B · 山路隧道：分层边坡 + 整块岩壁包裹 + 闭合壳体 ==================== */
+const slopeCols=['#a7c98c','#c2ad86','#a5ad90','#94b487','#9bbe8c','#9dc38a'].map(c=>new T.Color(c));
+const rockSide=new T.MeshStandardMaterial({vertexColors:true,roughness:1,side:T.DoubleSide,flatShading:true});
+const guardMetal=M('#f3ead4'),wallStone=M('#b4ac94');
+const railPosts=[],railRuns=[[],[]],wallBlocks=[],mtnRocks=[],mtnPines=[],reflectors=[],tunnelLights=[];
+for(const line of lines.filter(r=>r.kind==='mountain')){
+ const widths=[0,line.width/2+1,line.width/2+12,line.width/2+36,line.width/2+54,line.width/2+78];
+ const drops=[.15,.8,6,20,42,68],verts=[],cols=[],indices=[],stride=widths.length*2,blocked=[];
+ for(let i=0;i<line.pts.length;i++){
+  const p=line.pts[i],a=line.pts[Math.max(0,i-1)],b=line.pts[Math.min(i+1,line.pts.length-1)];
+  let nx=-(b[1]-a[1]),nz=b[0]-a[0],l=Math.hypot(nx,nz)||1;nx/=l;nz/=l;
+  blocked.push(tunnelVolumeNear(p[0],p[1],p[2]));
+  for(const sign of [-1,1])for(let j=0;j<widths.length;j++){
+   verts.push(p[0]+nx*widths[j]*sign,Math.max(-1.5,p[2]-drops[j]),p[1]+nz*widths[j]*sign);
+   const c=slopeCols[j];cols.push(c.r,c.g,c.b);
+  }
+  if(i%7===0&&!blocked[i])for(const sign of [-1,1])railPosts.push([p[0]+nx*(line.width/2+1.1)*sign,p[2]+1.25,p[1]+nz*(line.width/2+1.1)*sign]);
+ }
+ // V0.4 关键修复完整保留：逐四边形顶点 + 重心裁切，绝不让边坡横穿隧道
+ const nearVol=k=>tunnelVolumeNear(verts[k*3],verts[k*3+2],verts[k*3+1]);
+ for(let i=0;i<line.pts.length-1;i++)for(let side=0;side<2;side++)for(let j=0;j<widths.length-1;j++){
+  const a=i*stride+side*widths.length+j,b=(i+1)*stride+side*widths.length+j,ids=[a,a+1,b,b+1];
+  if(ids.some(nearVol))continue;
+  const cx=(verts[a*3]+verts[(a+1)*3]+verts[b*3]+verts[(b+1)*3])/4,
+        cy=(verts[a*3+1]+verts[(a+1)*3+1]+verts[b*3+1]+verts[(b+1)*3+1])/4,
+        cz=(verts[a*3+2]+verts[(a+1)*3+2]+verts[b*3+2]+verts[(b+1)*3+2])/4;
+  if(tunnelVolumeNear(cx,cz,cy))continue;
+  indices.push(a,a+1,b,a+1,b+1,b);
+ }
+ const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(verts,3));
+ geometry.setAttribute('color',new T.Float32BufferAttribute(cols,3));geometry.setIndex(indices);geometry.computeVertexNormals();
+ const slope=part(geometry,rockSide,0,0,0);slope.frustumCulled=false;slope.name='mountain-slope';slope.receiveShadow=true;
+ let run=[[],[]],runs=[[],[]];
+ const flushRail=()=>{for(let s=0;s<2;s++){if(run[s].length>1)runs[s].push(run[s]);run[s]=[]}};
+ for(let i=0;i<line.pts.length;i++){
+  const p=line.pts[i],a=line.pts[Math.max(0,i-1)],b=line.pts[Math.min(i+1,line.pts.length-1)];
+  let nx=-(b[1]-a[1]),nz=b[0]-a[0],l=Math.hypot(nx,nz)||1;nx/=l;nz/=l;
+  if(blocked[i]){flushRail();continue}
+  for(const sign of [-1,1]){
+   const off=(line.width/2+1.15)*sign,bx=p[0]+nx*off,bz=p[1]+nz*off;
+   for(const h of [1.35,2.35])run[sign<0?0:1].push([[bx,p[2]+h,bz],[bx,p[2]+h+.22,bz]]);
+  }
+  if(i%6===0&&p[2]>12){
+   const off=(line.width/2+2.6)*-1,bx=p[0]+nx*off,bz=p[1]+nz*off;
+   wallBlocks.push([bx,p[2]+.5,bz,Math.atan2(nx,nz)]);
+  }
+ }
+ flushRail();
+ for(const s of [0,1])for(const r of runs[s])ribbon(r,guardMetal,10);
+ for(let i=0;i<line.pts.length;i+=5){
+  const p=line.pts[i];if(p[2]<8||blocked[i])continue;
+  const a=line.pts[Math.max(0,i-1)],b=line.pts[Math.min(i+1,line.pts.length-1)];
+  let nx=-(b[1]-a[1]),nz=b[0]-a[0],l=Math.hypot(nx,nz)||1;nx/=l;nz/=l;
+  for(const sign of [-1,1])for(let q=0;q<2;q++){
+   const off=(line.width/2+11+rnd()*48)*sign,x=p[0]+nx*off,z=p[1]+nz*off,y=p[2]-2-rnd()*7;
+   const kind=q===0?'mtn-rock':'mtn-pine',r=kind==='mtn-rock'?3+rnd()*5:4.5;
+   if(intrudesTunnel(x,y,z,r)||inWater(x,z,r))continue;
+   if(!place(x,z,y,r,kind,null,3))continue;
+   if(kind==='mtn-rock')mtnRocks.push([x,z,y,2+rnd()*5,Math.floor(rnd()*5)]);
+   else if(rnd()<.62)mtnPines.push([x,z,y,7+rnd()*7]);
+  }
+ }
+}
+instanced(new T.CylinderGeometry(.16,.16,2.4,5),guardMetal,railPosts,(d,v)=>d.position.set(...v));
+instanced(geoBox(9,1.3,1.1),wallStone,wallBlocks,(d,v)=>{d.position.set(v[0],v[1],v[2]);d.rotation.y=v[3]});
+if(mtnRocks.length){
+ const rm=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),M('#ffffff',{roughness:1,flatShading:true}),mtnRocks.length),d=new T.Object3D();
+ mtnRocks.forEach((v,i)=>{const [x,z,y,r,c]=v;d.position.set(x,y+r*.4,z);d.rotation.set(r*.6,r*.3,r*.4);d.scale.set(r,r*.72,r*1.15);d.updateMatrix();rm.setMatrixAt(i,d.matrix);rm.setColorAt(i,ROCKCOL[c])});
+ rm.instanceMatrix.needsUpdate=true;rm.instanceColor.needsUpdate=true;rm.castShadow=true;scene.add(rm);
+}
+instanced(new T.ConeGeometry(3.1,10,7),M('#477e5d',{flatShading:true}),mtnPines,(d,v)=>{d.position.set(v[0],v[2]+v[3]*.5,v[1]);d.scale.setScalar(v[3]/10)});
+guardAlong('盘山隧道公路',.04,.96,1);guardAlong('盘山隧道公路',.04,.96,-1);
+// 大块层状岩壁：把隧道整段包进山体，而不是「平地上插一根管子」
+const hillRocks=[];
+for(const t of TUNNELS){
+ const ax=t.axis;
+ for(let i=0;i<ax.length;i+=2){
+  const a=ax[i];
+  for(const side of [-1,1])for(let q=0;q<2;q++){
+   const u=(42+rnd()*52)*side,v=(rnd()-.5)*26,r=8+rnd()*9;
+   const hx=a.x+a.nx*u+a.nz*v,hz=a.z+a.nz*u-a.nx*v;
+   if(intrudesTunnel(hx,a.y0+12,hz,r))continue;
+   hillRocks.push([hx,hz,a.y0-4+r*.45,r,Math.floor(rnd()*5)]);
+  }
+ }
+}
+if(hillRocks.length){
+ const hm=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),M('#ffffff',{roughness:1,flatShading:true}),hillRocks.length),d=new T.Object3D();
+ hillRocks.forEach((v,i)=>{const [x,z,y,r,c]=v;d.position.set(x,y,z);d.rotation.set(r*.11,r*.23,r*.07);d.scale.set(r,r*1.15,r*.9);d.updateMatrix();hm.setMatrixAt(i,d.matrix);hm.setColorAt(i,ROCKCOL[c])});
+ hm.instanceMatrix.needsUpdate=true;hm.instanceColor.needsUpdate=true;hm.castShadow=true;hm.receiveShadow=true;scene.add(hm);
+}
+// 弯道提示牌、观景平台
+warnSign(238,145,31,.6);warnSign(322,278,58,-.5);
+signBoard(352,318,58,-.8,'松云岭 · 盘山公路','#3c6b5c','#fff3d2',17,5);
+place(360,300,58,10,'viewpoint',()=>{
+ const gy=60,deck=part(new T.CylinderGeometry(11,11,.6,24),M('#e4d5b4'),360,gy,300);deck.receiveShadow=true;
+ for(let i=0;i<14;i++){const a=i/14*Math.PI*2;cyl(360+Math.cos(a)*10.6,gy+1.2,300+Math.sin(a)*10.6,.22,2.4,woodDarkMat,6)}
+ bench(357,306,gy,1.2);
+},3);
+// ---------------------------------------------------------------- 隧道闭合壳体
+const innerMat=new T.MeshStandardMaterial({color:'#888d82',roughness:.9,side:T.DoubleSide,emissive:'#333a32',emissiveIntensity:.45});
+const outerMat=new T.MeshStandardMaterial({color:'#8e9387',roughness:1,side:T.FrontSide,flatShading:true});
+const portalMat=new T.MeshStandardMaterial({color:'#e7dcc2',roughness:.9,side:T.DoubleSide});
+const shoulderMat=new T.MeshStandardMaterial({color:'#9b9e94',roughness:1,side:T.DoubleSide});
+const ribMat=new T.MeshStandardMaterial({color:'#4f574f',roughness:1,side:T.DoubleSide});
+function profile(expand){
+ const half=TUN_W/2+(expand?SHELL:0),wall=TUN_WALL+(expand?.4:0),top=TUN_TOP+(expand?SHELL:0),A=12,p=[];
+ p.push([-half,-1.3]);p.push([-half,wall]);
+ for(let j=1;j<=A;j++){const a=Math.PI-Math.PI*j/A;p.push([half*Math.cos(a),wall+(top-wall)*Math.sin(a)])}
+ p.push([half,-1.3]);return p;
+}
+const profIn=profile(false),profOut=profile(true),K=profIn.length;
+function tube(axis,prof,mat){
+ const v=[],uv=[],idx=[];
+ axis.forEach((a,i)=>{prof.forEach((q,j)=>{
+  v.push(a.x+a.nx*q[0],a.y0+q[1],a.z+a.nz*q[0]);uv.push(j/(K-1),i*.25);
+  if(i<axis.length-1&&j<K-1){const k=i*K+j,b=k+K;idx.push(k,k+1,b,k+1,b+1,b)}
+ })});
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v,3));
+ g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();
+ const o=part(g,mat,0,0,0);o.frustumCulled=false;o.name=mat===innerMat?'tunnel-inner':'tunnel-outer';return o;
+}
+function ringFace(a,pa,pb,mat){
+ const rows=[];for(let j=0;j<K;j++){const i=pa[j],o=pb[j];
+  rows.push([[a.x+a.nx*i[0],a.y0+i[1],a.z+a.nz*i[0]],[a.x+a.nx*o[0],a.y0+o[1],a.z+a.nz*o[0]]]);}
+ return ribbon(rows,mat,8);
+}
+const tunnelLampBoxes=[],tunnelLampBases=[],tunnelReflectors=[],portalRocks=[],capRocks=[];
+for(const t of TUNNELS){
+ const ax=t.axis;
+ tube(ax,profIn,innerMat);tube(ax,profOut,outerMat);
+ ringFace(ax[0],profIn,profOut,portalMat);ringFace(ax[ax.length-1],profIn,profOut,portalMat);
+ const deck=[],sL=[],sR=[],eL=[],eR=[],mid=[];
+ ax.forEach((a,i)=>{
+  const h=t.meta.def.width/2;
+  deck.push([[a.x+a.nx*h,a.y0,a.z+a.nz*h],[a.x-a.nx*h,a.y0,a.z-a.nz*h]]);
+  sL.push([[a.x+a.nx*h,a.y0+.26,a.z+a.nz*h],[a.x+a.nx*(TUN_W/2),a.y0+.26,a.z+a.nz*(TUN_W/2)]]);
+  sR.push([[a.x-a.nx*h,a.y0+.26,a.z-a.nz*h],[a.x-a.nx*(TUN_W/2),a.y0+.26,a.z-a.nz*(TUN_W/2)]]);
+  eL.push([[a.x+a.nx*(h-.06),a.y0+.075,a.z+a.nz*(h-.06)],[a.x+a.nx*(h-.45),a.y0+.075,a.z+a.nz*(h-.45)]]);
+  eR.push([[a.x-a.nx*(h-.06),a.y0+.075,a.z-a.nz*(h-.06)],[a.x-a.nx*(h-.45),a.y0+.075,a.z-a.nz*(h-.45)]]);
+  if(i%10<5)mid.push(a.x,a.y0+.078,a.z,a.x+a.nz*5,a.y0+.078,a.z-a.nx*5);
+ });
+ ribbon(deck,new T.MeshStandardMaterial({color:'#61686a',roughness:.96,side:T.DoubleSide}),9);
+ ribbon(sL,shoulderMat,8);ribbon(sR,shoulderMat,8);ribbon(eL,edgeMat,8);ribbon(eR,edgeMat,8);
+ if(mid.length){const mg=new T.BufferGeometry();mg.setAttribute('position',new T.Float32BufferAttribute(mid,3));scene.add(new T.LineSegments(mg,new T.LineBasicMaterial({color:'#ffe6a0'})))}
+ for(let i=3;i<ax.length-2;i+=2){
+  const a=ax[i];
+  for(const side of [-1,1]){
+   const u=3.35*side;
+   tunnelLampBoxes.push([a.x+a.nx*u,a.y0+t.top-.62,a.z+a.nz*u]);
+   tunnelLampBases.push([a.x+a.nx*u,a.y0+t.top-.5,a.z+a.nz*u]);
+  }
+  if(i%4===3){
+   tunnelReflectors.push([a.x+a.nx*(TUN_W/2-.2),a.y0+1.35,a.z+a.nz*(TUN_W/2-.2)]);
+   tunnelReflectors.push([a.x-a.nx*(TUN_W/2-.2),a.y0+1.35,a.z-a.nz*(TUN_W/2-.2)]);
+  }
+ }
+ for(let i=4;i<ax.length-3;i+=5){
+  const a=ax[i],rows=[];
+  for(let j=0;j<K;j++){const q=profIn[j];
+   rows.push([[a.x+a.nx*q[0],a.y0+q[1],a.z+a.nz*q[0]],[a.x+a.nx*q[0]*.995,a.y0+q[1]-.22,a.z+a.nz*q[0]*.995]]);}
+  ribbon(rows,ribMat,8);
+ }
+ for(const q of [.3,.55,.8]){
+  const a=ax[Math.floor(q*(ax.length-1))],pl=new T.PointLight(0xffdc9e,0,72,1.6);
+  pl.position.set(a.x,a.y0+t.top-2.2,a.z);scene.add(pl);tunnelLights.push(pl);
+ }
+ for(const [idx,dir] of [[0,-1],[ax.length-1,1]]){
+  const a=ax[idx],tangent=new T.Vector3(a.nz,0,-a.nx).multiplyScalar(dir),ex=tangent.x*.9,ez=tangent.z*.9,rows=[];
+  for(let j=0;j<K;j++){
+   const i=profIn[j],o=profOut[j];
+   rows.push([[a.x+a.nx*i[0]*.94+ex,a.y0+i[1]*.98,a.z+a.nz*i[0]*.94+ez],[a.x+a.nx*o[0]*1.05+ex,a.y0+o[1]+.4,a.z+a.nz*o[0]*1.05+ez]]);
+  }
+  ribbon(rows,portalMat,8);
+  const sign=part(new T.PlaneGeometry(14,4.2),new T.MeshBasicMaterial({map:labelTex(t.portal,'#e9dfc4','#40503f'),side:T.DoubleSide}),a.x+tangent.x*3,a.y0+t.top+9.2,a.z+tangent.z*3);
+  sign.lookAt(sign.position.x+tangent.x*10,sign.position.y,sign.position.z+tangent.z*10);
+  for(const side of [-1,1])for(let q=0;q<10;q++){
+   const u=(TUN_W/2+SHELL+3+rnd()*24)*side,r=5.5+rnd()*6.5,y=a.y0-2+r*.55+Math.abs(u)*.16;
+   portalRocks.push([a.x+a.nx*u+tangent.x*(q*3),a.z+a.nz*u+tangent.z*(q*3),y,r,Math.floor(rnd()*5)]);
+  }
+  for(let q=1;q<=6;q++){
+   const off=tangent.x*q*7,offz=tangent.z*q*7;
+   for(const side of [-1,1])reflectors.push([a.x+off+a.nx*(TUN_W/2+.8)*side,a.z+offz+a.nz*(TUN_W/2+.8)*side,a.y0+.5]);
+  }
+ }
+ for(let i=0;i<ax.length;i+=2){
+  const a=ax[i];
+  for(let q=0;q<3;q++){
+   const u=(rnd()-.5)*62,r=8+rnd()*6;
+   capRocks.push([a.x+a.nx*u,a.z+a.nz*u,a.y0+t.top+SHELL+.62*r-.5+rnd()*1.5,r,Math.floor(rnd()*5)]);
+  }
+ }
+ // 出洞口视觉惊喜：彩色花坡与造型树
+ const out=ax[ax.length-1],tan=new T.Vector3(out.nz,0,-out.nx);
+ for(let q=0;q<34;q++){
+  const d=30+rnd()*70,u=(rnd()-.5)*95,x=out.x+tan.x*d+out.nx*u,z=out.z+tan.z*d+out.nz*u,y=out.y0;
+  if(intrudesTunnel(x,y+2,z,5)||inWater(x,z,5))continue;
+  const c=clearance(x,z,y+2,5,4);if(!c.ok){AUDIT.rejected++;continue}
+  AUDIT.obstacles.push({x:+x.toFixed(1),z:+z.toFixed(1),y:+c.y.toFixed(1),r:5,kind:'exit-flower',distance:+c.distance.toFixed(2),need:+c.need.toFixed(2),ok:true});
+  flower(x,c.y,z,1+rnd()*1.4,Math.floor(rnd()*6));
+  if(q%5===0&&place(x+3,z-3,c.y,4,'exit-tree',null,3))tree(x+3,z-3,c.y,.8,Math.floor(rnd()*5));
+ }
+}
+instanced(geoBox(2.2,.26,.9),M('#4c534d'),tunnelLampBases,(d,v)=>d.position.set(...v));
+instanced(geoBox(1.75,.12,.42),new T.MeshBasicMaterial({color:'#ffe6a8'}),tunnelLampBoxes,(d,v)=>d.position.set(...v));
+instanced(geoBox(.18,.55,.55),new T.MeshBasicMaterial({color:'#ffd45e'}),tunnelReflectors,(d,v)=>d.position.set(...v));
+instanced(new T.CylinderGeometry(.16,.16,1.1,5),new T.MeshBasicMaterial({color:'#ffd45e'}),reflectors,(d,v)=>d.position.set(...v));
+if(portalRocks.length){
+ const im=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),M('#ffffff',{roughness:1,flatShading:true}),portalRocks.length),d=new T.Object3D();
+ portalRocks.forEach((v,i)=>{const [x,z,y,r,c]=v;d.position.set(x,y,z);d.rotation.set(r*.3,r*.2,r*.1);d.scale.set(r,r*.85,r*1.1);d.updateMatrix();im.setMatrixAt(i,d.matrix);im.setColorAt(i,ROCKCOL[c])});
+ im.instanceMatrix.needsUpdate=true;im.instanceColor.needsUpdate=true;im.castShadow=true;scene.add(im);
+}
+if(capRocks.length){
+ const im=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),M('#ffffff',{roughness:1,flatShading:true}),capRocks.length),d=new T.Object3D();
+ capRocks.forEach((v,i)=>{const [x,z,y,r,c]=v;d.position.set(x,y,z);d.rotation.set(r*.2,r*.4,r*.1);d.scale.set(r,r*.62,r);d.updateMatrix();im.setMatrixAt(i,d.matrix);im.setColorAt(i,ROCKCOL[c])});
+ im.instanceMatrix.needsUpdate=true;im.instanceColor.needsUpdate=true;im.castShadow=true;scene.add(im);
+}
+AUDIT.tunnel={rings:TUNNELS[0].rings,shell:SHELL,portalRocks:portalRocks.length,capRocks:capRocks.length,hillRocks:hillRocks.length,lights:tunnelLights.length};
+/* ==================== 7. 样板区 C · 小镇街道：门头 / 花箱 / 彩旗 / 广场 / 生活感 ==================== */
+const WALL=['#f2e3c4','#a8cbb0','#efcb92','#e3a68a','#c9b9d9','#b9d4d6','#f0d2b0'].map(c=>M(c,{roughness:.9}));
+const ROOF=['#c46d55','#5b7f79','#8c6a55','#b98158','#6b7f91'].map(c=>M(c,{map:speckleTex(c.color?.getStyle?.()||'#b98c6a',['#d5a989','#a4714f','#e2bd94','#8d5f42'],900),roughness:.95,flatShading:false}));
+const awnMat=new T.MeshStandardMaterial({map:stripeTex('#fff4df','#d97b6c',8,true),roughness:.9,side:T.DoubleSide});
+const awnMat2=new T.MeshStandardMaterial({map:stripeTex('#fff4df','#6e9e8a',8,true),roughness:.9,side:T.DoubleSide});
+const glassMat=new T.MeshBasicMaterial({color:'#ffdf9e'});
+const shutterMat=M('#6f9a78'),frameMat=M('#795841');
+function house(x,z,y,rot,style,name){
+ const g=new T.Group();g.position.set(x,y,z);g.rotation.y=rot;scene.add(g);
+ const add=(w,h,d,px,py,pz,m)=>{const o=new T.Mesh(geoBox(w,h,d),m);o.position.set(px,py,pz);o.castShadow=true;o.receiveShadow=true;g.add(o);return o};
+ add(18,13,14,0,6.5,0,WALL[style%WALL.length]);
+ add(19,.6,15,0,13.1,0,stoneMat);
+ const s=new T.Shape();s.moveTo(-10,0);s.lineTo(0,7.4);s.lineTo(10,0);s.closePath();
+ const rg=new T.ExtrudeGeometry(s,{depth:15,bevelEnabled:true,bevelSize:.42,bevelThickness:.42,bevelSegments:1});
+ const roof=new T.Mesh(rg,ROOF[style%ROOF.length]);roof.position.set(0,13.4,-7.5);roof.castShadow=true;g.add(roof);
+ // 山墙圆窗
+ const cw=new T.Mesh(new T.CircleGeometry(1.5,16),glassMat);cw.position.set(0,16.6,7.62);g.add(cw);
+ const cwr=new T.Mesh(new T.TorusGeometry(1.6,.22,8,20),frameMat);cwr.position.set(0,16.6,7.64);g.add(cwr);
+ // 门 + 门头招牌 + 条纹遮阳棚
+ add(4.4,7,.5,0,3.5,7.25,frameMat);
+ add(3.6,6.4,.55,0,3.4,7.5,M('#8d6a4c'));
+ ball(0,3.6,7.85,.28,M('#f2cf82'));
+ const sign=new T.Mesh(new T.PlaneGeometry(13,3.2),new T.MeshBasicMaterial({map:labelTex(name,'#3b4f49','#ffe9bb'),side:T.DoubleSide}));
+ sign.position.set(0,10.6,7.3);g.add(sign);
+ const aw=new T.Mesh(new T.BoxGeometry(14,.38,4.4),style%2?awnMat2:awnMat);aw.position.set(0,8.2,8.8);aw.rotation.x=-.34;aw.castShadow=true;g.add(aw);
+ for(const dx of [-6.3,6.3])add(.36,2.4,.36,dx,7,9.9,stoneMat);
+ // 一层橱窗 / 木框 / 百叶 / 花箱
+ for(const dx of [-5.6,5.6]){
+  add(4.2,4.6,.42,dx,5.1,7.3,frameMat);
+  add(3.4,3.8,.46,dx,5.1,7.5,glassMat);
+  add(.22,3.8,.5,dx,5.1,7.55,frameMat);add(3.4,.22,.5,dx,5.1,7.55,frameMat);
+  add(1.2,4.2,.3,dx-2.5,5.1,7.5,shutterMat);add(1.2,4.2,.3,dx+2.5,5.1,7.5,shutterMat);
+  add(4.4,.85,1.3,dx,2.6,7.8,woodDarkMat);
+  for(let k=0;k<4;k++){const b=new T.Mesh(new T.IcosahedronGeometry(.55,1),M(PETAL[(style+k)%PETAL.length].getStyle()));b.position.set(dx-1.5+k,3.35,7.9);g.add(b)}
+ }
+ // 二层阳台或双窗
+ if(style%2===0){
+  add(12,.5,2.6,0,9.4,8,stoneMat);
+  for(let k=-4;k<=4;k++)add(.28,1.5,.28,k*1.3,10.3,9.1,stoneMat);
+  add(12,.3,.35,0,11.1,9.1,stoneMat);
+ }else{
+  for(const dx of [-4.2,4.2]){add(3,3.4,.42,dx,10.4,7.3,frameMat);add(2.4,2.8,.46,dx,10.4,7.5,glassMat)}
+ }
+ // 烟囱 + 壁灯
+ add(1.9,5,1.9,6.5,17,-3,stoneDarkMat);
+ for(const dx of [-8.2,8.2]){const l=new T.Mesh(new T.SphereGeometry(.55,10,8),new T.MeshBasicMaterial({color:'#ffe2a0'}));l.position.set(dx,7.4,7.9);g.add(l)}
+}
+const shopNames=['面包坊','花店','玩具铺','咖啡馆','杂货店','书屋','果铺','钟表店'];
+let houseCount=0;
+for(let i=0;i<4;i++){
+ const z=-168-i*54;
+ for(const side of [-1,1]){
+  const x=side*38,style=i*2+(side>0?1:0),name=shopNames[(i*2+(side>0?1:0))%shopNames.length];
+  if(place(x,z,1,12,'town-house',()=>{house(x,z,.2,side>0?-Math.PI/2:Math.PI/2,style,name);houseCount++},3)){}
+ }
+}
+// 街道尽头的横向围合，避免一眼望到空草地
+for(const [x,z,style] of [[-44,-392,2],[0,-397,4],[44,-392,6]]){
+ if(place(x,z,1,12,'town-house',()=>{house(x,z,.2,0,style,'街角小屋');houseCount++},3)){}
+}
+// 石板人行道 / 路缘 / 斑马线
+const paveTex=speckleTex('#d9cdb2',['#eee2c8','#bdb09a','#f5ecd8','#c8b99e'],1600);
+for(const side of [-1,1]){
+ const p=part(new T.BoxGeometry(8,.35,242),M('#d9cdb2',{map:paveTex,roughness:1}),side*12,.18,-240);p.receiveShadow=true;
+ const curb=part(new T.BoxGeometry(.7,.5,242),stoneMat,side*8.4,.25,-240);curb.receiveShadow=true;
+}
+for(let i=0;i<6;i++)part(new T.BoxGeometry(1.9,.06,3.4),new T.MeshBasicMaterial({color:'#fff4dd'}),-6.4+i*2.6,.2,-196);
+// 彩旗横跨街道上空
+const flags=[];
+for(let r=0;r<2;r++){
+ const z0=-155-r*14,pts=[];
+ for(let i=0;i<=20;i++){const t=i/20;pts.push(new T.Vector3(-38+t*76,17.5-Math.sin(t*Math.PI)*2.6,z0+t*8))}
+ scene.add(new T.Line(new T.BufferGeometry().setFromPoints(pts),new T.LineBasicMaterial({color:'#7d6a50'})));
+ for(let i=1;i<20;i++){const t=i/20;flags.push([-38+t*76,13.5-Math.sin(t*Math.PI)*1.8-.05,z0+t*8,Math.floor(rnd()*6)])}
+}
+if(flags.length){
+ const fs=new T.Shape();fs.moveTo(-.58,0);fs.lineTo(.58,0);fs.lineTo(0,-1.15);fs.closePath();
+ const fm=new T.InstancedMesh(new T.ShapeGeometry(fs),M('#ffffff',{side:T.DoubleSide,roughness:1}),flags.length),d=new T.Object3D();
+ flags.forEach((v,i)=>{d.position.set(v[0],v[1],v[2]);d.rotation.set(0,i*.21,0);d.scale.set(1,1,1);d.updateMatrix();fm.setMatrixAt(i,d.matrix);fm.setColorAt(i,PETAL[v[3]])});
+ fm.instanceMatrix.needsUpdate=true;fm.instanceColor.needsUpdate=true;scene.add(fm);
+}
+// 小广场：喷泉 + 长椅 + 花坛 + 树
+const sqX=-72,sqZ=-278;
+if(place(sqX,sqZ,1,10,'town-square',()=>{
+ const pl=part(new T.CylinderGeometry(16,16,.7,32),M('#e2d5b8',{map:paveTex,roughness:1}),sqX,.35,sqZ);pl.receiveShadow=true;
+ cyl(sqX,1.6,sqZ,7,2.4,stoneDarkMat,24);cyl(sqX,3,sqZ,5.6,.5,stoneMat,24);
+ cyl(sqX,4.9,sqZ,1.15,3.4,new T.MeshStandardMaterial({color:'#bfe9ef',transparent:true,opacity:.6,roughness:.2}),16);
+ ball(sqX,7.1,sqZ,1.5,M('#d8f2f3',{transparent:true,opacity:.75}));
+ for(const a of [.5,2.6,4.7]){bench(sqX+Math.cos(a)*12,sqZ+Math.sin(a)*12,.5,-a);planter(sqX+Math.cos(a+1)*13,sqZ+Math.sin(a+1)*13,.5,5,3)}
+ tree(sqX-16,sqZ+12,.4,.85,1);tree(sqX+14,sqZ-13,.4,.8,3);
+},3)){}
+// 路灯、摊位、咖啡桌椅、自行车、盆栽
+for(let i=0;i<5;i++){const z=-155-i*45;for(const side of [-1,1])lampPost(side*15,z,.2)}
+for(const [x,z,label] of [[24,-238,'鲜果摊'],[-24,-305,'花车']]){
+ if(!place(x,z,1,5,'market-stall',null,2))continue;
+ cube(x,1.2,z,9,1.4,6,woodDarkMat);
+ for(const dx of [-3.8,3.8])for(const dz of [-2.5,2.5])cyl(x+dx,4,z+dz,.28,6,woodMat,6);
+ const aw=part(new T.BoxGeometry(10,.4,7),awnMat,x,7.2,z);aw.rotation.x=-.08;
+ for(let k=0;k<8;k++){const b=new T.Mesh(new T.IcosahedronGeometry(.75,1),M(PETAL[k%PETAL.length].getStyle()));b.position.set(x-3+(k%4)*2,1.9,z-1.4+Math.floor(k/4)*2.6);scene.add(b)}
+ const sp=part(new T.PlaneGeometry(9,2.6),new T.MeshBasicMaterial({map:labelTex(label,'#8a5b3c','#fff2d2'),side:T.DoubleSide}),x,6,z+3.6);sp.rotation.y=0;
+}
+for(const [x,z] of [[20,-258],[22,-272],[-20,-218]]){
+ if(!place(x,z,1,2.5,'cafe-table',null,1.5))continue;
+ cyl(x,1.1,z,1.7,.28,woodMat,12);cyl(x,.6,z,.22,1.2,woodDarkMat,8);
+ for(const dx of [-2.4,2.4]){cyl(x+dx,1,z,.35,1.4,woodDarkMat,8);cube(x+dx,1.8,z,.9,.2,.9,woodMat)}
+}
+for(const [x,z] of [[-20,-330],[21,-190]]){
+ if(!place(x,z,1,2,'bicycle',null,1.5))continue;
+ for(const dx of [-1.6,1.6]){const w=new T.Mesh(new T.TorusGeometry(1.05,.13,8,18),M('#3f4a4a'));w.position.set(x+dx,1.2,z);w.rotation.y=Math.PI/2;scene.add(w)}
+ const fr=new T.Mesh(new T.CylinderGeometry(.1,.1,3.2,6),M('#c8694f'));fr.position.set(x,1.7,z);fr.rotation.z=Math.PI/3;scene.add(fr);
+}
+for(let i=0;i<16;i++){
+ const x=(rnd()-.5)*130,z=-160-rnd()*200;
+ if(place(x,z,1,2,'town-planter',null,2))planter(x,z,.2,3.2,2.2);
+}
+signBoard(0,-132,1,0,'小镇主街','#8a5b3c','#fff2d2',15,4.6);
+AUDIT.town={houses:houseCount,shops:shopNames.length,flags:flags.length,square:true,stalls:2};
+/* ==================== 8. 样板区 D · 灯塔广场：地标 / 崖顶平台 / 海面 / 光束 ==================== */
+let beaconBeam=null;
+function lighthouseZone(){
+ const sea=part(new T.CircleGeometry(SEA.r,96),WATER_MAT,SEA.x,-1.1,SEA.z);sea.rotation.x=-Math.PI/2;sea.name='sea-water';
+ const foam=part(new T.RingGeometry(SEA.r-7,SEA.r+18,96),new T.MeshBasicMaterial({color:'#eaf8f6',transparent:true,opacity:.55,side:T.DoubleSide,depthWrite:false}),SEA.x,-.86,SEA.z);foam.rotation.x=-Math.PI/2;
+ const PX=-330,PZ=-255,PY=3.3,TX=-345,TZ=-270;
+ // 崖壁：从平台边缘向海面层层跌落
+ const cliff=[];
+ for(let i=0;i<70;i++){
+  const a=-2.55+rnd()*.9,r=30+rnd()*28,x=PX+Math.cos(a)*r,z=PZ+Math.sin(a)*r,rr=5+rnd()*11;
+  const y=1-rr*.55+rnd()*3;
+  cliff.push([x,z,y,rr,Math.floor(rnd()*5)]);
+ }
+ if(cliff.length){
+  const cm=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),M('#ffffff',{roughness:1,flatShading:true}),cliff.length),d=new T.Object3D();
+  cliff.forEach((v,i)=>{const [x,z,y,r,c]=v;d.position.set(x,y,z);d.rotation.set(r*.2,r*.5,r*.1);d.scale.set(r,r*1.25,r*.9);d.updateMatrix();cm.setMatrixAt(i,d.matrix);cm.setColorAt(i,ROCKCOL[c])});
+  cm.instanceMatrix.needsUpdate=true;cm.instanceColor.needsUpdate=true;cm.castShadow=true;cm.receiveShadow=true;scene.add(cm);
+ }
+ // 圆形石铺平台
+ const plazaTex=speckleTex('#eadfc6',['#f7ecd6','#d6c8ab','#fff6e2','#c9b99c'],1900);
+ const platform=part(new T.CylinderGeometry(38,39,2.2,48),M('#eadfc6',{map:plazaTex,roughness:.95}),PX,PY-1.1,PZ);platform.receiveShadow=true;
+ const rim=part(new T.TorusGeometry(37.4,.9,8,64),stoneMat,PX,PY+.2,PZ);rim.rotation.x=Math.PI/2;
+ // 宝瓶式栏杆：立柱 + 两道横杆 + 镂空小球
+ const balusters=[];
+ for(let i=0;i<40;i++){
+  const a=i/40*Math.PI*2,x=PX+Math.cos(a)*37,z=PZ+Math.sin(a)*37;
+  if(Math.hypot(x-(PX+26),z-(PZ+26))<13)continue; // 留出阶梯入口
+  cyl(x,PY+1.3,z,.55,2.6,stoneMat,8);
+  balusters.push([x,PY+1.9,z]);
+ }
+ instanced(new T.IcosahedronGeometry(.75,1),stoneMat,balusters,(d,v)=>d.position.set(...v));
+ for(const h of [1.5,2.5]){const t=part(new T.TorusGeometry(37,h===2.5?.42:.3,6,64),stoneMat,PX,PY+h,PZ);t.rotation.x=Math.PI/2}
+ // 台阶
+ for(let i=0;i<5;i++)cube(PX+26+i*2.2,PY-.35+i*.28,PZ+26+i*2.2,9,.5,3.2,stoneDarkMat);
+ // 灯塔塔身：石材基座 + 红白条纹锥台 + 灯室 + 发光球 + 圆顶
+ cyl(TX,PY+2,TZ,14,4,stoneDarkMat,28);
+ cyl(TX,PY+4.4,TZ,11.5,.9,stoneMat,28);
+ const towerMat=new T.MeshStandardMaterial({map:stripeTex('#f8f0dd','#d95a4e',6),roughness:.88});
+ const tower=part(new T.CylinderGeometry(7.2,11,31,28),towerMat,TX,PY+20,TZ);tower.castShadow=true;tower.receiveShadow=true;
+ for(const h of [9,25,35]){const t=part(new T.TorusGeometry(h===9?10.3:h===25?8.5:7.4,.4,8,28),stoneMat,TX,PY+h,TZ);t.rotation.x=Math.PI/2}
+ // 塔身小窗
+ for(const [h,a] of [[13,.4],[22,2.5],[30,4.4]]){
+  const x=TX+Math.cos(a)*9.2,z=TZ+Math.sin(a)*9.2;
+  const w=part(new T.PlaneGeometry(2.2,3),glassMat,x,PY+h,z);w.lookAt(x+Math.cos(a)*5,PY+h,z+Math.sin(a)*5);
+ }
+ cyl(TX,PY+36,TZ,9.5,1.4,stoneMat,28);
+ const balcony=part(new T.TorusGeometry(9.2,.45,8,28),M('#5b5f5b'),TX,PY+38.2,TZ);balcony.rotation.x=Math.PI/2;
+ for(let i=0;i<16;i++){const a=i/16*Math.PI*2;cyl(TX+Math.cos(a)*9.2,PY+37.4,TZ+Math.sin(a)*9.2,.22,2.2,M('#5b5f5b'),6)}
+ // 玻璃灯室 + 竖框 + 顶盖
+ const lantern=part(new T.CylinderGeometry(6.2,6.2,7.5,16),new T.MeshPhysicalMaterial({color:'#cfeef2',transparent:true,opacity:.32,roughness:.08,metalness:0,side:T.DoubleSide}),TX,PY+41,TZ);
+ for(let i=0;i<10;i++){const a=i/10*Math.PI*2;cyl(TX+Math.cos(a)*6.2,PY+41,TZ+Math.sin(a)*6.2,.24,7.6,M('#59615e'),6)}
+ cyl(TX,PY+45,TZ,7.2,1.2,M('#59615e'),20);
+ const dome=part(new T.SphereGeometry(6.8,18,10,0,Math.PI*2,0,Math.PI/2),M('#c98b54',{metalness:.35,roughness:.5}),TX,PY+45.5,TZ);dome.castShadow=true;
+ cyl(TX,PY+53,TZ,.24,3,M('#59615e'),8);ball(TX,PY+55,TZ,.9,M('#f2cf82'));
+ const core=part(new T.SphereGeometry(2.7,14,10),new T.MeshBasicMaterial({color:'#fff0bf'}),TX,PY+41,TZ);
+ const coreLight=new T.PointLight(0xffd89a,1.5,220,1.4);coreLight.position.set(TX,PY+41,TZ);scene.add(coreLight);
+ // 旋转光束：两片加色半透明锥面
+ const beamMat=new T.MeshBasicMaterial({color:'#fff2c8',transparent:true,opacity:.042,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
+ const beamGroup=new T.Group();beamGroup.position.set(TX,PY+41,TZ);scene.add(beamGroup);
+ for(const dir of [0,Math.PI]){
+  const cone=new T.Mesh(new T.ConeGeometry(7,62,4,1,true),beamMat);
+  cone.rotation.z=Math.PI/2;cone.rotation.y=dir;cone.position.x=Math.cos(dir)*31;cone.position.z=Math.sin(dir)*31;
+  beamGroup.add(cone);
+ }
+ beaconBeam=beamGroup;
+ // 平台上的停留设施：凉亭 / 长椅 / 环形花坛 / 盆栽树 / 路牌
+ const gx=PX-16,gz=PZ+14;
+ for(const dx of [-5,5])for(const dz of [-5,5])cyl(gx+dx,PY+3,gz+dz,.55,6,woodDarkMat,8);
+ const gr=new T.Mesh(new T.ConeGeometry(9,4.2,4),M('#a87a51',{flatShading:true}));gr.position.set(gx,PY+7.2,gz);gr.rotation.y=Math.PI/4;gr.castShadow=true;scene.add(gr);
+ bench(gx+9,gz+2,PY,Math.PI/2);
+ for(const a of [1.1,2.4,3.8,5.2]){
+  const x=PX+Math.cos(a)*27,z=PZ+Math.sin(a)*27;
+  place(x,z,PY,2.5,'light-planter',()=>planter(x,z,PY,5,3),1);
+ }
+ for(const a of [.2,2.9,4.5]){
+  const x=PX+Math.cos(a)*31,z=PZ+Math.sin(a)*31;
+  if(place(x,z,PY,4,'light-tree',null,2))tree(x,z,PY,.75,Math.floor(rnd()*5));
+ }
+ for(const a of [1.8,3.4]){const x=PX+Math.cos(a)*29,z=PZ+Math.sin(a)*29;place(x,z,PY,3,'light-bench',()=>bench(x,z,PY,-a),1)}
+ signBoard(PX+18,PZ+20,PY,-.7,'灯塔广场','#2f6073','#ffe9b8',15,4.6);
+ signBoard(PX+30,PZ+28,PY,-.7,'灯塔爷爷','#7b5a3c','#fff2d2',13,4.2);
+ // 环形花带围绕塔基
+ const petals=[];
+ for(let i=0;i<90;i++){const a=i/90*Math.PI*2,r=17+rnd()*3,x=TX+Math.cos(a)*r,z=TZ+Math.sin(a)*r;
+  petals.push([x,z,PY+.6,.55+rnd()*.5,Math.floor(rnd()*6)]);}
+ const fm=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),M('#ffffff',{roughness:.95}),petals.length),d=new T.Object3D();
+ petals.forEach((v,i)=>{const [x,z,y,s,c]=v;d.position.set(x,y,z);d.rotation.set(0,i*.4,0);d.scale.set(s,s*.7,s);d.updateMatrix();fm.setMatrixAt(i,d.matrix);fm.setColorAt(i,PETAL[c])});
+ fm.instanceMatrix.needsUpdate=true;fm.instanceColor.needsUpdate=true;scene.add(fm);
+ // 海鸥与帆船
+ const gulls=[[-470,-430,62],[-560,-500,74],[-650,-390,55],[-720,-610,82],[-430,-560,68],[-820,-470,70]];
+ for(const [x,z,y] of gulls){
+  for(const s of [-1,1]){
+   const w=part(new T.ConeGeometry(.55,6,3),M('#fffaf0',{side:T.DoubleSide}),x+s*3,y,z);
+   w.rotation.z=s*1.15;w.rotation.x=.2;
+  }
+ }
+ const bx=-640,bz=-560;
+ const hull=part(new T.SphereGeometry(5,12,8,0,Math.PI*2,Math.PI/2,Math.PI/2),M('#8d6a4c'),bx,-.2,bz);hull.scale.set(1,.45,2.2);
+ cyl(bx,9,bz,.3,18,woodDarkMat,8);
+ const sailShape=new T.Shape();sailShape.moveTo(0,0);sailShape.lineTo(0,15);sailShape.lineTo(8,2);sailShape.closePath();
+ const sail=part(new T.ShapeGeometry(sailShape),new T.MeshStandardMaterial({color:'#fff6e6',side:T.DoubleSide,roughness:.9}),bx+.4,0,bz);sail.rotation.y=Math.PI/2;
+ AUDIT.lighthouse={cliffRocks:cliff.length,balusters:balusters.length,petals:petals.length,beam:true,seaShader:true};
+}
+lighthouseZone();
+/* ==================== 9. 远景：云 / 层叠山脊 / 边界植被 ==================== */
+const clouds=[];
+for(let i=0;i<34;i++){
+ const cx=(rnd()-.5)*1900,cy=170+rnd()*160,cz=(rnd()-.5)*1900,r=26+rnd()*40;
+ for(let j=0;j<4;j++)clouds.push([cx+(j-1.5)*r*.6,cy+(j%2)*8,cz+j*r*.18,r*(.5+rnd()*.12)]);
+}
+instanced(new T.IcosahedronGeometry(1,2),new T.MeshBasicMaterial({color:'#fff8ec',transparent:true,opacity:.82,depthWrite:false}),clouds,(d,v)=>{d.position.set(v[0],v[1],v[2]);d.scale.set(v[3],v[3]*.34,v[3]*.72)});
+const farCols=['#a8c6b0','#8fb4a5','#b7cdb6','#82a9a0'].map(c=>new T.Color(c));
+for(let i=0;i<20;i++){
+ const a=i/20*Math.PI*2+rnd()*.2,r=920+rnd()*260,x=Math.cos(a)*r,z=Math.sin(a)*r,h=20+rnd()*18;
+ const m=part(new T.IcosahedronGeometry(1,2),new T.MeshStandardMaterial({color:farCols[i%farCols.length],roughness:1,flatShading:true}),x,h*.45,z);
+ m.scale.set(190+rnd()*140,h,150+rnd()*110);
+}
+// 外围树林配额：控制密度，避免杂乱堆砌
+for(let i=0;i<220;i++){
+ const a=rnd()*Math.PI*2,r=430+rnd()*260,x=Math.cos(a)*r,z=Math.sin(a)*r;
+ if(inWater(x,z,4)||intrudesTunnel(x,2,z,4))continue;
+ const y=Math.max(-1,closestRoad(x,z).y-1);
+ if(place(x,z,y,4,'outer-tree',null,4))tree(x,z,y,.8+rnd()*.7,Math.floor(rnd()*5));
+}
+for(let i=0;i<260;i++){
+ const a=rnd()*Math.PI*2,r=300+rnd()*330,x=Math.cos(a)*r,z=Math.sin(a)*r;
+ if(inWater(x,z,1.5)||intrudesTunnel(x,1,z,1.5))continue;
+ const y=Math.max(-.8,closestRoad(x,z).y-.6);
+ if(place(x,z,y,1.3,'outer-flower',null,2))flower(x,z,y,.7+rnd()*1.1,Math.floor(rnd()*6));
+}
+buildCommons();
+/* ==================== 10. 车辆、驾驶物理（V0.3→V0.5 完整保留） ==================== */
+const car=new T.Group();scene.add(car);const chassis=new T.Group();car.add(chassis);
+function carPart(g,m,x,y,z,rx=0,ry=0,rz=0){const o=new T.Mesh(g,m);o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.castShadow=true;chassis.add(o);return o}
+const bodyMat=M('#e25d5d',{metalness:.18,roughness:.42}),bodyDark=M('#b94248',{metalness:.2,roughness:.5});
+carPart(geoBox(4.9,1.5,7.4),bodyMat,0,1.9,0);
+carPart(geoBox(4.5,.7,1.5),bodyMat,0,2.55,-3.35);
+carPart(geoBox(4.5,.7,1.5),bodyMat,0,2.55,3.35);
+carPart(geoBox(4.1,1.5,3.1),M('#9fd8e8',{metalness:.1,roughness:.18,transparent:true,opacity:.92}),0,3.25,.5);
+carPart(geoBox(4.2,.22,3.2),M('#f6f1e4',{metalness:.15,roughness:.4}),0,4.05,.5);
+carPart(geoBox(5.2,.3,1.1),bodyDark,0,3.55,3.5);
+for(const dx of [-2.5,2.5])for(const dz of [-3.15,3.15]){
+ const w=carPart(new T.CylinderGeometry(1.18,1.18,.75,16),M('#32393d',{roughness:.85}),dx,1.18,dz,0,0,Math.PI/2);
+ carPart(new T.CylinderGeometry(.58,.58,.78,12),M('#d9dde0',{metalness:.6,roughness:.3}),dx,1.18,dz,0,0,Math.PI/2);
+}
+for(const dx of [-1.55,1.55]){
+ carPart(new T.SphereGeometry(.55,10,8),new T.MeshBasicMaterial({color:'#fff3c4'}),dx,2.15,-3.9);
+ carPart(geoBox(1.1,.35,.2),new T.MeshBasicMaterial({color:'#ff6b5b'}),dx,2.15,3.95);
+}
+carPart(geoBox(5.3,.35,.5),M('#f2cf82',{metalness:.4,roughness:.35}),0,1.15,-3.8);
+carPart(geoBox(5.3,.35,.5),M('#f2cf82',{metalness:.4,roughness:.35}),0,1.15,3.8);
+const wheels=chassis.children.filter(o=>o.geometry&&o.geometry.type==='CylinderGeometry');
+const state={x:0,z:-30,y:1.2,heading:Math.PI,speed:0,steer:0,cam:0,driveDistance:0,shake:0,vertical:0,zoom:1,airborne:false,verticalVelocity:0,previousGravelY:null,wasClimbing:false,landingCompression:0,tunnel:'',tunnelBlend:0,freeCam:false,zone:'home'};
+const buttons={left:false,right:false,gas:false,brake:false};
+for(const el of document.querySelectorAll('[data-key]')){
+ const key=el.dataset.key,down=e=>{e.preventDefault();buttons[key]=true;el.classList.add('on');try{el.setPointerCapture(e.pointerId)}catch(_){}},
+ up=e=>{e.preventDefault();buttons[key]=false;el.classList.remove('on')};
+ el.addEventListener('pointerdown',down);for(const name of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(name,up)
+}
+const keyMap={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'gas',KeyW:'gas',ArrowDown:'brake',KeyS:'brake'};
+window.addEventListener('keydown',e=>{
+ if(keyMap[e.code]){buttons[keyMap[e.code]]=true;e.preventDefault();if(state.freeCam)resumeDrive();return}
+ const k={'Digit1':'lake','Digit2':'tunnel','Digit3':'town','Digit4':'light','Digit0':'home'}[e.code];
+ if(k){teleport(k);e.preventDefault()}
+});
+window.addEventListener('keyup',e=>{if(keyMap[e.code]){buttons[keyMap[e.code]]=false;e.preventDefault()}});
+let toastTime=0;function toast(s){$('toast').textContent=s;$('toast').classList.add('show');toastTime=performance.now()+2600}
+function clampIntoTunnel(nx,nz,ti){
+ const lim=ti.W/2-3.1,lat=Math.max(-lim,Math.min(lim,ti.lat)),along=ti.along,a=ti.a;
+ if(Math.abs(ti.lat)<=lim)return null;
+ return [a.x+a.nx*lat+a.nz*along,a.z+a.nz*lat-a.nx*along];
+}
+function drive(dt){
+ const before=closestRoad(state.x,state.z),plazaZone=Math.hypot(state.x,state.z)<62;
+ const accel=buttons.gas?17:0,brake=buttons.brake?26:0;
+ state.speed=Math.max(-10,Math.min(30,state.speed+dt*(accel-brake)));
+ if(!buttons.gas&&!buttons.brake)state.speed-=Math.sign(state.speed)*Math.min(Math.abs(state.speed),8*dt);
+ state.steer=T.MathUtils.damp(state.steer,(buttons.left?1:0)-(buttons.right?1:0),7,dt);
+ if(Math.abs(state.speed)>.3)state.heading-=state.steer*dt*(.55+Math.min(Math.abs(state.speed),22)*.023)*Math.sign(state.speed);
+ let nx=state.x+Math.sin(state.heading)*state.speed*dt,nz=state.z-Math.cos(state.heading)*state.speed*dt;
+ if(before.kind==='mountain'&&before.y>15&&before.distance<15){
+  const next=closestRoad(nx,nz);
+  if(next.distance>8.5){const k=Math.min(1,8.5/next.distance);nx=next.px+(nx-next.px)*k;nz=next.pz+(nz-next.pz)*k;state.speed*=.72}
+ }
+ // V0.6：碎石路给一层很轻的路肩引导，保证高速依次经过四个主驼峰而不跑出路面
+ if(before.kind==='gravel'&&before.distance<20){
+  const nextG=closestRoad(nx,nz);
+  if(nextG.distance>9.5){const k=Math.min(1,9.5/nextG.distance);nx=nextG.px+(nx-nextG.px)*k;nz=nextG.pz+(nz-nextG.pz)*k;state.speed*=.997}
+ }
+ const ti=tunnelAt(nx,nz);
+ if(ti&&ti.inside){
+  const fixed=clampIntoTunnel(nx,nz,ti);
+  if(fixed){nx=fixed[0];nz=fixed[1];state.speed*=.72}
+  const ti2=tunnelAt(nx,nz);if(ti2&&ti2.inside){const f2=clampIntoTunnel(nx,nz,ti2);if(f2){nx=f2[0];nz=f2[1]}}
+ }
+ if(Math.abs(nx)>=1150||Math.abs(nz)>=1150)state.speed=0;else{state.x=nx;state.z=nz}
+ const surface=closestRoad(state.x,state.z);state.driveDistance+=Math.abs(state.speed*dt);
+ if(surface.distance>15&&!plazaZone)state.speed*=Math.pow(.95,dt*60);
+ const targetY=plazaZone?1.2:(surface.distance<22?surface.y+1.2:Math.max(1.2,surface.y+1.2-(surface.distance-22)*.03));
+ const lakeBump=surface.kind==='gravel'&&surface.distance<13;
+ const delta=lakeBump&&state.previousGravelY!==null?targetY-state.previousGravelY:0;
+ const inTunnelNow=!!(ti&&ti.inside&&Math.abs(ti.lat)<ti.W/2);
+ const launch=()=>{state.airborne=true;state.verticalVelocity=4.1+Math.min(6,Math.abs(state.speed)*.25);state.wasClimbing=false;toast('🚙 飞跃土坡！')};
+ if(lakeBump&&!state.airborne&&state.wasClimbing&&delta<-.12&&Math.abs(state.speed)>12)launch();
+ if(lakeBump&&delta>.12)state.wasClimbing=true;
+ if(!lakeBump)state.wasClimbing=false;
+ state.previousGravelY=lakeBump?targetY:null;
+ const m=surface.m,onSlope=lakeBump&&GRAVEL_CRESTS.some(c=>m>c-34&&m<c-4),afterCrest=lakeBump&&GRAVEL_CRESTS.some(c=>m>c+3&&m<c+32);
+ if(onSlope)state.wasClimbing=true;
+ if(afterCrest&&state.wasClimbing&&!state.airborne&&Math.abs(state.speed)>12)launch();
+ if(inTunnelNow){state.airborne=false;state.verticalVelocity=0}
+ if(state.airborne){
+  state.y+=state.verticalVelocity*dt;state.verticalVelocity-=26*dt;
+  if(state.verticalVelocity<0&&state.y<=targetY){state.y=targetY;state.airborne=false;state.verticalVelocity=0;state.landingCompression=1.1;toast('💥 落地！悬挂压缩回弹')}
+ }else state.y=T.MathUtils.damp(state.y,targetY,lakeBump?18:7,dt);
+ if(inTunnelNow)state.y=Math.min(state.y,ti.y0+ti.top-5.4);
+ state.landingCompression=T.MathUtils.damp(state.landingCompression,0,8,dt);
+ const bumpTarget=lakeBump&&!state.airborne?Math.min(.19,.045+Math.abs(state.speed)*.005)*Math.sin(state.driveDistance*2.8):0;
+ state.shake=T.MathUtils.damp(state.shake,bumpTarget-state.landingCompression,12,dt);
+ state.vertical=T.MathUtils.damp(state.vertical,Math.abs(state.verticalVelocity)*.018+state.landingCompression*.20,4,dt);
+ state.tunnel=inTunnelNow?ti.t.name:'';
+ const tiBlend=tunnelAt(state.x,state.z),blend=tiBlend?T.MathUtils.clamp(1-(tiBlend.dist-tiBlend.W/2)/32,0,1):0;
+ state.tunnelBlend=T.MathUtils.damp(state.tunnelBlend,blend,5,dt);
+ car.position.set(state.x,state.y,state.z);car.rotation.set(0,-state.heading,0);
+ chassis.position.y=state.shake;
+ chassis.rotation.z=lakeBump?Math.sin(state.driveDistance*2.15)*.032:0;
+ chassis.rotation.x=lakeBump?Math.sin(state.driveDistance*3.1)*.045+state.landingCompression*.07:0;
+ wheels.forEach(w=>{w.rotation.x+=state.speed*dt/1.12});
+}
+/* ==================== 11. 相机：洞内目标与实际位置双重钳制（V0.4 机制保留） ==================== */
+function cameraTarget(){
+ const f=new T.Vector3(Math.sin(state.heading),0,-Math.cos(state.heading)),s=new T.Vector3(Math.cos(state.heading),0,Math.sin(state.heading));
+ const pos=new T.Vector3(state.x,state.y,state.z),look=pos.clone(),b=state.tunnelBlend;
+ if(state.cam===0){const back=T.MathUtils.lerp(-23,-9,b),high=T.MathUtils.lerp(15,6.4,b),ahead=T.MathUtils.lerp(13,8,b);
+  pos.addScaledVector(f,back).y+=high;look.addScaledVector(f,ahead).y+=3.2}
+ else if(state.cam===1){pos.addScaledVector(f,15).addScaledVector(s,17).y+=10;look.y+=3}
+ else{pos.y+=145;look.addScaledVector(f,7)}
+ pos.y+=state.vertical*.22;look.y+=state.vertical*.08;
+ const ti=tunnelAt(state.x,state.z);
+ if(state.cam===0&&b>.35&&ti&&ti.inside){
+  // 洞内相机沿轴线后撤 20 m：既不会贴壁穿顶，也不会让车身糊满画面
+  const dirx=ti.a.nz,dirz=-ti.a.nx,fx=Math.sin(state.heading),fz=-Math.cos(state.heading);
+  const sg=(fx*dirx+fz*dirz)>=0?1:-1;
+  const ap=new T.Vector3(state.x-dirx*20*sg,ti.y0+6.4,state.z-dirz*20*sg);
+  const al=new T.Vector3(state.x+dirx*22*sg,ti.y0+3.2,state.z+dirz*22*sg);
+  pos.lerp(ap,b*.85);look.lerp(al,b*.85);
+ }
+ return {pos,look};
+}
+function clampCamera(pos){
+ const ti=tunnelAt(pos.x,pos.z);
+ if(!ti||!ti.inside||ti.dist>ti.W/2+8)return pos;
+ const lim=ti.W/2-1.0,lat=Math.max(-lim,Math.min(lim,ti.lat)),a=ti.a,along=ti.along;
+ pos.x=a.x+a.nx*lat+a.nz*along;pos.z=a.z+a.nz*lat-a.nx*along;
+ pos.y=Math.max(ti.y0+1.5,Math.min(ti.y0+ti.top-.9,pos.y));return pos;
+}
+function cameraUpdate(dt){
+ const {pos,look}=cameraTarget(),b=state.tunnelBlend;
+ if(b>.02)clampCamera(pos);
+ camera.position.lerp(pos,1-Math.exp(-4*dt));
+ if(b>.02){clampCamera(camera.position);camera.position.lerp(clampCamera(pos),b*.55)}
+ camera.lookAt(look);return {pos,look};
+}
+function updateAtmosphere(b){
+ scene.fog.near=T.MathUtils.lerp(380,28,b);scene.fog.far=T.MathUtils.lerp(1150,205,b);
+ sun.intensity=T.MathUtils.lerp(2.55,.55,b);hemi.intensity=T.MathUtils.lerp(2.15,1.15,b);
+ $('tunnelShade').style.opacity=(b*.42).toFixed(3);
+ tunnelLights.forEach(l=>{l.intensity=b*1.5});
+}
+/* ==================== 12. 快速跳转 A + 紧凑布局 B + 预设机位 C ==================== */
+const t0=TUNNELS[0].axis[0],tTan={x:t0.nz,z:-t0.nx};
+const ZONES={
+ home:{name:'中央广场',x:0,z:-30,h:Math.PI,view:[[0,105,225],[0,4,0]],tip:'四个样板区就在四周，点右侧按钮一键直达'},
+ lake:{name:'湖边公路',x:-150,z:260,h:3.10,view:[[-46,26,378],[-242,1,258]],tip:'渐变湖水 · 石滩芦苇 · 白色护栏 · 越野弹跳'},
+ tunnel:{name:'山路隧道',x:t0.x-tTan.x*30,z:t0.z-tTan.z*30,h:Math.atan2(tTan.x,-tTan.z),view:[[t0.x-tTan.x*46,t0.y0+11,t0.z-tTan.z*46],[t0.x+tTan.x*10,t0.y0+4.5,t0.z+tTan.z*10]],tip:'整块山体包裹洞口 · 挡墙护栏 · 穿山而过'},
+ town:{name:'小镇街道',x:0,z:-190,h:0,view:[[3,10,-144],[0,5.5,-318]],tip:'门头花箱 · 彩旗路灯 · 喷泉广场 · 摊位'},
+ light:{name:'灯塔广场',x:-300,z:-235,h:-1.78,view:[[-215,30,-135],[-340,19,-262]],tip:'红白灯塔 · 崖顶观景平台 · 旋转光束 · 海鸥'}
+};
+let currentZone='home';
+function syncPose(z){
+ state.freeCam=false;state.cam=0;camera.far=2600;camera.updateProjectionMatrix();
+ scene.fog.near=380;scene.fog.far=1150;
+ state.x=z.x;state.z=z.z;state.heading=z.h;state.speed=0;state.steer=0;state.shake=0;state.vertical=0;
+ state.airborne=false;state.verticalVelocity=0;state.previousGravelY=null;state.wasClimbing=false;state.landingCompression=0;
+ state.y=Math.hypot(z.x,z.z)<62?1.2:closestRoad(z.x,z.z).y+1.2;
+ const ti=tunnelAt(z.x,z.z);
+ state.tunnel=ti&&ti.inside&&Math.abs(ti.lat)<ti.W/2?ti.t.name:'';
+ state.tunnelBlend=ti?T.MathUtils.clamp(1-(ti.dist-ti.W/2)/32,0,1):0;
+ car.position.set(state.x,state.y,state.z);car.rotation.set(0,-state.heading,0);
+ const {pos,look}=cameraTarget();clampCamera(pos);camera.position.copy(pos);camera.lookAt(look);
+ updateAtmosphere(state.tunnelBlend);
+}
+function updateZoneUI(){
+ document.querySelectorAll('[data-zone]').forEach(b=>b.classList.toggle('on',b.dataset.zone===currentZone));
+ const z=ZONES[currentZone];$('task').textContent=z?z.tip:'点右侧按钮一键跳转';
+}
+function teleport(key){
+ const z=ZONES[key];if(!z)return;
+ currentZone=key;syncPose(z);updateZoneUI();mapRender();renderer.render(scene,camera);
+ toast('🚀 已到达 · '+z.name+'　'+z.tip);
+}
+function preset(key){
+ const z=ZONES[key];if(!z)return;
+ currentZone=key;updateZoneUI();
+ state.freeCam=true;camera.far=6000;camera.updateProjectionMatrix();
+ camera.position.set(...z.view[0]);camera.lookAt(...z.view[1]);
+ scene.fog.near=2800;scene.fog.far=7200;$('tunnelShade').style.opacity='0';
+ renderer.render(scene,camera);
+ toast('📷 '+z.name+' · 预设机位（点「回到驾驶」继续开）');
+}
+function resumeDrive(){
+ if(!state.freeCam)return;
+ syncPose(ZONES[currentZone]);mapRender();renderer.render(scene,camera);
+ toast('🎥 回到驾驶视角');
+}
+document.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>teleport(b.dataset.zone));
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>preset(b.dataset.view));
+$('drive').onclick=resumeDrive;
+$('cam').onclick=()=>{if(state.freeCam)resumeDrive();state.cam=(state.cam+1)%3;toast('视角 '+(state.cam+1)+' / 3')};
+/* ==================== 13. 小地图 / HUD / 主循环 ==================== */
+const mini=$('map'),ctx=mini.getContext('2d'),MAP_R=620;
+function dot(x,z){return [(x+MAP_R)/(MAP_R*2)*mini.width,(MAP_R-z)/(MAP_R*2)*mini.height]}
+function mapRender(){
+ ctx.fillStyle='#e9f0dd';ctx.fillRect(0,0,mini.width,mini.height);
+ ctx.fillStyle='#8ed6de';let p=dot(LAKE.x,LAKE.z);ctx.beginPath();ctx.arc(...p,LAKE.r/MAP_R*mini.width/2,0,7);ctx.fill();
+ ctx.fillStyle='#63b6cf';p=dot(SEA.x,SEA.z);ctx.beginPath();ctx.arc(...p,SEA.r/MAP_R*mini.width/2,0,7);ctx.fill();
+ for(const l of lines){ctx.strokeStyle=l.kind==='gravel'?'#c69a63':l.kind==='mountain'?'#a487c2':'#8b989b';ctx.lineWidth=l.kind==='mountain'?2.6:2.2;ctx.beginPath();l.pts.forEach((v,i)=>{p=dot(v[0],v[1]);if(!i)ctx.moveTo(...p);else ctx.lineTo(...p)});ctx.stroke()}
+ const cols={lake:'#2f9a8f',tunnel:'#8d7350',town:'#d98853',light:'#d9554d',home:'#4b7f9c'};
+ for(const key of ['lake','tunnel','town','light','home']){const z=ZONES[key];p=dot(z.x,z.z);ctx.fillStyle=cols[key];ctx.beginPath();ctx.arc(...p,key===currentZone?6:4,0,7);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke()}
+ p=dot(state.x,state.z);ctx.fillStyle='#e64d60';ctx.beginPath();ctx.arc(...p,5,0,7);ctx.fill();
+}
+function hud(){
+ const near=closestRoad(state.x,state.z);
+ $('telemetry').textContent='速度 '+Math.round(Math.abs(state.speed)*3.6)+' km/h · 海拔 '+Math.round(state.y-1.2)+' m';
+ let label='🌿 精品岛';
+ if(state.tunnel)label='🚇 '+state.tunnel;
+ else if(state.airborne)label='🚙 越野腾空中';
+ else if(Math.hypot(state.x,state.z)<62)label='🏛 中央广场 / 出生点';
+ else if(near.kind==='mountain')label='⛰ 盘山公路 · 穿山隧道';
+ else if(near.kind==='gravel')label='🏞 湖边碎石颠簸路';
+ else if(Math.hypot(state.x+330,state.z+255)<80)label='🗼 灯塔广场';
+ else if(state.z<-150&&Math.abs(state.x)<130)label='🏘 小镇街道';
+ else if(state.z>140&&state.x<0)label='🏞 湖边公路';
+ else label='🛣 '+near.name;
+ $('region').textContent=label;
+}
+let frame=0,last=performance.now();
+function animate(now){
+ const dt=Math.min(.05,Math.max(.001,(now-last)/1000));last=now;
+ waterUniforms.uTime.value+=dt;
+ if(beaconBeam)beaconBeam.rotation.y+=dt*.32;
+ if(!state.freeCam){drive(dt);cameraUpdate(dt);updateAtmosphere(state.tunnelBlend)}
+ if(now>toastTime)$('toast').classList.remove('show');
+ if(frame++%7===0){hud();mapRender()}
+ renderer.render(scene,camera);requestAnimationFrame(animate);
+}
+window.addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()});
+syncPose(ZONES.home);updateZoneUI();mapRender();$('loading').style.display='none';
+toast('V0.6 精品样板区 · 右侧按钮一键看四个场景');requestAnimationFrame(animate);
+/* ==================== 14. 验收审计与预览调试接口 ==================== */
+window.__V06_AUDIT__={
+ version:'V0.6',kind:'boutique-showcase',worldRadius:600,
+ zones:Object.keys(ZONES).map(k=>({key:k,name:ZONES[k].name,x:+ZONES[k].x.toFixed(1),z:+ZONES[k].z.toFixed(1),view:ZONES[k].view})),
+ roads:lines.map(l=>({name:l.name,kind:l.kind,width:l.width,samples:l.pts.length,length:Math.round(l.cum[l.cum.length-1])})),
+ tunnels:TUNNELS.map(t=>({name:t.name,road:t.road,iA:t.iA,iB:t.iB,rings:t.rings,width:t.W,wall:t.wall,top:t.top,shellGap:SHELL,profilePoints:K,deckLift:DECK_LIFT,y0:+t.axis[0].y0.toFixed(1)})),
+ deckGaps:AUDIT.deckGaps,obstacleCount:AUDIT.obstacles.length,violations:AUDIT.obstacles.filter(o=>!o.ok),rejected:AUDIT.rejected,
+ obstacles:AUDIT.obstacles,
+ counts:{trees:TREES.length,flowers:FLOWERS.length,rocks:ROCKS.length,guardPosts:GUARD_POSTS.length,lamps:LAMPS.length,
+  houses:AUDIT.town?houseCount:0,portalRocks:portalRocks.length,capRocks:capRocks.length,hillRocks:hillRocks.length},
+ art:{lake:AUDIT.lake,tunnel:AUDIT.tunnel,town:AUDIT.town,lighthouse:AUDIT.lighthouse},
+ quickLook:{teleport:true,compactLayout:true,presetCameras:Object.keys(ZONES).length,keyboard:'1/2/3/4/0'},
+ references:['湖边公路目标图','山路隧道目标图','小镇街道目标图','灯塔广场目标图']
+};
+window.__V06_DEBUG__={
+ state,camera,scene,renderer,lines,TUNNELS,ZONES,waterUniforms,
+ teleport,preset,resumeDrive,closestRoad,clearance,tunnelAt,
+ setPose(x,z,heading,camMode=0){
+  syncPose({x,z,h:heading});state.cam=camMode;
+  const {pos,look}=cameraTarget();clampCamera(pos);camera.position.copy(pos);camera.lookAt(look);
+  updateAtmosphere(state.tunnelBlend);mapRender();renderer.render(scene,camera);
+ },
+ setFreeCamera(px,py,pz,lx,ly,lz){
+  state.freeCam=true;camera.far=6000;camera.updateProjectionMatrix();
+  camera.position.set(px,py,pz);camera.lookAt(lx,ly,lz);
+  scene.fog.near=2800;scene.fog.far=7200;$('tunnelShade').style.opacity='0';renderer.render(scene,camera);
+ },
+ renderOnce(){renderer.render(scene,camera)},
+ probe(){
+  const dirs=[[0,0],[0,.55],[0,-.55],[-.6,0],[.6,0],[-.6,.7],[.6,.7],[0,.85],[-.8,.95],[.8,.95],[0,.97],[-.95,.5],[.95,.5]],out=[];
+  for(const [x,y] of dirs){
+   const rc=new T.Raycaster();rc.far=500;rc.setFromCamera(new T.Vector2(x,y),camera);
+   const hs=rc.intersectObjects(scene.children,true);
+   out.push({dir:[x,y],hits:hs.slice(0,3).map(h=>({d:+h.distance.toFixed(1),name:h.object.name||h.object.type,geo:h.object.geometry?.type,c:h.object.material?.color?.getHexString?.(),inst:!!h.object.isInstancedMesh}))});
+  }
+  return out;
+ },
+ simulate(seconds,opts={}){
+  if(opts.zone)teleport(opts.zone);
+  if(opts.pose)this.setPose(...opts.pose);
+  state.freeCam=false;
+  const n=Math.round(seconds*60),dt=1/60;
+  let carViolations=0,camViolations=0,maxLat=0,maxCamY=0,framesInTunnel=0,airFrames=0,maxJump=0;
+  for(const k of ['left','right','gas','brake'])buttons[k]=!!opts[k];
+  for(let i=0;i<n;i++){
+   drive(dt);cameraUpdate(dt);
+   if(state.airborne)airFrames++;
+   maxJump=Math.max(maxJump,state.y-closestRoad(state.x,state.z).y-1.2);
+   const ti=tunnelAt(state.x,state.z),tc=tunnelAt(camera.position.x,camera.position.z);
+   if(ti&&ti.inside&&ti.dist<ti.W/2+4){framesInTunnel++;maxLat=Math.max(maxLat,Math.abs(ti.lat));
+    if(Math.abs(ti.lat)>ti.W/2-2.9||state.y>ti.y0+ti.top-5.2)carViolations++}
+   if(tc&&tc.inside&&tc.dist<tc.W/2+4){maxCamY=Math.max(maxCamY,camera.position.y-tc.y0);
+    if(Math.abs(tc.lat)>tc.W/2-.85||camera.position.y>tc.y0+tc.top-.8||camera.position.y<tc.y0+1.35)camViolations++}
+  }
+  for(const k of ['left','right','gas','brake'])buttons[k]=false;
+  return {frames:n,framesInTunnel,carViolations,camViolations,airFrames,maxJump:+maxJump.toFixed(2),maxLat:+maxLat.toFixed(2),maxCamY:+maxCamY.toFixed(2),x:+state.x.toFixed(1),z:+state.z.toFixed(1),tunnel:state.tunnel};
+ },
+ getAudit(){return window.__V06_AUDIT__}
+};
+
+</script></body></html>
