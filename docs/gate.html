@@ -349,9 +349,25 @@ function renderModules(modules) {
   ul.innerHTML = '';
   (modules || []).forEach((m) => {
     const li = document.createElement('li');
-    const pct = m.accuracy_pct == null ? '–' : `${m.accuracy_pct}%`;
-    const done = m.passed ? '<span class="ok">✓ 云端已达标</span>' : (m.completed===true ? '<span class="no">云端未确认达标</span>' : '<span class="no">云端尚未确认学习成绩</span>');
-    li.innerHTML = `<span>${m.subject || '学习'}</span><span>${pct} ${done}</span>`;
+    // Display actual server grades rather than hiding non-passing attempts as "unfinished".
+    const total = Number(m.total);
+    const correct = Number(m.correct);
+    const hasScore = m.accuracy_pct != null && Number.isFinite(Number(m.accuracy_pct));
+    const pct = hasScore ? Number(m.accuracy_pct).toFixed(1).replace(/\\.0$/, '') + '%' : '暂无云端成绩';
+    const detail = hasScore && Number.isFinite(total) && total>0 && Number.isFinite(correct)
+      ? '（答对' + correct + '/' + total + '）' : '';
+    const done = m.passed ? '<span class="ok">✓ 达标</span>'
+      : hasScore ? '<span class="no">未达标</span>'
+      : '<span class="no">待同步或待核实</span>';
+    const subject = document.createElement('span');
+    subject.textContent = String(m.subject || '学习');
+    const result = document.createElement('span');
+    result.textContent = pct + detail + ' · ';
+    const status = document.createElement('span');
+    status.className = m.passed ? 'ok' : 'no';
+    status.textContent = m.passed ? '✓ 达标' : (hasScore ? '未达标' : '待同步或待核实');
+    result.appendChild(status);
+    li.append(subject, result);
     ul.appendChild(li);
   });
 }
