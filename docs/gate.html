@@ -353,7 +353,7 @@ function renderModules(modules) {
     const total = Number(m.total);
     const correct = Number(m.correct);
     const hasScore = m.accuracy_pct != null && Number.isFinite(Number(m.accuracy_pct));
-    const pct = hasScore ? Number(m.accuracy_pct).toFixed(1).replace(/\\.0$/, '') + '%' : '暂无云端成绩';
+    const pct = hasScore ? Number(m.accuracy_pct).toFixed(1).replace(/\.0$/, '') + '%' : '暂无云端成绩';
     const detail = hasScore && Number.isFinite(total) && total>0 && Number.isFinite(correct)
       ? '（答对' + correct + '/' + total + '）' : '';
     const done = m.passed ? '<span class="ok">✓ 达标</span>'
