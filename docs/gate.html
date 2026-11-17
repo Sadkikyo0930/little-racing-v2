@@ -80,7 +80,7 @@
 <div class="parent-dialog" id="parent-entry-dialog" role="dialog" aria-modal="true" aria-labelledby="parent-entry-heading" hidden>
   <form class="parent-dialog-panel" id="parent-entry-form">
     <h2 id="parent-entry-heading">家长验证</h2>
-    <p>选择家长账号并输入自己的密码，临时免学习进入游戏一次；每日游戏时间仍由云端限制。</p>
+    <p>此处是家长临时免学习通道，不是孩子完成学习后的正常入口。家长账号验证通过后仍受每日游戏时间限制。</p>
     <label for="parent-entry-account">家长账号</label>
     <select id="parent-entry-account" name="account" autocomplete="off" required></select>
     <label for="parent-entry-password">登录密码</label>
@@ -350,7 +350,7 @@ function renderModules(modules) {
   (modules || []).forEach((m) => {
     const li = document.createElement('li');
     const pct = m.accuracy_pct == null ? '–' : `${m.accuracy_pct}%`;
-    const done = m.passed ? '<span class="ok">✓ 已达标</span>' : '<span class="no">还没完成</span>';
+    const done = m.passed ? '<span class="ok">✓ 云端已达标</span>' : (m.completed===true ? '<span class="no">云端未确认达标</span>' : '<span class="no">云端尚未确认学习成绩</span>');
     li.innerHTML = `<span>${m.subject || '学习'}</span><span>${pct} ${done}</span>`;
     ul.appendChild(li);
   });
@@ -369,11 +369,11 @@ function lockScreen(st) {
     $('err-hint').textContent = '想玩的话，请爸爸妈妈在家长中心打开赛车开关。';
     show('st-error'); return;
   }
-  setSub('先去学习，再来赛车');
-  $('lock-title').textContent = st.reason === 'NO_TASKS_TODAY' ? '今天是休息日' : '今天的两个学习任务还没完成';
+  setSub('正在以云端成绩为准检查学习资格');
+  $('lock-title').textContent = st.reason === 'NO_TASKS_TODAY' ? '今天是休息日' : '今天的学习成绩尚未全部获得云端确认';
   $('lock-hint').textContent = st.reason === 'NO_TASKS_TODAY'
     ? '今天没有安排学习任务，可以直接去赛车啦～'
-    : '完成两个模块，每个答对 80%，就能解锁 30 分钟赛车时间。';
+    : '如果已经学完且达到80%，请先检查 V6 云端同步，再点「我已经学完了，再检查一次」。';
   renderModules(st.modules);
   show('st-lock');
 }
