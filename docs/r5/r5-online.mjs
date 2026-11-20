@@ -32,6 +32,10 @@ export const R5_MESSAGES = {
   R5_MEMBER_DENIED: '这台设备还没绑定，请让爸爸妈妈帮你绑定一下。',
   R5_DEVICE_REQUIRED: '没有找到设备号，请用爸爸妈妈给你的链接打开。',
   R5_INVALID_DEVICE: '设备号看起来不对，请用爸爸妈妈给你的链接打开。',
+  // 身份类（2026-11-20 补）：这些码此前不在表里，会回退成「网络有点忙」，把服务端拒绝伪装成网络故障
+  R5_NOT_FAMILY_MEMBER: '这台设备的身份没被认出来，请让爸爸妈妈从通行证页面重新打开一次。',
+  R5_IDENTITY_REQUIRED: '这次打开少了身份信息，请从通行证页面重新进入。',
+  R5_IDENTITY_INVALID: '身份信息不完整，请从通行证页面重新进入。',
   R5_TIME_UP: '今天的 30 分钟用完啦，明天再来！',
   R5_FAMILY_NOT_ALLOWED: '这台设备没有加入家庭。',
   R5_GATEWAY_ERROR: '网络有点忙，等一下再试试。',

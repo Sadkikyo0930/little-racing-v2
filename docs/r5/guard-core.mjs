@@ -210,27 +210,40 @@ export function createGuard(opts) {
     );
   }
 
+  /**
+   * 拒绝提示：必须让「网络故障」和「学习没达标」看起来完全不一样。
+   *   · 网络故障 → 标题/文案都讲网络，主按钮是「再试一次」（计时没开始，不扣时间）
+   *   · 服务端业务拒绝（身份/绑定/通行证）→ 讲具体原因，也允许重试
+   *   · 学习未达标 → 才是「先去学习再来赛车」
+   * 2026-11-20：R5_NOT_FAMILY_MEMBER 不在文案表里，曾回退成「网络有点忙」，
+   * 再叠加固定标题「先去学习再来赛车」，让一次身份故障看起来像孩子没学习。
+   */
+  const SERVER_DENY = /^(?:R5_)?(NOT_FAMILY_MEMBER|IDENTITY_REQUIRED|IDENTITY_INVALID|MEMBER_DENIED|DEVICE_REQUIRED|INVALID_DEVICE|FAMILY_NOT_ALLOWED|SESSION_REQUIRED|INVALID_SESSION_ID|SYNC_PENDING)$/;
+
   function deny(reason, kind) {
     state.phase = 'blocked';
     state.last = Object.assign({}, state.last, { reason });
     blockEntries(true);
     if (opts.onServerDenied) opts.onServerDenied(reason);
-    const isTime = reason === 'TIME_LIMIT_REACHED';
-    veil(
-      `<div class="emoji">${isTime ? '🌙' : '📚'}</div><h2>${isTime ? '今天的 30 分钟用完啦' : '先去学习再来赛车'}</h2>
-       <p>${blockMessage(reason, gate.messageFor)}</p>`,
-      [{ label: '去学习（V6 学习平台）', cls: 'primary', onClick: () => { doc.location.href = learnUrl; } }],
-    );
-    if (kind === 'network') {
-      const box = doc.querySelector('#r5-veil .box');
-      if (box) {
-        const b = el('button', null, 'ghost');
-        b.type = 'button';
-        b.textContent = '再试一次';
-        b.addEventListener('click', () => doc.location.reload());
-        box.appendChild(b);
-      }
-    }
+    const code = String(reason || '');
+    const isTime = code === 'TIME_LIMIT_REACHED' || code === 'R5_TIME_UP';
+    const isServer = SERVER_DENY.test(code);
+    const isNet = !isTime && !isServer && kind === 'network';
+
+    const emoji = isTime ? '🌙' : isNet ? '📶' : isServer ? '🔑' : '📚';
+    const title = isTime ? '今天的 30 分钟用完啦'
+      : isNet ? '暂时连不上服务器'
+        : isServer ? '这次没能验证通过'
+          : '先去学习再来赛车';
+    const body = isNet
+      ? '网络有点忙，等一下再试试。计时还没开始，不会扣时间。'
+      : blockMessage(reason, gate.messageFor);
+
+    const retry = { label: '再试一次', cls: isNet || isServer ? 'primary' : 'ghost', onClick: () => doc.location.reload() };
+    const learn = { label: '去学习（V6 学习平台）', cls: isNet || isServer ? 'ghost' : 'primary', onClick: () => { doc.location.href = learnUrl; } };
+
+    veil(`<div class="emoji">${emoji}</div><h2>${title}</h2><p>${body}</p>`,
+      isNet || isServer ? [retry, learn] : [learn]);
   }
 
   function expire() {
