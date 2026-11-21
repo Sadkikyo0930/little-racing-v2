@@ -50,8 +50,8 @@ function ribbons(lines,steps){
   g.setIndex(idx);
   return g;
 }
-const plumeGeometry=tubes(12), jetGeometry=tubes(8), streakGeometry=ribbons(2,18), markGeometry=ribbons(3,18);
-const arcGeometry=ribbons(5,22), shockGeometry=new RingGeometry(.89,1,36);
+const plumeGeometry=tubes(12), jetGeometry=tubes(8), streakGeometry=ribbons(6,18), markGeometry=ribbons(3,18);
+const arcGeometry=ribbons(6,24), shockGeometry=new RingGeometry(.89,1,36);
 
 const plumeVertex=`
 attribute vec3 shape;
@@ -62,14 +62,14 @@ varying float vLight;
 void main(){
  float t=shape.x,a=shape.y,side=shape.z;
  float phase=uTime*(12.0+4.0*uTruck)+side*1.7;
- float lobes=sin(t*21.0-phase+a*2.0)*.17+sin(a*3.0+t*34.0+phase*.7)*.045;
+ float lobes=sin(t*24.0-phase+a*3.0)*.13+sin(a*5.0+t*38.0+phase*.7)*.055;
  float open=smoothstep(0.0,.16,t);
- float envelope=mix(.70,1.0,open)*pow(max(.002,1.0-t),.64+.16*uLayer);
- float radius=uWidth*envelope*(1.0+open*lobes)*(1.20-uLayer*.50);
+ float envelope=mix(.64,1.0,open)*pow(max(.002,1.0-t),.47+.10*uLayer);
+ float radius=uWidth*envelope*(1.0+open*lobes)*(1.16-uLayer*.57);
  float curl=sin(t*8.1-phase*.55)*open*t;
  vec3 pos=vec3(side*uMount.x+cos(a)*radius+side*t*(.17+.12*uTruck)+curl*.13,
-   uMount.y+sin(a)*radius+t*t*(.27+.14*uTruck)+sin(t*14.0+phase)*.105*t,
-   uMount.z-t*uLength*(1.0-uLayer*.27));
+   uMount.y+sin(a)*radius+t*t*.33+sin(t*14.0+phase)*.071*t,
+   uMount.z-t*uLength*(1.0-uLayer*.15));
  vShape=vec3(t,a,side);
  vLight=.66+.34*sin(a+phase*.25+t*7.0);
  gl_Position=projectionMatrix*modelViewMatrix*vec4(pos,1.0);
@@ -83,12 +83,12 @@ void main(){
  float t=vShape.x,a=vShape.y;
  float flow=.5+.5*sin(t*24.0-uTime*25.0+sin(a*2.0+t*9.0)+vShape.z);
  float bands=.5+.5*sin(t*(21.0+uTruck*12.0)-uTime*20.0+a*(2.0+uTruck*2.0));
- vec3 color=mix(uShell,uEdge,smoothstep(.35,1.0,t));
- float filament=pow(.5+.5*cos(t*40.0-uTime*29.0+a*3.0),4.0);
- color=mix(color,uHot,(.22+.72*uLayer)*(.67+.33*flow)*(1.0-.29*t)+filament*.13);
- color*=.74+vLight*.22+bands*.23+uBurst*.12;
- float a0=(1.0-smoothstep(.48,1.0,t))*uPower*(1.0-uLayer*.29);
- a0*=mix(.73+.23*flow,.81+.16*bands,uLayer);
+ float filament=pow(.5+.5*cos(a*5.0+t*9.0+sin(t*26.0-uTime*17.0)*.8),5.0);
+ vec3 color=mix(uShell,uEdge,smoothstep(.25,1.0,t));
+ color=mix(color,uHot,clamp(.13+.76*uLayer+filament*.24+.07*flow,0.0,1.0));
+ color*=.86+vLight*.18+bands*.10+uBurst*.10;
+ float a0=(1.0-smoothstep(.54,1.0,t))*uPower;
+ a0*=mix(.69+.29*filament,.91+.09*bands,uLayer);
  gl_FragColor=vec4(color,a0);
  #include <colorspace_fragment>
 }`;
@@ -100,12 +100,12 @@ uniform float uTime,uLength,uWidth,uLayer;
 varying vec2 vJet;
 void main(){
  float t=shape.x,a=shape.y,side=shape.z;
- float pressure=.92+.08*cos(t*26.0-uTime*15.0);
- float tip=1.0-smoothstep(.62,1.0,t);
+ float pressure=.93+.07*cos(t*24.0-uTime*15.0);
+ float tip=1.0-smoothstep(.52,1.0,t);
  float collar=mix(.72,1.0,smoothstep(0.0,.11,t));
- float r=uWidth*collar*tip*pressure*(1.14-uLayer*.52);
+ float r=uWidth*collar*tip*pressure*(1.14-uLayer*.56);
  vec3 p=vec3(side*(uMount.x+.11*t)+cos(a)*r,
-   uMount.y+sin(a)*r*.83+t*.16,uMount.z-t*uLength*(1.0-uLayer*.13));
+   uMount.y+sin(a)*r*.81+t*.27,uMount.z-t*uLength*(1.0-uLayer*.10));
  vJet=vec2(t,a);
  gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);
 }`;
@@ -115,11 +115,11 @@ uniform float uTime,uPower,uLayer;
 varying vec2 vJet;
 void main(){
  float t=vJet.x;
- float pressure=pow(.5+.5*cos(t*39.0-uTime*22.0),5.0);
- float rail=pow(.5+.5*cos(vJet.y*4.0+t*9.0-uTime*9.0),5.0);
+ float pressure=pow(.5+.5*cos(t*34.0-uTime*20.0),4.0);
+ float rail=pow(.5+.5*cos(vJet.y*4.0+t*4.0-uTime*7.0),6.0);
  vec3 col=mix(uShell,uEdge,t*.55);
- col=mix(col,uHot,clamp(.13+.59*uLayer+.27*pressure+.13*rail,0.0,.96));
- float alpha=(1.0-smoothstep(.63,1.0,t))*uPower*(.68+.23*pressure);
+ col=mix(col,uHot,clamp(.06+.73*uLayer+.15*pressure+.17*rail,0.0,1.0));
+ float alpha=(1.0-smoothstep(.65,1.0,t))*uPower*mix(.75+.17*rail,.94+.06*pressure,uLayer);
  gl_FragColor=vec4(col,alpha);
  #include <colorspace_fragment>
 }`;
@@ -137,18 +137,20 @@ void main(){
    float seed=mod(floor(t*11.0),19.0)+i*21.0;
    float jump=mix(hash(seed+floor(tick)*11.0),hash(seed+(floor(tick)+1.0)*11.0),smoothstep(.18,.82,fract(tick)));
    float margin=sin(t*3.14159);
-   p=vec3(sgn*(uMount.x+.24+i*.103)+t*.22*sgn+(jump-.5)*.82*margin+edge*(.035+.02*uBurst),
-     uMount.y+.16+i*.052+t*.34+(jump-.5)*.49*margin+edge*.029,
-     uMount.z-.04-t*uLength*(.70+i*.054));
+   float strand=floor(i*.5);
+   p=vec3(sgn*(uMount.x+(.22+strand*.16)*t)+t*.31*sgn+(jump-.5)*1.04*margin+edge*(.042+.025*uBurst),
+     uMount.y+.10+strand*.09*t+t*.34+(jump-.5)*.64*margin+edge*.035,
+     uMount.z-.07-t*uLength*(.72+strand*.11));
  }else if(uMode>.5){
    float swing=(t-.52)*(t-.52);
    p=vec3((i-1.0)*.37+t*.83+swing*.54+edge*(.025+.047*sin(t*3.14159)),
      uMount.y+.20+t*.69+i*.055+edge*.031,
      uMount.z-.76-t*1.68-i*.12);
  }else{
-   p=vec3(sgn*(uMount.x+.27+1.04*t)+edge*.052,
-     uMount.y+.085+t*.22+edge*.048,
-     uMount.z+.22-t*uLength*.97);
+   float strand=floor(i*.5);
+   p=vec3(sgn*(uMount.x+.16+(strand*.18+.69)*t)+edge*.028,
+     uMount.y+.061+strand*.055+t*.20+edge*.025,
+     uMount.z+.12-t*uLength*(.90+strand*.07));
  }
  vShape=vec2(t,edge);
  gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);
@@ -169,9 +171,9 @@ void main(){
 export function createRearFx(id, garage=false){
   const truck=id==='monster-truck', root=new Group();
   const anchor=rearOutlets[id];
-  const hot=new Color(truck?0xe7f6ff:0xffe27f);
-  const shell=new Color(truck?0x247eef:0xf57b1c);
-  const edge=new Color(truck?0x1748bc:0xe44b0c);
+  const hot=new Color(truck?0xebfcff:0xfff4c6);
+  const shell=new Color(truck?0x0089ff:0xffa019);
+  const edge=new Color(truck?0x1250ee:0xfa4b08);
   const uniforms={uMount:{value:[anchor.x,anchor.y,anchor.z]},uHot:{value:hot},uShell:{value:shell},
     uEdge:{value:edge},uTime:{value:0},uLength:{value:1},uWidth:{value:1},uTruck:{value:+truck},
     uPower:{value:0},uBurst:{value:0}};
@@ -205,15 +207,15 @@ export function createRearFx(id, garage=false){
     const u=uniforms, thrust=clamp(drive,0,1), active=clamp(boost,0,1);
     root.visible=Math.max(active,accent,thrust,burst)>.024;
     if(!root.visible)return;
-    const screen=clamp(.88+distance*.015,.90,1.145);
+    const screen=clamp(1+(distance-9)*.038,.96,1.27);
     u.uTime.value=time;
     u.uBurst.value=burst;
-    u.uPower.value=clamp(.70*thrust+.76*active,0,.94);
-    u.uWidth.value=(anchor.radius+.145*thrust+(truck?.22:.14)*active)*screen;
-    u.uLength.value=(.56+(truck?1.62:1.75)*thrust+(truck?1.24:1.32)*active)*screen;
+    u.uPower.value=clamp(.88*thrust+.80*active,0,.99);
+    u.uWidth.value=(anchor.radius+(truck?.226:.172)*thrust+(truck?.21:.12)*active)*screen;
+    u.uLength.value=(.43+(truck?2.01:2.48)*thrust+(truck?1.91:2.12)*active)*screen;
     if(outer){outer.visible=u.uPower.value>.025;inner.visible=outer.visible;}
-    side.material.uniforms.uPower.value=garage?accent*.72:Math.min(.74,active*.69+burst*.17);
-    marks.material.uniforms.uPower.value=truck?Math.max(.30*thrust,Math.min(.90,accent+burst*.56)):Math.min(.93,accent*.93);
+    side.material.uniforms.uPower.value=garage?accent*.72:Math.min(.72,thrust*(truck?.11:.19)+active*.56+burst*.14);
+    marks.material.uniforms.uPower.value=truck?Math.max(.36*thrust,Math.min(.97,accent+boost*.31+burst*.55)):Math.min(.90,accent*.96);
     marks.visible=marks.material.uniforms.uPower.value>.035;
     side.visible=side.material.uniforms.uPower.value>.035;
     if(!garage){
