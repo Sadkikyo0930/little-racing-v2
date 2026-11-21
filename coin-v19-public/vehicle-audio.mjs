@@ -1,4 +1,6 @@
 import {clamp, groundTypes} from './vehicle-feel.mjs';
+import {playTigerRoar,prepareTigerRoar,stopTigerRoar} from './tiger-roar.mjs';
+export {prepareTigerRoar,stopTigerRoar} from './tiger-roar.mjs';
 
 const noiseCache=new WeakMap();
 function noise(ctx) {
@@ -27,6 +29,7 @@ function voice(ctx,dest,type,frequency,gain) {
 export function playSignature(ctx,dest,id,event) {
   if(!ctx || !dest || !id || ctx.state==='closed') return;
   const tiger=id==='tiger-kart', boost=event==='boost', land=event==='land';
+  if(tiger){playTigerRoar(ctx,dest,event);return;}
   const time=ctx.currentTime, length=land?.27:boost?.94:.44;
   const gain=ctx.createGain(), filter=ctx.createBiquadFilter();
   filter.type=tiger&&!land?'bandpass':'lowpass';
@@ -35,7 +38,7 @@ export function playSignature(ctx,dest,id,event) {
   filter.frequency.exponentialRampToValueAtTime(land?95:tiger?215:320,time+length*.45);
   filter.frequency.exponentialRampToValueAtTime(land?70:tiger?128:90,time+length);
   gain.gain.setValueAtTime(.0001,time);
-  gain.gain.exponentialRampToValueAtTime(land?.13:boost?.22:.135,time+.045);
+  gain.gain.exponentialRampToValueAtTime(land?.13:boost?.30:.135,time+.045);
   gain.gain.exponentialRampToValueAtTime(.0001,time+length);
   filter.connect(gain).connect(dest);
   const motor=voice(ctx,filter,tiger?'sawtooth':'triangle',land?59:tiger?88:36,.43);
@@ -55,6 +58,7 @@ export class SignatureAudio {
   constructor() {this.loop=null;this.last={};}
   stop() {
     if(!this.loop)return;
+    stopTigerRoar(this.loop.ctx);
     for(const source of this.loop.sources){source.stop();source.disconnect();}
     for(const node of this.loop.nodes) node.disconnect();
     this.loop=null;
@@ -68,19 +72,21 @@ export class SignatureAudio {
     const hz=(tiger?57:29)+(tiger?148:66)*rpm+(tiger?27:19)*throttle+boost*(tiger?29:13);
     loop.sources[0].frequency.setTargetAtTime(hz,time,.075);
     loop.sources[1].frequency.setTargetAtTime(hz*(tiger?2.006:.507),time,.08);
-    loop.filter.frequency.setTargetAtTime((tiger?550:205)+rpm*(tiger?1020:510)+throttle*(tiger?280:260),time,.09);
-    loop.volume.gain.setTargetAtTime(.052+throttle*.043+rpm*.036+boost*.02,time,.09);
+    loop.filter.frequency.setTargetAtTime((tiger?550:205)+rpm*(tiger?1020:510)+throttle*(tiger?280:260)+(tiger?0:110*boost),time,.09);
+    loop.volume.gain.setTargetAtTime(.052+throttle*.043+rpm*.036+boost*(tiger?.02:.055),time,.09);
     const surface=groundTypes[state.terrain]||groundTypes.asphalt;
     loop.roadFilter.frequency.setTargetAtTime((tiger?460:155)+surface.rumble*680,time,.08);
     loop.roadVolume.gain.setTargetAtTime(Math.min(1,rpm)*(.007+surface.rumble*(tiger?.035:.10)),time,.08);
     for(const [key,event] of [['launchSequence','launch'],['boostSequence','boost'],['landSequence','land']]){
-      if(state[key] && state[key]!==this.last[key] && (event!=='land'||!tiger)) playSignature(ctx,dest,state.id,event);
+      const fresh=event==='launch'?state.launchTime>.15:event==='boost'?(state.boostFlash||0)>.35:(state.landing||0)>.3;
+      if(fresh&&state[key]&&state[key]!==this.last[key]&&(event!=='land'||!tiger)) playSignature(ctx,dest,state.id,event);
       this.last[key]=state[key];
     }
   }
   start(ctx,dest,id) {
     this.stop();
     const tiger=id==='tiger-kart';
+    if(tiger)void prepareTigerRoar(ctx);
     const volume=ctx.createGain(),filter=ctx.createBiquadFilter();
     volume.gain.value=0;filter.type='lowpass';filter.Q.value=.65;
     filter.connect(volume).connect(dest);

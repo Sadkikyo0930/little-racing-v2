@@ -13,15 +13,18 @@ export const groundTypes = profile({
   grass:profile({name:'草地', retention:.72, lateral:.88, color:0x82af49, rumble:.21}),
   mud:profile({name:'泥地', retention:.59, lateral:.78, color:0x986446, rumble:.62}),
   gravel:profile({name:'碎石', retention:.82, lateral:.91, color:0xae997e, rumble:.46}),
+  sand:profile({name:'沙地',retention:.86,lateral:.94,color:0xd9b58a,rumble:.26}),
+  dirt:profile({name:'土路',retention:.90,lateral:.96,color:0xab8a70,rumble:.35}),
+  verge:profile({name:'路肩',retention:.84,lateral:.92,color:0xaa9e8a,rumble:.28}),
 });
 export const damp = (a,b,k,dt) => b+(a-b)*Math.exp(-k*dt);
 export const clamp = (n,min,max) => Math.max(min,Math.min(max,n));
 export const retained = (base, multiplier) => 1-(1-base)*multiplier;
-const trackKinds = ['grass','gravel','asphalt','asphalt','mud'];
+const trackKinds = ['sand','sand','asphalt','asphalt','dirt'];
 
 export function classifyGround(track, sample, offroad) {
-  return (track.groundTypeAt?.(sample.loc) ?? (offroad ? 'grass' :
-    track.course?.scenery === 'beach' ? trackKinds[sample.loc.kind ?? track.kind[sample.loc.index]] : 'asphalt')) || 'asphalt';
+  return (track.groundTypeAt?.(sample.loc) ?? (track.course?.scenery === 'beach'
+    ? trackKinds[sample.loc.kind ?? track.kind[sample.loc.index]] : offroad?'verge':'asphalt')) || 'asphalt';
 }
 
 export function signatureState(id) {
