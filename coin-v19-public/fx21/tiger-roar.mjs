@@ -1,28 +1,28 @@
-// Recorded at the Louisville Zoo by lauramellis. Freesound 263115, CC0 1.0.
-const file=new URL('./fx-audio/tiger-louisville-cc0.mp3',import.meta.url);
-const assets=new WeakMap(), playing=new WeakMap();
-let bytes;
+// Both recordings and their edits are documented in fx-audio/LICENSE.md.
+const assets=new WeakMap(), playing=new WeakMap(), lastCue=new WeakMap(), bytes=new Map();
 const cues={
-  launch:{offset:.025,length:.46,gain:.44,fade:.14,rate:.93},
-  garage:{offset:.19,length:.72,gain:.64,fade:.16,rate:1.02},
-  boost:{offset:0,length:1.30,gain:.87,fade:.12,rate:.965},
+  launch:{file:'tiger-garage.mp3',length:.38,gain:.42,fade:.11},
+  garage:{file:'tiger-garage.mp3',length:.89,gain:.63,fade:.13},
+  boost:{file:'tiger-boost.mp3',length:2.27,gain:.84,fade:.18},
 };
 
-export function prepareTigerRoar(ctx){
+export function prepareTigerRoar(ctx,file=cues.boost.file){
   if(!ctx || ctx.state==='closed') return Promise.resolve(null);
-  if(!assets.has(ctx)){
-    bytes??=fetch(file).then(r=>{
+  if(!assets.has(ctx))assets.set(ctx,new Map());
+  const decoded=assets.get(ctx);
+  if(!decoded.has(file)){
+    if(!bytes.has(file))bytes.set(file,fetch(new URL('./fx-audio/'+file,import.meta.url)).then(r=>{
       if(!r.ok)throw Error('Tiger recording unavailable');
       return r.arrayBuffer();
-    }).catch(error=>{bytes=null;throw error;});
-    const decoded=bytes.then(buffer=>ctx.decodeAudioData(buffer.slice(0))).catch(()=>{
-      assets.delete(ctx);
+    }).catch(error=>{bytes.delete(file);throw error;}));
+    decoded.set(file,bytes.get(file).then(buffer=>ctx.decodeAudioData(buffer.slice(0))).catch(()=>{
+      decoded.delete(file);
       return null;
-    });
-    assets.set(ctx,decoded);
+    }));
   }
-  return assets.get(ctx);
+  return decoded.get(file);
 }
+export const tigerRoarPlaying=ctx=>Boolean(playing.get(ctx)?.source);
 
 export function stopTigerRoar(ctx){
   if(!ctx)return;
@@ -39,18 +39,21 @@ export function stopTigerRoar(ctx){
 export function playTigerRoar(ctx,dest,event){
   if(!ctx || !dest || !cues[event] || ctx.state==='closed')return;
   const previous=playing.get(ctx);
-  if(previous?.event==='boost' && event!=='boost')return;
+  const prior=lastCue.get(ctx);
+  if(previous?.event==='boost'||(prior?.event===event&&ctx.currentTime-prior.time<(event==='boost'?2.65:1.1)))return;
   stopTigerRoar(ctx);
   const ticket={event};
   playing.set(ctx,ticket);
-  void prepareTigerRoar(ctx).then(buffer=>{
+  const p=cues[event];
+  void prepareTigerRoar(ctx,p.file).then(buffer=>{
     if(playing.get(ctx)!==ticket)return;
     if(!buffer || ctx.state==='closed'){playing.delete(ctx);return;}
-    const p=cues[event], current=ctx.currentTime;
+    const current=ctx.currentTime;
+    lastCue.set(ctx,{event,time:current});
     const source=ctx.createBufferSource(), envelope=ctx.createGain();
     ticket.source=source;ticket.gain=envelope;
-    source.buffer=buffer;source.playbackRate.value=p.rate;
-    const length=Math.min(p.length,buffer.duration-p.offset), duration=length/p.rate;
+    source.buffer=buffer;
+    const duration=Math.min(p.length,buffer.duration);
     envelope.gain.setValueAtTime(0,current);
     envelope.gain.linearRampToValueAtTime(p.gain,current+.035);
     envelope.gain.setValueAtTime(p.gain,current+Math.max(.04,duration-p.fade));
@@ -60,6 +63,6 @@ export function playTigerRoar(ctx,dest,event){
       if(playing.get(ctx)===ticket)playing.delete(ctx);
       source.disconnect();envelope.disconnect();
     };
-    source.start(current,p.offset,length);
+    source.start(current,0,duration);
   });
 }

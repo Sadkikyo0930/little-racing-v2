@@ -1,5 +1,5 @@
 import {clamp, groundTypes} from './vehicle-feel.mjs';
-import {playTigerRoar,prepareTigerRoar,stopTigerRoar} from './tiger-roar.mjs';
+import {playTigerRoar,prepareTigerRoar,stopTigerRoar,tigerRoarPlaying} from './tiger-roar.mjs';
 export {prepareTigerRoar,stopTigerRoar} from './tiger-roar.mjs';
 
 const noiseCache=new WeakMap();
@@ -41,7 +41,7 @@ export function playSignature(ctx,dest,id,event) {
   gain.gain.exponentialRampToValueAtTime(land?.13:boost?.30:.135,time+.045);
   gain.gain.exponentialRampToValueAtTime(.0001,time+length);
   filter.connect(gain).connect(dest);
-  const motor=voice(ctx,filter,tiger?'sawtooth':'triangle',land?59:tiger?88:36,.43);
+  const motor=voice(ctx,filter,boost?'sawtooth':'triangle',land?59:36,.43);
   motor.frequency.exponentialRampToValueAtTime(land?29:tiger?51:72,time+length*.42);
   motor.frequency.exponentialRampToValueAtTime(tiger?36:29,time+length);
   const grit=ctx.createBufferSource(), gritGain=ctx.createGain();
@@ -49,6 +49,17 @@ export function playSignature(ctx,dest,id,event) {
   gritGain.gain.value=tiger?.73:.36;
   grit.connect(gritGain).connect(filter);
   const pulse=voice(ctx,gritGain.gain,'triangle',tiger?31:18,tiger?.22:.14);
+  if(boost){
+    const discharge=ctx.createBiquadFilter(), burstGain=ctx.createGain();
+    discharge.type='bandpass';discharge.Q.value=.75;
+    discharge.frequency.setValueAtTime(860,time);
+    discharge.frequency.exponentialRampToValueAtTime(270,time+.26);
+    burstGain.gain.setValueAtTime(.0001,time);
+    burstGain.gain.exponentialRampToValueAtTime(.075,time+.036);
+    burstGain.gain.exponentialRampToValueAtTime(.0001,time+.31);
+    grit.connect(discharge).connect(burstGain).connect(dest);
+    grit.addEventListener('ended',()=>{discharge.disconnect();burstGain.disconnect();},{once:true});
+  }
   grit.start(time,boost?.38:0);
   for(const source of [motor,grit,pulse]) source.stop(time+length+.01);
   grit.onended=()=>{grit.disconnect();gritGain.disconnect();filter.disconnect();gain.disconnect();motor.disconnect();pulse.disconnect();};
@@ -69,17 +80,18 @@ export class SignatureAudio {
     if(this.loop?.id!==state.id || this.loop?.ctx!==ctx) this.start(ctx,dest,state.id);
     const loop=this.loop,tiger=state.id==='tiger-kart', time=ctx.currentTime;
     const rpm=clamp(Math.abs(speed)/32,0,1.45), throttle=state.throttle||0, boost=state.effectBoost||0;
-    const hz=(tiger?57:29)+(tiger?148:66)*rpm+(tiger?27:19)*throttle+boost*(tiger?29:13);
+    const hz=(tiger?57:34)+(tiger?148:63)*rpm+(tiger?27:23)*throttle+boost*(tiger?29:13);
     loop.sources[0].frequency.setTargetAtTime(hz,time,.075);
-    loop.sources[1].frequency.setTargetAtTime(hz*(tiger?2.006:.507),time,.08);
+    loop.sources[1].frequency.setTargetAtTime(hz*(tiger?2.006:1.49),time,.08);
     loop.filter.frequency.setTargetAtTime((tiger?550:205)+rpm*(tiger?1020:510)+throttle*(tiger?280:260)+(tiger?0:110*boost),time,.09);
-    loop.volume.gain.setTargetAtTime(.052+throttle*.043+rpm*.036+boost*(tiger?.02:.055),time,.09);
+    const duck=tiger&&tigerRoarPlaying(ctx)?.34:1;
+    loop.volume.gain.setTargetAtTime((.052+throttle*.043+rpm*.036+boost*(tiger?.02:.070))*duck,time,.09);
     const surface=groundTypes[state.terrain]||groundTypes.asphalt;
     loop.roadFilter.frequency.setTargetAtTime((tiger?460:155)+surface.rumble*680,time,.08);
     loop.roadVolume.gain.setTargetAtTime(Math.min(1,rpm)*(.007+surface.rumble*(tiger?.035:.10)),time,.08);
     for(const [key,event] of [['launchSequence','launch'],['boostSequence','boost'],['landSequence','land']]){
       const fresh=event==='launch'?state.launchTime>.15:event==='boost'?(state.boostFlash||0)>.35:(state.landing||0)>.3;
-      if(fresh&&state[key]&&state[key]!==this.last[key]&&(event!=='land'||!tiger)) playSignature(ctx,dest,state.id,event);
+      if(fresh&&state[key]&&state[key]!==this.last[key]&&(!tiger||event==='boost')) playSignature(ctx,dest,state.id,event);
       this.last[key]=state[key];
     }
   }

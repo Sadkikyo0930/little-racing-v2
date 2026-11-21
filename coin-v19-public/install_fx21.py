@@ -27,7 +27,7 @@ def install_fx21(root, dist):
     audio.write_text(audio.read_text(encoding='utf8').replace(
         'import {SignatureAudio,playSignature}', 'import {SignatureAudio,playSignature,stopTigerRoar}'
     ).replace('cancelAnimationFrame(frame);playback.stop();','cancelAnimationFrame(frame);playback.stop();stopTigerRoar(ctx);'
-    ).replace('},1080);','},clip===\'boost\'?1500:1080);'), encoding='utf8')
+    ).replace('},1080);','},clip===\'boost\'?2550:1080);'), encoding='utf8')
 
     game = assets / 'index-Cam3Integrated.js'
     s = game.read_text(encoding='utf8')

@@ -10,9 +10,9 @@ export const rearOutlets=Object.freeze({
   'monster-truck':Object.freeze({x:.65,y:.89,z:-1.248,radius:.215}),
 });
 
-function tubes(){
+function tubes(sides){
   const xyz=[], meta=[], indices=[];
-  const rows=20, sides=12, stride=sides+1;
+  const rows=20, stride=sides+1;
   for(const sign of [-1,1]){
     const start=xyz.length/3;
     for(let i=0;i<=rows;i++)for(let j=0;j<=sides;j++){
@@ -50,7 +50,7 @@ function ribbons(lines,steps){
   g.setIndex(idx);
   return g;
 }
-const plumeGeometry=tubes(), streakGeometry=ribbons(2,18), markGeometry=ribbons(3,18);
+const plumeGeometry=tubes(12), jetGeometry=tubes(8), streakGeometry=ribbons(2,18), markGeometry=ribbons(3,18);
 const arcGeometry=ribbons(5,22), shockGeometry=new RingGeometry(.89,1,36);
 
 const plumeVertex=`
@@ -62,7 +62,7 @@ varying float vLight;
 void main(){
  float t=shape.x,a=shape.y,side=shape.z;
  float phase=uTime*(12.0+4.0*uTruck)+side*1.7;
- float lobes=sin(t*16.0-phase+a*(2.0+uTruck))*.12+sin(a*3.0+t*34.0+phase*.7)*.045;
+ float lobes=sin(t*21.0-phase+a*2.0)*.17+sin(a*3.0+t*34.0+phase*.7)*.045;
  float open=smoothstep(0.0,.16,t);
  float envelope=mix(.70,1.0,open)*pow(max(.002,1.0-t),.64+.16*uLayer);
  float radius=uWidth*envelope*(1.0+open*lobes)*(1.20-uLayer*.50);
@@ -84,11 +84,43 @@ void main(){
  float flow=.5+.5*sin(t*24.0-uTime*25.0+sin(a*2.0+t*9.0)+vShape.z);
  float bands=.5+.5*sin(t*(21.0+uTruck*12.0)-uTime*20.0+a*(2.0+uTruck*2.0));
  vec3 color=mix(uShell,uEdge,smoothstep(.35,1.0,t));
- color=mix(color,uHot,(.27+.70*uLayer)*(.62+.38*flow)*(1.0-.40*t));
+ float filament=pow(.5+.5*cos(t*40.0-uTime*29.0+a*3.0),4.0);
+ color=mix(color,uHot,(.22+.72*uLayer)*(.67+.33*flow)*(1.0-.29*t)+filament*.13);
  color*=.74+vLight*.22+bands*.23+uBurst*.12;
  float a0=(1.0-smoothstep(.48,1.0,t))*uPower*(1.0-uLayer*.29);
  a0*=mix(.73+.23*flow,.81+.16*bands,uLayer);
  gl_FragColor=vec4(color,a0);
+ #include <colorspace_fragment>
+}`;
+// The truck uses a faceted pressure column with traveling compression bands.
+const jetVertex=`
+attribute vec3 shape;
+uniform vec3 uMount;
+uniform float uTime,uLength,uWidth,uLayer;
+varying vec2 vJet;
+void main(){
+ float t=shape.x,a=shape.y,side=shape.z;
+ float pressure=.92+.08*cos(t*26.0-uTime*15.0);
+ float tip=1.0-smoothstep(.62,1.0,t);
+ float collar=mix(.72,1.0,smoothstep(0.0,.11,t));
+ float r=uWidth*collar*tip*pressure*(1.14-uLayer*.52);
+ vec3 p=vec3(side*(uMount.x+.11*t)+cos(a)*r,
+   uMount.y+sin(a)*r*.83+t*.16,uMount.z-t*uLength*(1.0-uLayer*.13));
+ vJet=vec2(t,a);
+ gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);
+}`;
+const jetFragment=`
+uniform vec3 uHot,uShell,uEdge;
+uniform float uTime,uPower,uLayer;
+varying vec2 vJet;
+void main(){
+ float t=vJet.x;
+ float pressure=pow(.5+.5*cos(t*39.0-uTime*22.0),5.0);
+ float rail=pow(.5+.5*cos(vJet.y*4.0+t*9.0-uTime*9.0),5.0);
+ vec3 col=mix(uShell,uEdge,t*.55);
+ col=mix(col,uHot,clamp(.13+.59*uLayer+.27*pressure+.13*rail,0.0,.96));
+ float alpha=(1.0-smoothstep(.63,1.0,t))*uPower*(.68+.23*pressure);
+ gl_FragColor=vec4(col,alpha);
  #include <colorspace_fragment>
 }`;
 const ribbonVertex=`
@@ -153,8 +185,10 @@ export function createRearFx(id, garage=false){
     root.add(mesh);
     return mesh;
   }
-  const outer=garage?null:attach(plumeGeometry,plumeVertex,plumeFragment,{uLayer:{value:0}},NormalBlending,25);
-  const inner=garage?null:attach(plumeGeometry,plumeVertex,plumeFragment,{uLayer:{value:1}},NormalBlending,26);
+  const geometry=truck?jetGeometry:plumeGeometry;
+  const vertex=truck?jetVertex:plumeVertex, fragment=truck?jetFragment:plumeFragment;
+  const outer=garage?null:attach(geometry,vertex,fragment,{uLayer:{value:0}},NormalBlending,25);
+  const inner=garage?null:attach(geometry,vertex,fragment,{uLayer:{value:1}},NormalBlending,26);
   const side=attach(streakGeometry,ribbonVertex,ribbonFragment,{uMode:{value:0},uPower:{value:0}},NormalBlending,27);
   const marks=attach(truck?arcGeometry:markGeometry,ribbonVertex,ribbonFragment,
     {uMode:{value:truck?2:1},uPower:{value:0}},NormalBlending,28);
@@ -175,8 +209,8 @@ export function createRearFx(id, garage=false){
     u.uTime.value=time;
     u.uBurst.value=burst;
     u.uPower.value=clamp(.70*thrust+.76*active,0,.94);
-    u.uWidth.value=(anchor.radius+.127*thrust+(truck?.19:.15)*active)*screen;
-    u.uLength.value=(.54+(truck?1.65:1.8)*thrust+(truck?1.55:1.45)*active)*screen;
+    u.uWidth.value=(anchor.radius+.145*thrust+(truck?.22:.14)*active)*screen;
+    u.uLength.value=(.56+(truck?1.62:1.75)*thrust+(truck?1.24:1.32)*active)*screen;
     if(outer){outer.visible=u.uPower.value>.025;inner.visible=outer.visible;}
     side.material.uniforms.uPower.value=garage?accent*.72:Math.min(.74,active*.69+burst*.17);
     marks.material.uniforms.uPower.value=truck?Math.max(.30*thrust,Math.min(.90,accent+burst*.56)):Math.min(.93,accent*.93);
