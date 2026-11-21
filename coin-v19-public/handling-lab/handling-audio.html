@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'">
+<title>双车音效试听 · 小小赛车 V2</title>
+<link rel="stylesheet" href="./handling-audio.css">
+</head>
+<body>
+<main>
+  <a href="./handling-lab.html">返回试车场</a>
+  <h1>双车音效试听</h1>
+  <p>轻点播放。发动机试听包含怠速、加速和松开油门。</p>
+  <section data-vehicle="tiger-kart">
+    <h2>虎啸流星</h2>
+    <button data-clip="engine">发动机</button><button data-clip="launch">起步虎啸</button>
+    <button data-clip="boost">猛虎突袭</button><button data-clip="garage">车库虎啸</button>
+  </section>
+  <section data-vehicle="monster-truck">
+    <h2>雷霆巨兽</h2>
+    <button data-clip="engine">重型发动机</button><button data-clip="launch">起步轰鸣</button>
+    <button data-clip="mud">泥地轮胎</button><button data-clip="gravel">碎石轮胎</button>
+    <button data-clip="land">悬挂落地</button><button data-clip="boost">雷霆冲锋</button><button data-clip="garage">车库启动</button>
+  </section>
+  <button id="stop">停止</button><p id="status" role="status"></p>
+</main>
+<script type="module" src="./handling-audio.mjs"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'self' blob: data:; worker-src 'self' blob:">
+<title>双车试车场 · 小小赛车 V2</title>
+<link rel="stylesheet" href="./handling-lab.css">
+</head>
+<body>
+<canvas id="scene" aria-label="3D 试车场"></canvas>
+<header>
+  <div class="top"><a href="./">返回游戏</a><h1>双车试车场</h1><button id="mute" aria-pressed="false">静音</button></div>
+  <div id="cars" aria-label="测试车辆">
+    <button data-car="red" aria-pressed="true">红色赛车</button>
+    <button data-car="tiger-kart" aria-pressed="false">虎啸流星</button>
+    <button data-car="monster-truck" aria-pressed="false">雷霆巨兽</button>
+  </div>
+  <div id="zones" aria-label="测试路段">
+    <button data-zone="straight">直线</button><button data-zone="turns">连续弯</button>
+    <button data-zone="grass">草地</button><button data-zone="mud">泥地</button>
+    <button data-zone="gravel">碎石</button><button data-zone="ramp">坡道</button>
+  </div>
+</header>
+<aside class="telemetry" aria-live="off"><strong id="speed">0 km/h</strong><span id="ground">沥青</span><span id="skill"></span></aside>
+<p id="status" role="status"></p>
+<div class="tests"><button id="compare">三车实测</button><a href="./handling-audio.html">音效试听</a></div>
+<dialog id="results"><form method="dialog"><button value="close">返回赛道</button></form><h2>三车实测</h2><p>普通模式 · 同起点 · 同输入 · 游戏物理</p><div id="measurements"></div></dialog>
+<div id="controls">
+  <div class="steer"><button data-hold="left" aria-label="左转">‹</button><button data-hold="right" aria-label="右转">›</button></div>
+  <div class="drive"><button id="boost">氮气</button><button data-hold="brake">刹车</button><button data-hold="gas">油门</button></div>
+</div>
+<script type="module" src="./handling-lab.mjs"></script>
+</body>
+</html>

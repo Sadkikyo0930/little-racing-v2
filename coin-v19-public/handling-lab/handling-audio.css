@@ -1,0 +1,2 @@
+:root{font:16px system-ui;color:#fcf2d8;background:#111f37;color-scheme:dark}
+main{max-width:710px;margin:auto;padding:22px 15px}a{color:#a8d7ff}section{border:1px solid #425b80;background:#1d3354;border-radius:16px;padding:12px 14px;margin:14px 0}h2{margin:0 0 8px;color:#ffd986}section+section h2{color:#ace1ff}button{background:#263c58;color:inherit;border:1px solid #7093b8;border-radius:9px;min-height:42px;margin:3px;padding:7px 10px;font:inherit}button:hover,button:focus-visible{background:#416a96}p{color:#d9e8f9}

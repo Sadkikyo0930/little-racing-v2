@@ -1,0 +1,3 @@
+.handling-lab-link{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:7px 15px;border:1px solid #f3ce6a;border-radius:18px;background:#172b49;color:#fff4c9;font-weight:750;text-decoration:none;box-shadow:0 2px 12px #14223d80;white-space:nowrap}
+.signature-stat meter{width:100%;height:15px;grid-column:2;accent-color:#ffd264}
+.signature-stat meter::-webkit-meter-optimum-value{background:#f2be4e;border-radius:6px}

@@ -1,0 +1,18 @@
+:root{font-family:system-ui,sans-serif;color:#fff8eb;background:#172a44;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;overflow:hidden;touch-action:none}canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+header,.telemetry,.tests,#controls,#status{position:fixed;z-index:2}
+header{top:max(env(safe-area-inset-top),8px);left:max(env(safe-area-inset-left),10px);right:max(env(safe-area-inset-right),10px);display:grid;gap:5px;justify-items:start;pointer-events:none}
+header>*{pointer-events:auto}.top,#cars,#zones,.steer,.drive,.tests{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+h1{font-size:clamp(17px,4vw,25px);margin:0 4px;text-shadow:0 1px 4px #000}
+button,a{border:1px solid #a7bddb;border-radius:11px;padding:7px 10px;background:#132d4ceb;color:inherit;font:600 14px/1.15 system-ui;text-decoration:none;min-height:33px;touch-action:none}
+button:active,button.on{background:#406694}button[aria-pressed=true]{background:#ffe39c;color:#2f2413;border-color:#ffe39c}
+.telemetry{top:max(env(safe-area-inset-top),8px);right:max(env(safe-area-inset-right),10px);padding:8px 12px;border-radius:12px;background:#122843e8;display:grid;text-align:right;gap:2px;font-variant-numeric:tabular-nums}
+.telemetry strong{font-size:22px}.telemetry span{font-size:12px;color:#ffdfa0}
+.tests{right:max(env(safe-area-inset-right),10px);bottom:max(calc(env(safe-area-inset-bottom) + 73px),84px)}
+#controls{bottom:max(env(safe-area-inset-bottom),10px);left:max(env(safe-area-inset-left),10px);right:max(env(safe-area-inset-right),10px);display:flex;justify-content:space-between;pointer-events:none}
+#controls button{min-height:55px;min-width:55px;pointer-events:auto;font-size:17px}.steer button{font-size:37px!important}
+[data-hold=gas]{background:#14613b}.drive #boost{background:#674318}
+#status{left:50%;top:42%;translate:-50% -50%;width:90%;text-align:center;font-size:18px;text-shadow:0 2px 5px #000;pointer-events:none}
+dialog{width:min(92%,680px);max-height:85%;overflow:auto;color:#fff9ea;background:#142942;border:1px solid #90a7c0;border-radius:16px;padding:14px;touch-action:pan-y}
+dialog::backdrop{background:#08111ac9}dialog form{float:right}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:6px;text-align:right;border-bottom:1px solid #4d6883}th:first-child,td:first-child{text-align:left}
+@media(max-width:560px){.telemetry{top:124px}.telemetry strong{font-size:17px}header{right:10px}button,a{font-size:12px;padding:6px 8px}.tests{bottom:77px}}
