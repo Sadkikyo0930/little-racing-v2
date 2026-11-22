@@ -22,6 +22,10 @@
     --ink:#12243d; --sub:#5b7290; --card:#ffffff; --line:#dbe6f3;
     --red:#e23b2e; --yellow:#ffd23f; --green:#2fae6a; --blue:#2f6fd0;
   }
+  .weekly-card{background:#fff9e6;border:1px solid #f2d98a;border-radius:16px;padding:14px 16px;margin:0 0 16px;font-size:14px;line-height:1.75}
+  .weekly-card h2{font-size:18px;margin:0 0 8px;color:#8a5b00}
+  .weekly-card .row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed #ead49a;padding:3px 0}
+  .weekly-card .row:last-child{border-bottom:0}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
   body{
@@ -100,6 +104,7 @@
 
   <section class="state" id="st-pass">
     <div class="big" aria-hidden="true">🎉</div>
+    <div id="pass-weekly"></div>
     <p class="title" id="pass-title">学习完成啦！</p>
     <p class="hint" id="pass-hint">赛车马上开始…</p>
     <div class="meta"><span>今天还能玩 <b id="pass-remaining">–</b></span></div>
@@ -108,6 +113,7 @@
 
   <section class="state" id="st-lock">
     <div class="big" aria-hidden="true">📚</div>
+    <div id="lock-weekly"></div>
     <p class="title" id="lock-title">今天的两个学习任务还没完成</p>
     <p class="hint" id="lock-hint">完成两个模块，每个答对 80%，就能解锁赛车啦～</p>
     <ul class="mods" id="lock-mods"></ul>
@@ -231,7 +237,7 @@ exportButton.addEventListener('click',function(){
 </script>
 
 <script type="module">
-import { createR5Gate, messageFor, formatClock, R5Error } from './r5/r5-online.mjs';
+import { createR5Gate, messageFor, formatClock, formatAccuracy, R5Error } from './r5/r5-online.mjs';
 import { R5_CONFIG, learnUrl } from './r5/config.mjs';
 import { gameUrl } from './r5/paths.mjs';
 import { captureDeviceFromUrl, getDevice, issueGrant, clearGrant } from './r5/grant.mjs';
@@ -241,6 +247,21 @@ const $ = (id) => document.getElementById(id);
 const states = ['st-checking', 'st-pass', 'st-lock', 'st-sync', 'st-timeup', 'st-nodevice', 'st-error'];
 function show(id) {
   states.forEach((s) => $(s).classList.toggle('on', s === id));
+}
+const isWeekly = st => String(st?.reason || '').startsWith('WEEKLY_ASSESSMENT_');
+const SUBJECT_LABELS = {cn:'语文',ma:'数学',en:'英语',sc:'科学'};
+function weeklyHtml(w, passed) {
+  if (!w) return '';
+  const rows = (w.subjects || []).map(s =>
+    `<div class="row"><span>${SUBJECT_LABELS[s.subject] || s.subject} 答对 ${s.correct}/${s.total}</span><b>${formatAccuracy(s.accuracy_pct)}${s.passed ? ' ✅' : ''}</b></div>`).join('');
+  return `<div class="weekly-card"><h2>🏆 本周四科综合测评</h2>
+    <div class="row"><span>测评日期</span><b>${w.exam_date || '—'}</b></div>
+    <div class="row"><span>题库周期</span><b>${w.paper_week || '—'}</b></div>
+    ${rows}
+    <div class="row"><span>综合正确率</span><b>${formatAccuracy(w.overall_accuracy_pct)}</b></div>
+    <div class="row"><span>周测是否通过</span><b>${passed ? '通过' : '未通过'}</b></div>
+    <div class="row"><span>今日剩余赛车时间</span><b id="weekly-remaining">—</b></div>
+  </div>`;
 }
 function setSub(t) { $('subtitle').textContent = t; }
 
@@ -386,6 +407,12 @@ function lockScreen(st) {
     show('st-error'); return;
   }
   setSub('正在以云端成绩为准检查学习资格');
+  $('lock-weekly').innerHTML = isWeekly(st) ? weeklyHtml(st.weekly, false) : '';
+  if (isWeekly(st)) {
+    $('lock-title').textContent = st.reason === 'WEEKLY_ASSESSMENT_NOT_STARTED' ? '本周四科综合测评还没开始' : '本周四科综合测评尚未通过';
+    $('lock-hint').textContent = '周日只做四科综合测评：每科答对 80% 就能解锁赛车，今天的普通两科课程已暂停。';
+    renderModules([]); show('st-lock'); return;
+  }
   $('lock-title').textContent = st.reason === 'NO_TASKS_TODAY' ? '今天是休息日' : '今天的学习成绩尚未全部获得云端确认';
   $('lock-hint').textContent = st.reason === 'NO_TASKS_TODAY'
     ? '今天没有安排学习任务，可以直接去赛车啦～'
@@ -396,8 +423,10 @@ function lockScreen(st) {
 
 function passScreen(st) {
   setSub('云端确认通过');
-  $('pass-title').textContent = st.reason === 'NO_TASKS_TODAY' ? '今天是休息日，放心玩！' : '学习完成啦！';
+  $('pass-title').textContent = isWeekly(st) ? '✅ 本周测评通过，可以进入赛车！' : (st.reason === 'NO_TASKS_TODAY' ? '今天是休息日，放心玩！' : '学习完成啦！');
+  $('pass-weekly').innerHTML = isWeekly(st) ? weeklyHtml(st.weekly, true) : '';
   $('pass-remaining').textContent = formatClock(st.remaining_seconds);
+  const wr=$('weekly-remaining'); if(wr) wr.textContent=formatClock(st.remaining_seconds);
   $('pass-hint').textContent = '计时从云端开始，用完会自动结束哦～';
   // 这里签发的只是「防深链凭证」，游戏页还会再次向云端确认
   issueGrant(device, R5_CONFIG.grantTtlSeconds, { remaining: st.remaining_seconds });

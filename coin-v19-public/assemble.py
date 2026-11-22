@@ -3,6 +3,7 @@ import hashlib,json,shutil
 from pathlib import Path
 from install_handling import install_handling
 from install_fx21 import install_fx21
+from install_fx40 import install_fx40
 
 root=Path(__file__).resolve().parent
 source=root.parent/'coin-v19-candidate/site'
@@ -31,6 +32,7 @@ data.update(name='小小赛车 V2 · 隔离试玩',short_name='赛车试玩')
 m.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf8')
 install_handling(root, dist)
 install_fx21(root, dist)
+install_fx40(root, dist)
 manifest={p.relative_to(dist).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
           for p in dist.rglob('*') if p.is_file() and p.name not in ('production-sha256.json','.nojekyll')}
 (dist/'production-sha256.json').write_text(json.dumps(manifest,indent=2,ensure_ascii=False),encoding='utf8')

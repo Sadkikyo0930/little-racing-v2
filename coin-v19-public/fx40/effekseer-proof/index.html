@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="zh-Hans"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Effekseer WebGL 验证</title>
+<style>
+body{margin:0;display:grid;place-content:center;min-height:100dvh;background:#071424;color:#d9ecff;font:16px system-ui}
+main{max-width:96vw}canvas{width:min(720px,96vw);height:auto;border-radius:14px}
+nav{display:flex;gap:8px;flex-wrap:wrap;padding:.75rem 0}button{min-height:44px;font:inherit}
+</style><main><canvas width="480" height="270"></canvas>
+<nav><button id="play">播放</button><button id="pause">暂停</button><button id="stop">停止</button><button id="release">释放</button></nav>
+<output id="info">加载 WebGL 运行时</output></main>
+<script src="./effekseer.min.js"></script><script type="module" src="./proof.mjs"></script></html>
