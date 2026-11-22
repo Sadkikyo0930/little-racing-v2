@@ -70,6 +70,7 @@ export function blockMessage(reason, messageFor) {
   const m = messageFor || ((r) => r);
   if (reason === 'TIME_LIMIT_REACHED') return '今天的 30 分钟用完啦，存档都给你留着。明天学习完再来！';
   if (reason === 'PLAN_UNPUBLISHED') return '今天的学习记录还在送到云端，先等一下下，或者请爸爸妈妈看一眼～';
+  if (String(reason || '').startsWith('WEEKLY_ASSESSMENT_')) return m(reason);
   if (reason === 'STUDY_INCOMPLETE_OR_SCORE_UNVERIFIED') return '今天的两个学习任务还没做完（每科要答对 80% 哦），先去学习吧～';
   if (reason === 'R5_MEMBER_DENIED' || reason === 'R5_DEVICE_REQUIRED' || reason === 'R5_INVALID_DEVICE') {
     return m(reason);
@@ -197,14 +198,15 @@ export function createGuard(opts) {
     blockEntries(true);
     clearBanner();
     const isTime = kind === 'time';
-    const title = isTime ? '今天的 30 分钟用完啦' : '暂时连不上学习记录';
+    const isWeekly = String(reason || '').startsWith('WEEKLY_ASSESSMENT_');
+    const title = isTime ? '今天的 30 分钟用完啦' : isWeekly ? '先完成本周综合测评' : '暂时连不上学习记录';
     const body = isTime
       ? '今天的赛车时间用完了，存档都给你留着。明天学习完再来！'
       : `${blockMessage(reason, gate.messageFor)} 计时已经暂停，为了公平，先休息一下吧。`;
     veil(
-      `<div class="emoji">${isTime ? '🌙' : '🛠️'}</div><h2>${title}</h2><p>${body}</p>`,
+      `<div class="emoji">${isTime ? '🌙' : isWeekly ? '🏆' : '🛠️'}</div><h2>${title}</h2><p>${body}</p>`,
       [
-        { label: '去学习（V6 学习平台）', cls: 'primary', onClick: () => { doc.location.href = learnUrl; } },
+        { label: isWeekly ? '去完成周测（V6 学习平台）' : '去学习（V6 学习平台）', cls: 'primary', onClick: () => { doc.location.href = learnUrl; } },
         isTime ? null : { label: '再试一次', cls: 'ghost', onClick: () => { doc.location.reload(); } },
       ].filter(Boolean),
     );
@@ -227,20 +229,21 @@ export function createGuard(opts) {
     if (opts.onServerDenied) opts.onServerDenied(reason);
     const code = String(reason || '');
     const isTime = code === 'TIME_LIMIT_REACHED' || code === 'R5_TIME_UP';
+    const isWeekly = code.startsWith('WEEKLY_ASSESSMENT_');
     const isServer = SERVER_DENY.test(code);
-    const isNet = !isTime && !isServer && kind === 'network';
+    const isNet = !isTime && !isWeekly && !isServer && kind === 'network';
 
-    const emoji = isTime ? '🌙' : isNet ? '📶' : isServer ? '🔑' : '📚';
+    const emoji = isTime ? '🌙' : isNet ? '📶' : isServer ? '🔑' : isWeekly ? '🏆' : '📚';
     const title = isTime ? '今天的 30 分钟用完啦'
       : isNet ? '暂时连不上服务器'
         : isServer ? '这次没能验证通过'
-          : '先去学习再来赛车';
+          : isWeekly ? '先完成本周综合测评' : '先去学习再来赛车';
     const body = isNet
       ? '网络有点忙，等一下再试试。计时还没开始，不会扣时间。'
       : blockMessage(reason, gate.messageFor);
 
     const retry = { label: '再试一次', cls: isNet || isServer ? 'primary' : 'ghost', onClick: () => doc.location.reload() };
-    const learn = { label: '去学习（V6 学习平台）', cls: isNet || isServer ? 'ghost' : 'primary', onClick: () => { doc.location.href = learnUrl; } };
+    const learn = { label: isWeekly ? '去完成周测（V6 学习平台）' : '去学习（V6 学习平台）', cls: isNet || isServer ? 'ghost' : 'primary', onClick: () => { doc.location.href = learnUrl; } };
 
     veil(`<div class="emoji">${emoji}</div><h2>${title}</h2><p>${body}</p>`,
       isNet || isServer ? [retry, learn] : [learn]);

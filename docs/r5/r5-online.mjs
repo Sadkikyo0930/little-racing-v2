@@ -44,6 +44,11 @@ export const R5_MESSAGES = {
   R5_TIMEOUT: '等太久了，再试一次吧。',
   R5_SYNC_PENDING: '学习记录还在上传，等一下再来～',
   // 会话绑定：家长免学习通行只够开一次，过期或被回收后必须重新验证
+  WEEKLY_ASSESSMENT_PASSED: '本周四科综合测评通过啦，去赛车吧！',
+  WEEKLY_ASSESSMENT_INCOMPLETE: '本周四科综合测评还没全部完成，先去测评吧～',
+  WEEKLY_ASSESSMENT_NOT_STARTED: '本周四科综合测评还没开始，先去测评吧～',
+  WEEKLY_ASSESSMENT_BELOW_THRESHOLD: '本周四科综合测评有学科没达到 80%，继续加油～',
+  WEEKLY_ASSESSMENT_PENDING_SYNC: '本周测评成绩还没送到云端，先等一下下～',
   SESSION_REQUIRED: '这次家长通行已经用掉了，请让爸爸妈妈再帮你验证一次。',
   R5_INVALID_SESSION_ID: '这次通行已经失效了，请重新打开一次。',
 };
@@ -290,6 +295,13 @@ export class R5Session {
     this.active = false;
     this._unlisten();
   }
+}
+
+/** Format server-canonical accuracy without trailing .0 for integer percentages. */
+export function formatAccuracy(value) {
+  if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) return '—';
+  const n = Number(value);
+  return (Number.isInteger(n) ? String(n) : n.toFixed(1).replace(/\.0$/, '')) + '%';
 }
 
 export function formatClock(seconds) {
