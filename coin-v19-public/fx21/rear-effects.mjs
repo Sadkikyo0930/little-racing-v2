@@ -84,18 +84,18 @@ void main(){
    offset=vec3(cos(angle),0.0,sin(angle))*.030;
  }else if(mode>1.5){
    float key=floor(age*14.0),point=floor(t*10.0+.08);
-   float start=branch==0.0?0.0:.29+.15*(branch-1.0);
+   float start=branch==0.0?0.0:.10+.16*(branch-1.0);
    float along=mix(start,branch==0.0?1.0:.94,t);
-   float spread=sin(t*3.14159)*(.16+.04*branch);
+   float spread=sin(t*3.14159)*(.48+.09*branch);
    float jump=(hash(key*13.0+point*7.0+i*3.0)-.5)*spread;
-   float reach=branch*pow(t,1.3)*.59;
+   float reach=branch*pow(t,.88)*.64;
    p=vec3(side*(mount.x+.12+along*.16+reach)+jump,
-     mount.y+.06+along*.15+reach*.26-jump*.86,mount.z-.035-along*lengthWorld*.96);
-   offset=vec3(.78,.47,0.0)*(.025-.005*branch);
+     mount.y+.09+along*.15+reach*.42-jump*.76,mount.z-.035-along*lengthWorld*.96);
+   offset=vec3(.78,.47,0.0)*(.034-.006*branch);
  }else if(mode>.5){
-   float x=.39+(i-1.0)*.32;
-   p=vec3(x+t*.63+t*t*.32,mount.y+.16+t*.76,mount.z-.54-t*1.63-i*.14);
-   offset=vec3(.87,.28,0.0)*.048;
+   float x=.96+i*.235;
+   p=vec3(x+t*.65-t*t*.36,mount.y+.14+t*.92,mount.z-.45-t*1.13-i*.11);
+   offset=vec3(.90,.32,0.0)*.061;
  }else if(branch<2.0){
    // Contour strips run aft beside the rear body panels and end at the nozzle plane.
    p=vec3(side*(mount.x+mix(.12,.24,t)+branch*.066),mount.y+.15+branch*.08+t*.13,
@@ -163,7 +163,7 @@ export function createRearFx(id,garage=false){
     const screen=clamp(1+(distance-9)*.025,.94,1.12);
     common.age.value=time;
     common.burst.value=attack;
-    common.lengthWorld.value=(.28+thrust*(truck?1.12:1.34)+active*(truck?2.62:2.88)+attack*.36)*screen;
+    common.lengthWorld.value=(.28+thrust*(truck?1.12:1.34)+active*(truck?2.31:2.49)+attack*.29)*screen;
     common.widthWorld.value=(anchor.radius*(.69+thrust*.26)+active*(truck?.10:.051))*screen;
     power(jet,clamp(thrust*1.11+active*.92,0,1));
     power(streaks,garage?accent*.62:Math.min(.94,active*.85+attack*.31));
