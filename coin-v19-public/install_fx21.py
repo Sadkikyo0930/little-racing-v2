@@ -14,8 +14,8 @@ def install_fx21(root, dist):
     rigs = assets / 'rigged-karts.mjs'
     rig_text = rigs.read_text(encoding='utf8')
     for original, candidate in (
-        ('dist: 7.7, height: 4.7', 'dist: 6.64, height: 4.01, boostDistGain: .72, boostFovGain: 6.6'),
-        ('dist: 8.3, height: 4.85', 'dist: 7.05, height: 4.14, boostDistGain: .72, boostFovGain: 6.6'),
+        ('dist: 7.7, height: 4.7', 'dist: 6.64, height: 4.01'),
+        ('dist: 8.3, height: 4.85', 'dist: 7.05, height: 4.14'),
         ('dist: 8.35, height: 4.1', 'dist: 7.18, height: 3.54, boostDistGain: .72, boostFovGain: 6.6'),
         ('dist: 9.1, height: 4.65', 'dist: 7.79, height: 4.0, boostDistGain: .72, boostFovGain: 6.6'),
     ):

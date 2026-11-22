@@ -97,6 +97,7 @@ function makeParticles(limit){
 const particles=makeParticles(lite?90:180);
 const audio=new SignatureAudio();
 let ctx, bus, muted=false, player, id='red', zone='straight', generation=0, boostCooldown=0;
+const trialChaseScale=vehicle=>vehicle==='red'?1:.86;
 const held=new Set(), keys={ArrowUp:'gas',KeyW:'gas',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowDown:'brake',KeyS:'brake',ShiftLeft:'drift'};
 function unlock(){
   const Audio=window.AudioContext||window.webkitAudioContext;
@@ -114,9 +115,14 @@ function reset(next=zone){
   player.speed=player.lateral=player.vy=player.boostTime=player.boostPower=player.airTime=player._steerSmooth=0;
   player.groundY=sample.y;player.grounded=true;player.offroad=false;player.trackIndex=sample.loc.index;
   player.drifting=false;player.driftTier=0;player.driftCharge=0;player.surfaceGrip=1;player.surfaceLateral=1;
-  if(player.signature){player.signature.terrain=zones[zone].surface;player.signature.effectBoost=0;}
+  if(player.signature){
+    player.signature.terrain=zones[zone].surface;
+    player.signature.effectBoost=player.signature.boostFlash=player.signature.visualDrive=0;
+    player.model.signatureFx?.clearPounce();
+  }
   boostCooldown=0;
-  camera.position.copy(p).add(new T.Vector3(0,4.6,-8.2));camera.lookAt(p.x,1.35+p.y,p.z+4);
+  const scale=trialChaseScale(id);
+  camera.position.set(p.x,p.y+4.6*scale,p.z-8.2*scale);camera.lookAt(p.x,1.35+p.y,p.z+4);
   for(const b of document.querySelectorAll('[data-zone]'))b.setAttribute('aria-pressed',String(b.dataset.zone===zone));
 }
 async function select(next){
@@ -193,7 +199,8 @@ function frame(now){
     if(!muted&&ctx?.state==='running'&&player.signature)audio.update(ctx,bus,player.signature,player.speed);
     const p=player.position,yaw=player.visualYaw,fx=player.signature?.effectBoost||0;
     const distance=(id==='monster-truck'?8.4:7.6)+fx*(id==='tiger-kart'?1.7:1.0), height=id==='monster-truck'?4.9:4.6;
-    desired.set(p.x-Math.sin(yaw)*distance,p.y+height,p.z-Math.cos(yaw)*distance);
+    const scale=trialChaseScale(id), follow=distance*scale;
+    desired.set(p.x-Math.sin(yaw)*follow,p.y+height*scale,p.z-Math.cos(yaw)*follow);
     target.set(p.x+Math.sin(yaw)*4,p.y+1.23,p.z+Math.cos(yaw)*4);
     camera.position.lerp(desired,1-Math.exp(-6*dt));look.lerp(target,1-Math.exp(-8*dt));camera.lookAt(look);
     const surface=track.groundTypeAt(track.surfaceAt(p).loc);
