@@ -7,7 +7,7 @@ export const comparisonCamera=Object.freeze({
   driftSwing:0,followLambda:120,followLambdaSpeed:0,lookLambda:120,shakeScale:0,
 });
 
-export function createReview(get,select,setLight,trigger,setBloom,setFixed,setSlow){
+export function createReview(get,select,setLight,trigger,setBloom,setFixed){
   const ui=document.createElement('aside');
   ui.className='fx-review';ui.setAttribute('aria-label','双车氮气验收');
   const button=(label,callback)=>{
@@ -35,29 +35,30 @@ export function createReview(get,select,setLight,trigger,setBloom,setFixed,setSl
     return el;
   };
   toggle('固定镜头','fixed',setFixed);
-  toggle('幻影慢放','slow',setSlow).title='以 0.35 倍速播放金虎，驾驶与声音保持原速';
-  const normal=button('普通加速',()=>trigger(false)), boost=button('氮气',()=>trigger(true));
+  const cruise=button('巡航',()=>trigger(false,false,'cruise'));
+  const normal=button('急加速',()=>trigger(false)), shift=button('模拟升挡',()=>trigger(false,false,'shift'));
+  const boost=button('氮气',()=>trigger(true));
   const turn=button('弯道氮气',()=>trigger(true,true));
   const readout=document.createElement('span');readout.className='fx-readout';ui.append(readout);
   let timer;
   function report(){
     if(!ui.isConnected){clearInterval(timer);return;}
-    const {fps,fx,pounce}=get();
-    readout.textContent=fps>0?`${Math.round(fps)} FPS · ${fx} 特效${pounce===null?'':' · 金虎'}`:'';
+    const {fps,fx}=get();
+    readout.textContent=fps>0?`${Math.round(fps)} FPS · ${fx} 特效`:'';
   }
   timer=setInterval(report,280);
   const text=document.createElement('output');text.setAttribute('role','status');ui.append(text);
-  normal.disabled=boost.disabled=turn.disabled=true;
+  cruise.disabled=normal.disabled=shift.disabled=boost.disabled=turn.disabled=true;
   document.body.append(ui);
   async function change(id){
     for(const el of cars.values())el.disabled=true;
-    normal.disabled=boost.disabled=turn.disabled=true;
+    cruise.disabled=normal.disabled=shift.disabled=boost.disabled=turn.disabled=true;
     text.textContent='载入中…';
     try{
       await select(id);
       if(get()?.id!==id)throw Error('Requested vehicle not active');
       for(const [key,el] of cars)el.setAttribute('aria-pressed',String(key===id));
-      normal.disabled=boost.disabled=turn.disabled=false;
+      cruise.disabled=normal.disabled=shift.disabled=boost.disabled=turn.disabled=false;
       text.textContent='就绪';
     }catch(error){text.textContent='载入失败，请重试';console.warn('[fx review]',error);}
     finally{for(const el of cars.values())el.disabled=false;}

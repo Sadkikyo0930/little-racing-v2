@@ -56,12 +56,12 @@ def install_fx21(root, dist):
     s = """import {createReview,comparisonCamera,reviewedVehicles} from './review.mjs';
 const fxReview=new URLSearchParams(location.search).get('fx-review')==='1';
 const fxCapture=fxReview&&new URLSearchParams(location.search).get('fx-capture')==='1';
-let fxRun=0,fxFramePending=null,fxPounceRate=1;
+let fxRun=0,fxFramePending=null,fxCruise=false;
 """ + s
     patch("import {SignatureAudio,playSignature}", "import {SignatureAudio,playSignature,prepareTigerRoar,stopTigerRoar}")
     patch('function Rm(e){X.toggleMute(e)', 'function Rm(e){if(e)stopTigerRoar(X.ctx);X.toggleMute(e)')
     patch('updateSignatureVisual(t,e,vp,_t.tier==="high"?2:1)',
-          'updateSignatureVisual(t,e,vp,_t.tier==="high"?2:1,sp.camera,fxPounceRate)')
+          'updateSignatureVisual(t,e,vp,_t.tier==="high"?2:1,sp.camera)')
     patch('this.composer.render(),this.frameCount++',
           'this.composer.render(),fxFramePending&&(fxFramePending(this.canvas.toDataURL("image/jpeg",.92)),fxFramePending=null),this.frameCount++')
     patch('if(handling[e]&&Q.selectedId!==e&&!X.muted){X.init();X.resume();playSignature(X.ctx,X.master,e,\'garage\');}\n Q.setSelected(e);await lm(e);',
@@ -92,7 +92,7 @@ let fxRun=0,fxFramePending=null,fxPounceRate=1;
  let p=$.player,h=fp.surfaceAt(p.position,p.trackIndex),next=fp.getTangent(fp.sampleAt(h.loc.index+13));
  let error=Math.atan2(next.x,next.z)-p.yaw;
  error=Math.atan2(Math.sin(error),Math.cos(error));
- r={...jm,throttle:1,steer:P.clamp(-error*1.25+h.loc.lat*.09,-.62,.62)};
+ r={...jm,throttle:fxCruise?.38:1,steer:P.clamp(-error*1.25+h.loc.lat*.09,-.62,.62)};
  fxRun=Math.max(0,fxRun-e);
 }let i=$.player.drifting,a=$.player.driftTier;$.player.update(e,r,fp)""")
     patch('case`raceOver`:{$.state=`results`', 'case`raceOver`:{if(fxReview)return;$.state=`results`')

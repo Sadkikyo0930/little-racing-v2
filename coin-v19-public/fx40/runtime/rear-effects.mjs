@@ -1,7 +1,7 @@
 import {d as BufferGeometry,u as BufferAttribute,G as Group,bt as Mesh,
   Bn as ShaderMaterial,Yn as Texture} from './BufferGeometryUtils-B1nfbDRm.js';
 import {clamp} from './vehicle-feel.mjs';
-import {createTigerPounce} from './tiger-pounce.mjs';
+import {createExhaustEvents} from './backfire-events.mjs';
 
 const artTextures=new Map();
 function authoredTexture(name){
@@ -46,7 +46,7 @@ function strips(count,steps){
 }
 
 function pressureColumns(){
-  const shape=[],positions=[],indices=[],rings=20,sides=8,stride=sides+1;
+  const shape=[],positions=[],indices=[],rings=10,sides=8,stride=sides+1;
   for(const sign of [-1,1]){
     const start=positions.length/3;
     for(let row=0;row<=rings;row++)for(let side=0;side<=sides;side++){
@@ -65,8 +65,8 @@ function pressureColumns(){
   return geometry;
 }
 
-const jets=pressureColumns(), rails=strips(4,12), bodyLines=strips(6,14);
-const lightning=strips(2,4), embers=strips(8,1), pulse=strips(2,14);
+const jets=pressureColumns(), bodyLines=strips(6,14);
+const lightning=strips(2,4), embers=strips(8,1);
 const sharedVertex=`
 attribute vec3 shape;
 uniform vec3 mount;
@@ -75,20 +75,23 @@ varying vec2 profile;
 void project(vec3 p){gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}
 `;
 const jetVertex=sharedVertex+`
+uniform vec2 jetPower,jetLength,jetAge;
 varying vec3 jetNormal,jetView;
+varying float nozzlePower;
 void main(){
  float t=shape.x,a=shape.y,side=shape.z;
- float phase=t*20.0-age*24.0+side*1.7;
- float taper=1.0-smoothstep(.46,1.0,t);
- float flame=(.79+.22*sin(t*3.14159))*pow(max(.001,1.0-t),.70);
- flame*=1.0+(sin(phase+a*3.0)*.13+cos(phase*1.69-a*4.0)*.047)*smoothstep(0.0,.31,t);
- float column=mix(.78,1.0,smoothstep(0.0,.17,t))*taper*(.97+.04*cos(t*34.0-age*22.0));
- float radius=widthWorld*mix(flame,column,variant);
+ float energy=side<0.0?jetPower.x:jetPower.y;
+ float lengthScale=side<0.0?jetLength.x:jetLength.y;
+ float pulseAge=side<0.0?jetAge.x:jetAge.y;
+ float phase=t*18.0-pulseAge*8.0+side*2.37;
+ float outline=mix(.82,1.18,smoothstep(0.0,.26,t))*pow(max(.002,1.0-t),.80);
+ float irregular=1.0+sin(phase+a*3.0)*.20*smoothstep(.16,.60,t);
+ float radius=widthWorld*outline*irregular*(.76+.24*lengthScale);
  vec3 radial=vec3(cos(a),sin(a),0.0);
- vec3 p=vec3(side*(mount.x+t*mix(.16,.12,variant)),
-   mount.y+t*mix(.17,.09,variant),mount.z-t*lengthWorld);
- p+=radial*radius*vec3(1.0,.82,1.0);
- p.x+=sin(phase*.47)*t*(1.0-variant)*.047;
+ vec3 p=vec3(side*(mount.x+t*.052),mount.y+t*t*.065,mount.z-t*lengthWorld*max(.01,lengthScale));
+ p+=radial*radius*vec3(1.0,.84,1.0);
+ p.x+=sin(phase*.75)*t*.031;
+ nozzlePower=energy;
  profile=vec2(t,a);
  jetNormal=mat3(modelViewMatrix)*radial;
  jetView=-(modelViewMatrix*vec4(p,1.0)).xyz;
@@ -96,10 +99,11 @@ void main(){
 }`;
 const jetFragment=`
 uniform vec3 hot,mainColor,edgeColor;
-uniform float age,power,variant,fluxReady,boostPower;
+uniform float age,variant,fluxReady;
 uniform sampler2D flux;
 varying vec2 profile;
 varying vec3 jetNormal,jetView;
+varying float nozzlePower;
 void main(){
  float t=profile.x,a=profile.y;
  float face=abs(dot(normalize(jetNormal),normalize(jetView)));
@@ -113,8 +117,8 @@ void main(){
  col=mix(col,hot,.30*pow(art.r,3.0)*pow(core,.7));
  float edges=1.0-smoothstep(.85,1.0,t);
  float heat=.82+.18*art.a;
- float gate=clamp(.88+boostPower*.12,0.0,1.0);
- gl_FragColor=vec4(col,edges*power*heat*gate);
+
+ gl_FragColor=vec4(col,edges*nozzlePower*heat);
  #include <colorspace_fragment>
 }`;
 
@@ -149,19 +153,20 @@ void main(){
 }`;
 
 const emberVertex=sharedVertex+`
+uniform vec2 jetPower,jetAge;
 varying vec2 vCinder;
 varying float vLife;
 void main(){
  float seed=shape.z,t=shape.x,e=shape.y;
  float side=mod(seed,2.0)*2.0-1.0;
- float progress=fract(age*(2.1+.17*seed)+seed*.371);
+ float progress=clamp((side<0.0?jetAge.x:jetAge.y)*(.60+.055*seed)+seed*.037,0.0,1.0);
  float streak=.17+.13*fract(seed*.339);
- float x=side*(mount.x+.05+progress*(.16+.12*seed));
- float y=mount.y+.045+progress*(.08+.03*seed);
- float z=mount.z-progress*(.82+lengthWorld*.45)-(1.0-t)*streak;
+ float x=side*(mount.x+.02+progress*(.038+.045*seed));
+ float y=mount.y+.022+progress*(.07+.018*seed);
+ float z=mount.z-progress*.65-(1.0-t)*streak;
  vec3 p=vec3(x+e*.027,y+e*.026,z);
  vCinder=vec2(t,e*.5+.5);
- vLife=1.0-smoothstep(.39,1.0,progress);
+ vLife=(side<0.0?jetPower.x:jetPower.y)*(1.0-smoothstep(.28,1.0,progress));
  project(p);
 }`;
 const emberFragment=`
@@ -182,23 +187,11 @@ void main(){
  float side=mod(i,2.0)*2.0-1.0,branch=floor(i*.5);
  float taper=.25+.75*sin(t*3.14159);
  vec3 p,offset;
- if(mode>3.5){
-   float x=mount.x+.12+.077*branch;
-   float sweep=sin(t*3.14159);
-   p=vec3(side*(x+.105*sweep+.10*t),
-     mount.y+.16+branch*.095+sweep*.18,mix(.73,mount.z+.065,t));
-   offset=vec3(.44,.80,0.0)*(.069-.014*branch);
- }else if(mode>2.5){
-   // Two shallow arcs, anchored behind the bumper, visible below the car.
-   float angle=mix(.17,2.97,t)+i*3.14159;
-   float radius=.34+(1.0-burst)*1.55;
-   p=vec3(cos(angle)*radius*.9,mount.y-.30,mount.z-.54+sin(angle)*radius*.61);
-   offset=vec3(cos(angle),0.0,sin(angle))*.030;
- }else{
-   p=vec3(side*(mount.x+.14+branch*.21+t*.63),mount.y-.17+branch*.10+t*.12,
-     mount.z-.15-t*lengthWorld*(.88+branch*.09));
-   offset=vec3(.85,.38,0.0)*(.057-branch*.016);
- }
+ float x=mount.x+.12+.077*branch;
+ float sweep=sin(t*3.14159);
+ p=vec3(side*(x+.105*sweep+.10*t),
+   mount.y+.16+branch*.095+sweep*.18,mix(.73,mount.z+.065,t));
+ offset=vec3(.44,.80,0.0)*(.069-.014*branch);
  profile=vec2(t,e);
  project(p+offset*e*taper);
 }`;
@@ -209,7 +202,7 @@ varying vec2 profile;
 void main(){
  float t=profile.x,e=abs(profile.y);
  float point=smoothstep(0.0,.065,t)*(1.0-smoothstep(.73,1.0,t));
- float moving=mode<.5||mode>3.5?.38+.62*pow(.5+.5*cos(t*15.0-age*24.0),3.0):1.0;
+ float moving=.38+.62*pow(.5+.5*cos(t*15.0-age*24.0),3.0);
  vec3 color=mix(mainColor,hot,1.0-smoothstep(.29,.72,e));
  gl_FragColor=vec4(color,point*(1.0-smoothstep(.73,1.0,e))*power*moving);
  #include <colorspace_fragment>
@@ -219,10 +212,11 @@ export function createRearFx(id,garage=false){
   const truck=id==='monster-truck',root=new Group(),anchor=rearOutlets[id];
   const flow=authoredTexture(truck?'thunder-flow.png':'gold-flow.png');
   const arcAtlas=truck?authoredTexture('electric-forks.png'):null;
-  const emberAtlas=truck?null:authoredTexture('cinder.png');
+  const emberAtlas=garage?null:authoredTexture('cinder.png');
   const common={
     mount:{value:[anchor.x,anchor.y,anchor.z]},age:{value:0},lengthWorld:{value:1},
-    widthWorld:{value:.1},burst:{value:0},variant:{value:Number(truck)},boostPower:{value:0},
+    widthWorld:{value:anchor.radius*.91},burst:{value:0},variant:{value:Number(truck)},
+    jetPower:{value:[0,0]},jetAge:{value:[1,1]},jetLength:{value:[0,0]},
     flux:flow.texture,fluxReady:flow.loaded,
     ...(arcAtlas?{discharge:arcAtlas.texture,atlasReady:arcAtlas.loaded}:{}),
     ...(emberAtlas?{cinder:emberAtlas.texture,cinderReady:emberAtlas.loaded}:{}),
@@ -243,15 +237,13 @@ export function createRearFx(id,garage=false){
     root.add(mesh);
     return mesh;
   }
+  const flameLength={value:truck?.76:.67};
   const jet=garage?null:attach(jets,jetVertex,jetFragment,25,0,0);
-  const streaks=garage?null:attach(rails,linesVertex,linesFragment,24);
+  if(jet)jet.material.uniforms.lengthWorld=flameLength;
   const contour=attach(bodyLines,linesVertex,linesFragment,26,4);
   const arcs=garage||!truck?null:attach(lightning,forkVertex,forkFragment,27);
-  const cinders=garage||truck?null:attach(embers,emberVertex,emberFragment,27);
-  const shock=garage?null:attach(pulse,linesVertex,linesFragment,23,3);
-  const pounce=garage||truck?null:createTigerPounce();
-  if(pounce)root.add(pounce.root);
-  let sequenceSeen=0,pounceAge=Infinity;
+  const cinders=garage?null:attach(embers,emberVertex,emberFragment,27);
+  const events=garage?null:createExhaustEvents();
   const power=(mesh,value)=>{
     if(!mesh)return;
     mesh.visible=value>.032;
@@ -260,34 +252,33 @@ export function createRearFx(id,garage=false){
   root.visible=false;
   return {
     root,
-    ready:pounce?.ready??Promise.resolve(),
-    get pounceAge(){return pounce?.root.visible?pounceAge:null;},
-    clearPounce(){pounceAge=Infinity;pounce?.update(pounceAge,false);},
-    update(boost,accent,time,{drive=0,burst=0,distance=8.6,low=false,sequence=0,dt=0,reviewRate=1}={}){
+    get exhaust(){return events;},
+    resetExhaust(sequence,launch,speed,throttle){events?.reset(sequence,launch,speed,throttle);},
+    update(boost,accent,time,{drive=0,burst=0,distance=8.6,speed=0,throttle=0,sequence=0,launch=0,dt=0}={}){
       const reduced=motionPreference?.matches??false;
-      const thrust=clamp(drive,0,1),active=clamp(boost,0,1);
-      const attack=clamp(burst,0,1);
-      if(pounce&&sequence!==sequenceSeen){sequenceSeen=sequence;pounceAge=sequence>0?0:Infinity;}
-      pounceAge+=dt*reviewRate;
-      pounce?.update(pounceAge,reduced);
-      root.visible=Math.max(thrust,active,accent,attack)>.025||pounce?.root.visible===true;
+      const thrust=clamp(drive,0,1),active=clamp(boost,0,1),attack=clamp(burst,0,1);
+      events?.update(dt,{speed,throttle,sequence,launch,boost:Math.max(active,attack),reduced});
+      const left=events?.left,right=events?.right;
+      const flame=Math.max(left?.energy||0,right?.energy||0);
+      const contourPower=garage?accent*.76:Math.min(.98,attack+active*.53);
+      const arcPower=Math.min(reduced?.40:.96,thrust*.16+active*.83+attack*.51);
+      if(left){
+        const jp=common.jetPower.value,jl=common.jetLength.value,ja=common.jetAge.value;
+        jp[0]=left.energy;jp[1]=right.energy;
+        jl[0]=left.length;jl[1]=right.length;
+        ja[0]=left.age;ja[1]=right.age;
+        flameLength.value=(truck?.76:.67)*(events.event==='nitro'?1.16:1);
+      }
+      root.visible=Math.max(flame,contourPower,arcs?arcPower:0)>.032;
       if(!root.visible)return;
       const screen=clamp(1+(distance-9)*.021,.95,1.11);
       common.age.value=reduced?0:time;
-      common.burst.value=attack;
-      common.boostPower.value=active;
-      common.lengthWorld.value=(.28+thrust*(1.35)+active*(truck?2.57:2.15)+attack*.25)*screen;
-      common.widthWorld.value=(anchor.radius*(.79+thrust*.55)+active*(truck?.205:.158))*screen;
-      power(jet,clamp(thrust*1.13+active*.91,0,1));
-      power(streaks,Math.min(.91,active*.82+attack*.29));
-      power(contour,garage?accent*.76:Math.min(.98,attack*1.00+active*.53));
-      power(arcs,Math.min(reduced?.40:.96,thrust*.16+active*.83+attack*.51));
-      power(cinders,reduced?0:Math.min(low?.54:.74,thrust*.10+active*.44+attack*.40));
-      power(shock,attack*(reduced?.12:low?.44:.65));
+      common.lengthWorld.value=(.28+thrust*1.35+active*2.57+attack*.25)*screen;
+      power(jet,flame);
+      power(cinders,reduced?0:flame*.81);
+      power(contour,contourPower);
+      power(arcs,arcPower);
     },
-    dispose(){
-      for(const mesh of root.children)if(mesh!==pounce?.root)mesh.material.dispose();
-      pounce?.dispose();
-    },
+    dispose(){for(const mesh of root.children)mesh.material.dispose();},
   };
 }

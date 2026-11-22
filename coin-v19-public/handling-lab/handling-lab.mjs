@@ -118,7 +118,7 @@ function reset(next=zone){
   if(player.signature){
     player.signature.terrain=zones[zone].surface;
     player.signature.effectBoost=player.signature.boostFlash=player.signature.visualDrive=0;
-    player.model.signatureFx?.clearPounce();
+    player.model.signatureFx?.resetExhaust(player.signature.boostSequence,player.signature.launchSequence);
   }
   boostCooldown=0;
   const scale=trialChaseScale(id);
