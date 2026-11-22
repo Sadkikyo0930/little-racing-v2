@@ -7,7 +7,7 @@ export const comparisonCamera=Object.freeze({
   driftSwing:0,followLambda:120,followLambdaSpeed:0,lookLambda:120,shakeScale:0,
 });
 
-export function createReview(get,select,setLight,trigger){
+export function createReview(get,select,setLight,trigger,setBloom){
   const ui=document.createElement('aside');
   ui.className='fx-review';ui.setAttribute('aria-label','相同追尾镜头效果对比');
   const button=(label,callback)=>{
@@ -21,6 +21,11 @@ export function createReview(get,select,setLight,trigger){
     night=!night;
     light.textContent=night?'夜景':'白天';light.setAttribute('aria-pressed',String(night));setLight(night);
   });
+  const bloom=button('Bloom',()=>{
+    setBloom(!get().bloom);
+    bloom.setAttribute('aria-pressed',String(get().bloom));
+  });
+  bloom.setAttribute('aria-pressed',String(get().bloom));
   const normal=button('普通加速',()=>trigger(false)), boost=button('氮气',()=>trigger(true));
   const text=document.createElement('output');text.setAttribute('role','status');ui.append(text);
   normal.disabled=boost.disabled=true;

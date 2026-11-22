@@ -6,7 +6,7 @@ if(fxReview){
   const p=$.player;
   return {id:p?.model.group.name,speed:p?.speed,boost:p?.boostTime,distance:p?.position.distanceTo(sp.camera.position),
    chase:yp.mode,fx:p?.model.signatureFx?.root.children.filter(n=>n.visible&&n.parent.visible).length||0,
-   active:p?.model.signatureFx?.root.visible??false,time:fxRun,
+   bloom:sp.bloom.enabled,active:p?.model.signatureFx?.root.visible??false,time:fxRun,
    fps:sp.fps,geometries:sp.renderer.info.memory.geometries,textures:sp.renderer.info.memory.textures,
    particles:vp.additive.life.reduce((n,x)=>n+(x>0),0)+vp.alpha.life.reduce((n,x)=>n+(x>0),0)};
  };
@@ -40,5 +40,5 @@ if(fxReview){
   yp.look.copy(p.position).addScaledVector(p.forward,comparisonCamera.lookAhead);yp.look.y+=comparisonCamera.lookY;
   fxRun=2.65;
   if(boost)p.applyBoost(12,1.6);
- });
+ },enabled=>{sp.bloom.enabled=enabled;});
 }

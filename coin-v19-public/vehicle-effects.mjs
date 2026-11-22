@@ -54,12 +54,12 @@ export function updateSignatureVisual(kart,dt,particles,quality=1,camera=null) {
   s.emission%=1;
   const anchor=rearOutlets[s.id];
   for(const side of [-1,1]){
-    if(boost>.15 || (!truck&&(kart.drifting||launch))){
+    if(!truck&&(kart.drifting||launch)){
       const x=kart.position.x+sin*anchor.z+cos*side*anchor.x;
       const z=kart.position.z+cos*anchor.z-sin*side*anchor.x;
-      tint.setHex(boost>.53?s.tune.core:s.tune.color);
+      tint.setHex(s.tune.color);
       particles.additive.spawn(x,kart.position.y+anchor.y,z,-sin*(4+boost*6)+cos*side,
-        .95+(kart.drifting?1.6:0),-cos*(4+boost*6)-sin*side,tint,.115+boost*.22,.31,
+        .95+(kart.drifting?1.6:0),-cos*(4+boost*6)-sin*side,tint,.076,.21,
         {gravity:-3,drag:1.1});
     }
     if(truck && kart.grounded && speed>4 && (s.terrain!=='asphalt'||boost>.22||(s.throttle>.68&&speed>9))){
