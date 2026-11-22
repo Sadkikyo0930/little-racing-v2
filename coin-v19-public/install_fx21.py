@@ -5,10 +5,24 @@ import shutil
 def install_fx21(root, dist):
     source = root / 'fx21'
     assets = dist / 'assets'
-    for name in ('rear-effects.mjs', 'tiger-roar.mjs', 'review.mjs'):
+    for name in ('rear-effects.mjs', 'tiger-pounce.mjs', 'tiger-roar.mjs', 'review.mjs'):
         shutil.copyfile(source / name, assets / name)
     shutil.copytree(source / 'audio', assets / 'fx-audio', dirs_exist_ok=True)
     shutil.copyfile(source / 'review.css', dist / 'fx-review.css')
+
+    # This installer belongs to the isolated static build; upstream camera files remain intact.
+    rigs = assets / 'rigged-karts.mjs'
+    rig_text = rigs.read_text(encoding='utf8')
+    for original, candidate in (
+        ('dist: 7.7, height: 4.7', 'dist: 6.64, height: 4.01, boostDistGain: .72, boostFovGain: 6.6'),
+        ('dist: 8.3, height: 4.85', 'dist: 7.05, height: 4.14, boostDistGain: .72, boostFovGain: 6.6'),
+        ('dist: 8.35, height: 4.1', 'dist: 7.18, height: 3.54, boostDistGain: .72, boostFovGain: 6.6'),
+        ('dist: 9.1, height: 4.65', 'dist: 7.79, height: 4.0, boostDistGain: .72, boostFovGain: 6.6'),
+    ):
+        if rig_text.count(original) != 1:
+            raise RuntimeError(f'Isolated chase camera anchor moved: {original}')
+        rig_text=rig_text.replace(original,candidate,1)
+    rigs.write_text(rig_text,encoding='utf8')
 
     index = dist / 'index.html'
     index.write_text(index.read_text(encoding='utf8').replace(
@@ -42,12 +56,12 @@ def install_fx21(root, dist):
     s = """import {createReview,comparisonCamera,reviewedVehicles} from './review.mjs';
 const fxReview=new URLSearchParams(location.search).get('fx-review')==='1';
 const fxCapture=fxReview&&new URLSearchParams(location.search).get('fx-capture')==='1';
-let fxRun=0,fxFramePending=null;
+let fxRun=0,fxFramePending=null,fxPounceRate=1;
 """ + s
     patch("import {SignatureAudio,playSignature}", "import {SignatureAudio,playSignature,prepareTigerRoar,stopTigerRoar}")
     patch('function Rm(e){X.toggleMute(e)', 'function Rm(e){if(e)stopTigerRoar(X.ctx);X.toggleMute(e)')
     patch('updateSignatureVisual(t,e,vp,_t.tier==="high"?2:1)',
-          'updateSignatureVisual(t,e,vp,_t.tier==="high"?2:1,sp.camera)')
+          'updateSignatureVisual(t,e,vp,_t.tier==="high"?2:1,sp.camera,fxPounceRate)')
     patch('this.composer.render(),this.frameCount++',
           'this.composer.render(),fxFramePending&&(fxFramePending(this.canvas.toDataURL("image/jpeg",.92)),fxFramePending=null),this.frameCount++')
     patch('if(handling[e]&&Q.selectedId!==e&&!X.muted){X.init();X.resume();playSignature(X.ctx,X.master,e,\'garage\');}\n Q.setSelected(e);await lm(e);',

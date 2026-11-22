@@ -5,7 +5,7 @@ export {createRearFx as createVehicleFx} from './rear-effects.mjs';
 
 const tint=new Color();
 const contact=new Vector(), localUp=new Vector();
-export function updateSignatureVisual(kart,dt,particles,quality=1,camera=null) {
+export function updateSignatureVisual(kart,dt,particles,quality=1,camera=null,reviewRate=1) {
   const s=kart.signature;
   if(!s) return;
   const truck=s.id==='monster-truck', model=kart.model;
@@ -34,7 +34,7 @@ export function updateSignatureVisual(kart,dt,particles,quality=1,camera=null) {
   s.visualDrive=damp(s.visualDrive||0,driveTarget,driveTarget>0?11:6,dt);
   const accent=truck?Math.min(.75,boost*.42+burst*.22):Math.max(s.claws/.42,burst);
   const distance=camera?.position.distanceTo(kart.position)??8.6;
-  model.signatureFx?.update(boost,accent,s.age,{drive:s.visualDrive,burst,distance,low:quality<=1});
+  model.signatureFx?.update(boost,accent,s.age,{drive:s.visualDrive,burst,distance,low:quality<=1,sequence:s.boostSequence,dt,reviewRate});
   s.boostFlash=damp(burst,0,3.8,dt);
   if(!particles) return;
   const surface=groundTypes[s.terrain]||groundTypes.asphalt;
