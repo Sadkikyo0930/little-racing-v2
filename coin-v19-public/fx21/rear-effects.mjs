@@ -93,9 +93,9 @@ void main(){
      mount.y+.09+along*.15+reach*.42-jump*.76,mount.z-.035-along*lengthWorld*.96);
    offset=vec3(.78,.47,0.0)*(.034-.006*branch);
  }else if(mode>.5){
-   float x=.96+i*.235;
-   p=vec3(x+t*.65-t*t*.36,mount.y+.14+t*.92,mount.z-.45-t*1.13-i*.11);
-   offset=vec3(.90,.32,0.0)*.061;
+   float x=1.01+i*.258;
+   p=vec3(x+t*.91-t*t*.40,mount.y+.16+t*.98,mount.z-.35-t*.68-i*.069);
+   offset=vec3(.74,-.68,0.0)*.092;
  }else if(branch<2.0){
    // Contour strips run aft beside the rear body panels and end at the nozzle plane.
    p=vec3(side*(mount.x+mix(.12,.24,t)+branch*.066),mount.y+.15+branch*.08+t*.13,
@@ -167,7 +167,7 @@ export function createRearFx(id,garage=false){
     common.widthWorld.value=(anchor.radius*(.69+thrust*.26)+active*(truck?.10:.051))*screen;
     power(jet,clamp(thrust*1.11+active*.92,0,1));
     power(streaks,garage?accent*.62:Math.min(.94,active*.85+attack*.31));
-    power(accentStrips,truck?Math.min(.92,active*.79+attack*.42):Math.min(.96,accent*1.1));
+    power(accentStrips,truck?Math.min(.92,active*.79+attack*.42):Math.min(.98,accent*2.05));
     power(shock,attack*(low?.42:.66));
   },dispose(){
     for(const mesh of root.children)mesh.material.dispose();
